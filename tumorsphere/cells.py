@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 colors = {"cell": "green", "csc": "red", "dcc": "blue"}
 
 # probabilities = {'ps' : 0.36, 'pd' : 0.16}
-prob_stem = 0.36
+# prob_stem = 0.36
 
 class Cell:
     def __init__(

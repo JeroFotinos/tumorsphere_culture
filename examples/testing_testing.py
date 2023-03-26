@@ -1,5 +1,5 @@
-from cells import *
-from culture import *
+from tumorsphere.cells import *
+from tumorsphere.culture import *
 
 test_culture1 = Culture(cell_max_repro_attempts=50)
 # print(test_culture.cells[0].position)

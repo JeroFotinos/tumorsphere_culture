@@ -1,5 +1,5 @@
-from cells import *
-from culture import *
+from tumorsphere.cells import *
+from tumorsphere.culture import *
 
 csc_culture = Culture(first_cell_type='csc', prob_stem=0.5, cell_max_repro_attempts=1000)
 csc_culture.simulate(7)
