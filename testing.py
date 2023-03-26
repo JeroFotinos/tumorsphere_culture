@@ -1,4 +1,5 @@
-from core import *
+from cells import *
+from culture import *
 
 test_culture = Culture()
 # print(test_culture.cells[0].position)
