@@ -165,6 +165,30 @@ class Culture:
         ax.mouse_init()  # initialize mouse rotation
 
         plt.show()
+    
+    def plot_culture_fig(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection="3d")
+
+        for cell in self.cells:
+            x, y, z = cell.position
+            ax.scatter(x, y, z, c="green", marker="o")
+
+            # plot a sphere at the position of the cell
+            u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
+            sphere_x = cell.position[0] + np.cos(u) * np.sin(v) * cell.radius
+            sphere_y = cell.position[1] + np.sin(u) * np.sin(v) * cell.radius
+            sphere_z = cell.position[2] + np.cos(v) * cell.radius
+            ax.plot_surface(sphere_x, sphere_y, sphere_z, color="green", alpha=0.2)
+
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_zlabel("Z")
+
+        # ax.mouse_init()  # initialize mouse rotation
+
+        # plt.show()
+        return fig
 
     def plot_graph(self):
         nx.draw(self.graph)
