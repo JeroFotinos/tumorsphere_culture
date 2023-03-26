@@ -188,11 +188,13 @@ class Csc(Cell):
         adjacency_threshold=np.sqrt(2) / 2,
         radius=1,
         max_repro_attempts=10000,
+        prob_stem = 0.36
     ):
         super().__init__(
             position, culture, adjacency_threshold, radius, max_repro_attempts
         )
         self.color = colors["csc"]
+        self.prob_stem = prob_stem
     
     def reproduce(self):
         assert len(self.neighbors) <= len(self.culture.cells)
@@ -221,13 +223,14 @@ class Csc(Cell):
             if no_overlap:
                 # we create a child in that position
                 # a csc with prob prob_stem and a dcc if not
-                if np.random.uniform() < prob_stem:
+                if np.random.uniform() <= self.prob_stem:
                     child_cell = Csc(
                     position=child_position,
                     culture=self.culture,
                     adjacency_threshold=self.adjacency_threshold,
                     radius=self.radius,
                     max_repro_attempts=self.max_repro_attempts,
+                    prob_stem=self.prob_stem
                 )
                 else:
                     child_cell = Dcc(

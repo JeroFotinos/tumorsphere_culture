@@ -6,11 +6,13 @@ class Culture:
         adjacency_threshold=np.sqrt(2) / 2,
         cell_radius=1,
         cell_max_repro_attempts=10000,
-        first_cell_type = 'cell'
+        first_cell_type = 'cell',
+        prob_stem = 0.36 # Wang HARD substrate value
     ):
         self.cell_max_repro_attempts = cell_max_repro_attempts
         self.adjacency_threshold = adjacency_threshold
         self.cell_radius = cell_radius
+        self.prob_stem = prob_stem
         if first_cell_type == 'cell':
             first_cell_object = Cell(
                 position=np.array([0, 0, 0]),
@@ -34,6 +36,7 @@ class Culture:
                 adjacency_threshold=self.adjacency_threshold,
                 radius=self.cell_radius,
                 max_repro_attempts=cell_max_repro_attempts,
+                prob_stem = self.prob_stem
             )
         else:
             raise ValueError("Cell types accepted are 'cell', 'dcc' and 'csc'.")
