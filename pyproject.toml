@@ -1,0 +1,67 @@
+[tool.black]
+line-length = 79
+target-version = ['py310']
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+# =============================================================================
+# PACKAGING
+# =============================================================================
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "tumorsphere"
+version = "0.0.1"
+dependencies = [
+    "matplotlib",
+    "networkx",
+    "numpy",
+    "toml"
+]
+# copy y warnings están built-in aparentemente (i.e. no hay que importarlas)
+# creo que "random" está en la misma
+# aparentemente "mpl_toolkits" viene en matplotlib
+
+requires-python = ">=3.7"
+
+authors = [{name = "Jerónimo Fotinós", email = "jerofoti@gmail.com"}]
+
+readme = "README.md"
+
+license = {file = "LICENSE"}
+
+description = "Software for simulating tumorsphere cultures."
+
+keywords = [
+    "tumorsphere",
+    "cancer",
+    "biophysics",
+    "cancer stem cell",
+    "mathematical modeling",
+]
+
+classifiers = [
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering",
+]
+
+urls = { Homepage = "https://github.com/JeroFotinos/tumorsphere_culture", Repository = "https://github.com/JeroFotinos/tumorsphere_culture" }
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["tumorsphere", "tumorsphere.*"]
+namespaces = false

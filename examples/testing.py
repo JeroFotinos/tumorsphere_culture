@@ -1,5 +1,5 @@
-from cells import *
-from culture import *
+from tumorsphere.cells import *
+from tumorsphere.culture import *
 
 test_culture = Culture()
 # print(test_culture.cells[0].position)

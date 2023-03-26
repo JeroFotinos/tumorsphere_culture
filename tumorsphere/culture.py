@@ -1,4 +1,4 @@
-from cells import *
+from tumorsphere.cells import *
 
 class Culture:
     def __init__(
