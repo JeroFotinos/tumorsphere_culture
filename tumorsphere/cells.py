@@ -10,6 +10,7 @@ colors = {"cell": "green", "csc": "red", "dcc": "blue"}
 # probabilities = {'ps' : 0.36, 'pd' : 0.16}
 # prob_stem = 0.36
 
+
 class Cell:
     def __init__(
         self,
@@ -40,7 +41,9 @@ class Cell:
         self.neighbors = []
         # si las células se mueven, hay que calcular toda la lista de cero
         for cell in self.culture.cells:
-            if (cell is not self and cell not in self.neighbors) and np.linalg.norm(
+            if (
+                cell is not self and cell not in self.neighbors
+            ) and np.linalg.norm(
                 self.position - cell.position
             ) <= self.adjacency_threshold:
                 self.neighbors.append(cell)
@@ -51,9 +54,9 @@ class Cell:
         # lo que no hay necesidad de reiniciar la lista, sólo añadimos
         # los posibles nuevos vecinos
         for cell in self.culture.cells:
-            if (cell is not self and cell not in self.neighbors) and np.linalg.norm(
-                self.position - cell.position
-            ) <= self.adjacency_threshold:
+            not_self_nor_neighbor = (cell is not self) and (cell not in self.neighbors)
+            in_neighborhood = np.linalg.norm(self.position - cell.position) <= self.adjacency_threshold
+            if (not_self_nor_neighbor and in_neighborhood):
                 self.neighbors.append(cell)
 
     def generate_new_position(self):
@@ -188,14 +191,14 @@ class Csc(Cell):
         adjacency_threshold=np.sqrt(2) / 2,
         radius=1,
         max_repro_attempts=10000,
-        prob_stem = 0.36
+        prob_stem=0.36,
     ):
         super().__init__(
             position, culture, adjacency_threshold, radius, max_repro_attempts
         )
         self.color = colors["csc"]
         self.prob_stem = prob_stem
-    
+
     def reproduce(self):
         assert len(self.neighbors) <= len(self.culture.cells)
 
@@ -225,13 +228,13 @@ class Csc(Cell):
                 # a csc with prob prob_stem and a dcc if not
                 if np.random.uniform() <= self.prob_stem:
                     child_cell = Csc(
-                    position=child_position,
-                    culture=self.culture,
-                    adjacency_threshold=self.adjacency_threshold,
-                    radius=self.radius,
-                    max_repro_attempts=self.max_repro_attempts,
-                    prob_stem=self.prob_stem
-                )
+                        position=child_position,
+                        culture=self.culture,
+                        adjacency_threshold=self.adjacency_threshold,
+                        radius=self.radius,
+                        max_repro_attempts=self.max_repro_attempts,
+                        prob_stem=self.prob_stem,
+                    )
                 else:
                     child_cell = Dcc(
                         position=child_position,
@@ -254,4 +257,3 @@ class Csc(Cell):
             else:
                 self.available_space = False
                 # if there was no available space, we turn off reproduction
-

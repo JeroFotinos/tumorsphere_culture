@@ -3,6 +3,7 @@ import matplotlib.animation as animation
 from tumorsphere.cells import *
 from tumorsphere.culture import *
 
+
 def simulate_and_animate_growth(culture, num_steps, filename):
     # initialize the figure and the plot
     fig = plt.figure(figsize=(10, 10))
@@ -24,7 +25,9 @@ def simulate_and_animate_growth(culture, num_steps, filename):
         ax.scatter(positions[:, 0], positions[:, 1], positions[:, 2])
 
     # create the animation
-    anim = animation.FuncAnimation(fig, update_plot, frames=num_steps, repeat=False)
+    anim = animation.FuncAnimation(
+        fig, update_plot, frames=num_steps, repeat=False
+    )
 
     # save the animation to file
     anim.save(filename, writer="ffmpeg")
