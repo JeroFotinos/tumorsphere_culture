@@ -16,7 +16,7 @@ class Cell:
         self,
         position,
         culture,
-        adjacency_threshold=np.sqrt(2) / 2,
+        adjacency_threshold=2 * np.sqrt(2),
         radius=1,
         max_repro_attempts=10000,
     ):
@@ -54,9 +54,14 @@ class Cell:
         # lo que no hay necesidad de reiniciar la lista, sólo añadimos
         # los posibles nuevos vecinos
         for cell in self.culture.cells:
-            not_self_nor_neighbor = (cell is not self) and (cell not in self.neighbors)
-            in_neighborhood = np.linalg.norm(self.position - cell.position) <= self.adjacency_threshold
-            if (not_self_nor_neighbor and in_neighborhood):
+            not_self_nor_neighbor = (cell is not self) and (
+                cell not in self.neighbors
+            )
+            in_neighborhood = (
+                np.linalg.norm(self.position - cell.position)
+                <= self.adjacency_threshold
+            )
+            if not_self_nor_neighbor and in_neighborhood:
                 self.neighbors.append(cell)
 
     def generate_new_position(self):
@@ -125,7 +130,7 @@ class Dcc(Cell):
         self,
         position,
         culture,
-        adjacency_threshold=np.sqrt(2) / 2,
+        adjacency_threshold=2 * np.sqrt(2),
         radius=1,
         max_repro_attempts=10000,
     ):
@@ -188,7 +193,7 @@ class Csc(Cell):
         self,
         position,
         culture,
-        adjacency_threshold=np.sqrt(2) / 2,
+        adjacency_threshold=2 * np.sqrt(2),
         radius=1,
         max_repro_attempts=10000,
         prob_stem=0.36,
