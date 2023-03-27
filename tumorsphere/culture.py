@@ -4,7 +4,7 @@ from tumorsphere.cells import *
 class Culture:
     def __init__(
         self,
-        adjacency_threshold=np.sqrt(2) / 2,
+        adjacency_threshold=2 * np.sqrt(2),
         cell_radius=1,
         cell_max_repro_attempts=10000,
         first_cell_type="cell",
