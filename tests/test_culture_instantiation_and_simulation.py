@@ -1,9 +1,13 @@
 import copy
 
+import numpy as np
 import pytest
 
 from tumorsphere.cells import Cell, Dcc
 from tumorsphere.culture import Culture
+
+# This file tests cell functions as well as culture instantiation and
+# simulation. It does not test the ploting functions of the culture.
 
 # ======= Instantiation and early stages =======
 
@@ -76,7 +80,6 @@ def test_neighbor_list_is_updating(cell_culture, request):
 # ======= From scratch methods =======
 
 
-# @pytest.mark.xfail(reason="not gonna work before test_neighbor_list_is_updating passes")
 @pytest.mark.parametrize(
     "cell_culture",
     ["generic_cell_culture", "dcc_seeded_culture", "csc_seeded_culture"],
@@ -111,16 +114,42 @@ def test_neighbors_from_scratch_matches_usual_function(
 
 # ======= Advanced stages =======
 
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "cell_culture",
+    ["generic_cell_culture", "dcc_seeded_culture", "csc_seeded_culture"],
+)
+@pytest.mark.parametrize("num_steps", [8])
+def test_max_number_of_neighbors(cell_culture, num_steps, request):
+    """We test that the number of neighbors is less than the maximum allowed.
 
-def test_max_number_of_neighbors():
-    pass
+    The most compact packed culture is the one in which cells arrange themselves
+    in a face-centered cubic (fcc), or equivalently, a hexagonal compact packaging (hcp).
+    The maximum number of neighbors allowed is the sum of the first (12) and second (6)
+    neighbors of a node in a fcc lattice.
+    """
+    culture = request.getfixturevalue(cell_culture)
+    culture.simulate(num_steps)
+    for cell in culture.cells:
+        assert len(cell.neighbors) <= 18
 
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "cell_culture",
+    ["generic_cell_culture", "dcc_seeded_culture", "csc_seeded_culture"],
+)
+@pytest.mark.parametrize("num_steps", [7])
+def test_min_distance_between_cells(cell_culture, num_steps, request):
+    """We test that minimum distance between cells is respected.
 
-# to be implemented
-
-
-def test_min_distance_between_cells():
-    pass
-
-
-# to be implemented
+    (This tests assumes that all cells have the same radius.)
+    """
+    culture = request.getfixturevalue(cell_culture)
+    culture.simulate(num_steps)
+    for cell1 in culture.cells:
+        for cell2 in culture.cells:
+            if cell2 is not cell1:
+                assert (
+                    np.linalg.norm(cell1.position - cell2.position)
+                    >= 2 * cell1.radius
+                )
