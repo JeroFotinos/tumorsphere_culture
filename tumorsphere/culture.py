@@ -7,7 +7,7 @@ class Culture:
         adjacency_threshold=2 * np.sqrt(2),
         cell_radius=1,
         cell_max_repro_attempts=10000,
-        first_cell_type="cell",
+        first_cell_is_stem=False,
         prob_stem=0.36,  # Wang HARD substrate value
         continuous_graph_generation=False,
     ):
@@ -15,38 +15,18 @@ class Culture:
         self.adjacency_threshold = adjacency_threshold
         self.cell_radius = cell_radius
         self.prob_stem = prob_stem
-        if first_cell_type == "cell":
-            first_cell_object = Cell(
-                position=np.array([0, 0, 0]),
-                culture=self,
-                adjacency_threshold=self.adjacency_threshold,
-                radius=self.cell_radius,
-                max_repro_attempts=cell_max_repro_attempts,
-                continuous_graph_generation=continuous_graph_generation,
-            )
-        elif first_cell_type == "dcc":
-            first_cell_object = Dcc(
-                position=np.array([0, 0, 0]),
-                culture=self,
-                adjacency_threshold=self.adjacency_threshold,
-                radius=self.cell_radius,
-                max_repro_attempts=cell_max_repro_attempts,
-                continuous_graph_generation=continuous_graph_generation,
-            )
-        elif first_cell_type == "csc":
-            first_cell_object = Csc(
-                position=np.array([0, 0, 0]),
-                culture=self,
-                adjacency_threshold=self.adjacency_threshold,
-                radius=self.cell_radius,
-                max_repro_attempts=cell_max_repro_attempts,
-                prob_stem=self.prob_stem,
-                continuous_graph_generation=continuous_graph_generation,
-            )
-        else:
-            raise ValueError(
-                "Cell types accepted are 'cell', 'dcc' and 'csc'."
-            )
+        self.first_cell_is_stem = first_cell_is_stem
+
+        first_cell_object = Cell(
+            position=np.array([0, 0, 0]),
+            culture=self,
+            adjacency_threshold=self.adjacency_threshold,
+            radius=self.cell_radius,
+            is_stem=self.first_cell_is_stem,
+            max_repro_attempts=cell_max_repro_attempts,
+            prob_stem=self.prob_stem,
+            continuous_graph_generation=continuous_graph_generation,
+        )
 
         self.cells = [first_cell_object]
         self.graph = nx.Graph()
@@ -70,7 +50,7 @@ class Culture:
 
         for cell in self.cells:
             x, y, z = cell.position
-            ax.scatter(x, y, z, c=cell.color, marker="o")
+            ax.scatter(x, y, z, c=cell._colors[cell.is_stem], marker="o")
 
             # plot a sphere at the position of the cell
             u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
@@ -78,7 +58,7 @@ class Culture:
             sphere_y = cell.position[1] + np.sin(u) * np.sin(v) * cell.radius
             sphere_z = cell.position[2] + np.cos(v) * cell.radius
             ax.plot_surface(
-                sphere_x, sphere_y, sphere_z, color=cell.color, alpha=0.2
+                sphere_x, sphere_y, sphere_z, color=cell._colors[cell.is_stem], alpha=0.2
             )
 
         ax.set_xlabel("X")
@@ -95,7 +75,7 @@ class Culture:
 
         for cell in self.cells:
             x, y, z = cell.position
-            ax.scatter(x, y, z, c=cell.color, marker="o")
+            ax.scatter(x, y, z, c=cell._colors[cell.is_stem], marker="o")
 
             # plot a sphere at the position of the cell
             u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
@@ -103,7 +83,7 @@ class Culture:
             sphere_y = cell.position[1] + np.sin(u) * np.sin(v) * cell.radius
             sphere_z = cell.position[2] + np.cos(v) * cell.radius
             ax.plot_surface(
-                sphere_x, sphere_y, sphere_z, color=cell.color, alpha=0.2
+                sphere_x, sphere_y, sphere_z, color=cell._colors[cell.is_stem], alpha=0.2
             )
 
         ax.set_xlabel("X")
