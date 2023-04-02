@@ -116,11 +116,15 @@ class Cell:
                 )
                 # we add this cell to the culture's cells list
                 self.culture.cells.append(child_cell)
+                # the parent and the child are neighbors
+                self.neighbors.append(child_cell)
+                child_cell.neighbors.append(self)
                 # we find the child's neighbors
                 child_cell.find_neighbors()
                 # we add the child as a neighbor of its neighbors
                 for cell in child_cell.neighbors:
-                    cell.neighbors.append(child_cell)
+                    if child_cell not in cell.neighbors:
+                        cell.neighbors.append(child_cell)
                 # we add the child to the graph (node and edges)
                 if self._continuous_graph_generation == True:
                     self.culture.graph.add_node(child_cell)
@@ -190,11 +194,15 @@ class Dcc(Cell):
                 )
                 # we add this cell to the culture's cells list
                 self.culture.cells.append(child_cell)
+                # the parent and the child are neighbors
+                self.neighbors.append(child_cell)
+                child_cell.neighbors.append(self)
                 # we find the child's neighbors
                 child_cell.find_neighbors()
                 # we add the child as a neighbor of its neighbors
                 for cell in child_cell.neighbors:
-                    cell.neighbors.append(child_cell)
+                    if child_cell not in cell.neighbors:
+                        cell.neighbors.append(child_cell)
                 # we add the child to the graph (node and edges)
                 if self._continuous_graph_generation == True:
                     self.culture.graph.add_node(child_cell)
@@ -265,11 +273,15 @@ class Csc(Cell):
                     )
                     # we add this cell to the culture's cells list
                     self.culture.cells.append(child_cell)
+                    # the parent and the child are neighbors
+                    self.neighbors.append(child_cell)
+                    child_cell.neighbors.append(self)
                     # we find the child's neighbors
                     child_cell.find_neighbors()
                     # we add the child as a neighbor of its neighbors
                     for cell in child_cell.neighbors:
-                        cell.neighbors.append(child_cell)
+                        if child_cell not in cell.neighbors:
+                            cell.neighbors.append(child_cell)
                     # we add the child to the graph (node and edges)
                     if self._continuous_graph_generation == True:
                         self.culture.graph.add_node(child_cell)
@@ -286,6 +298,11 @@ class Csc(Cell):
                     )
                     # we add this cell to the culture's cells list
                     self.culture.cells.append(child_cell)
+                    # the parent and the child are neighbors
+                    # (we have to do this to avoid problems when
+                    # swapping empty neighbors lists)
+                    self.neighbors.append(child_cell)
+                    child_cell.neighbors.append(self)
                     # we find the child's neighbors
                     child_cell.find_neighbors()
                     # we swap the positions and neighbors with probability 1/2
@@ -296,7 +313,8 @@ class Csc(Cell):
                     else:
                         # we add the child as a neighbor of its neighbors
                         for cell in child_cell.neighbors:
-                            cell.neighbors.append(child_cell)
+                            if child_cell not in cell.neighbors:
+                                cell.neighbors.append(child_cell)
                         # we add the child to the graph (node and edges)
                         if self._continuous_graph_generation == True:
                             self.culture.graph.add_node(child_cell)
@@ -313,15 +331,20 @@ class Csc(Cell):
         # we remove self from the neighbors of its neighbors
         # and add child_cell instead
         for cell in self.neighbors:
-            cell.neighbors.remove(self)
-            cell.neighbors.append(child)
+            if cell is not child:
+                cell.neighbors.remove(self)
+                cell.neighbors.append(child)
+                # si hacía esto con cell == child
+                # estaba haciendo que child no sea
+                # vecina de self, y en su lugar la
+                # hacía vecina de sí misma
         # we assign the info of the child to the parent
         self.position = copy.copy(child.position)
         self.neighbors = copy.copy(child.neighbors)
         # we add self to the neighbors of the neighbor cells found
         # by the child when it was in the old position (if it is
         # not already there)
-        for cell in child.neighbors:
+        for cell in self.neighbors:
             if self not in cell.neighbors:
                 cell.neighbors.append(self)
         # we assign the child, the old info of the parent
