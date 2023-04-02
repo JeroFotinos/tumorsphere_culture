@@ -70,6 +70,7 @@ def test_neighbor_list_is_updating(cell_culture, request):
 
 # ======= From scratch methods =======
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "cell_culture",
     ["dcc_seeded_culture", "csc_seeded_culture"],
