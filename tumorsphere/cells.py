@@ -1,3 +1,4 @@
+import copy
 import random
 
 import matplotlib.pyplot as plt
@@ -19,6 +20,7 @@ class Cell:
         adjacency_threshold=2 * np.sqrt(2),
         radius=1,
         max_repro_attempts=10000,
+        continuous_graph_generation=False,
     ):
         self.position = position
         # NumPy array, vector with 3 components
@@ -27,6 +29,7 @@ class Cell:
         # distance to second neighbor in HPC
         self.radius = radius  # radius of cell
         self.max_repro_attempts = max_repro_attempts
+        self._continuous_graph_generation = continuous_graph_generation
         self.color = colors["cell"]
         self.neighbors = []
         self.available_space = True
@@ -41,11 +44,15 @@ class Cell:
         self.neighbors = []
         # si las células se mueven, hay que calcular toda la lista de cero
         for cell in self.culture.cells:
-            if (
-                cell is not self and cell not in self.neighbors
-            ) and np.linalg.norm(
-                self.position - cell.position
-            ) <= self.adjacency_threshold:
+            neither_self_nor_neighbor = (cell is not self) and (
+                cell not in self.neighbors
+            )
+            in_neighborhood = (
+                np.linalg.norm(self.position - cell.position)
+                <= self.adjacency_threshold
+            )
+            to_append = neither_self_nor_neighbor and in_neighborhood
+            if to_append:
                 self.neighbors.append(cell)
 
     def find_neighbors(self):
@@ -54,14 +61,15 @@ class Cell:
         # lo que no hay necesidad de reiniciar la lista, sólo añadimos
         # los posibles nuevos vecinos
         for cell in self.culture.cells:
-            not_self_nor_neighbor = (cell is not self) and (
+            neither_self_nor_neighbor = (cell is not self) and (
                 cell not in self.neighbors
             )
             in_neighborhood = (
                 np.linalg.norm(self.position - cell.position)
                 <= self.adjacency_threshold
             )
-            if not_self_nor_neighbor and in_neighborhood:
+            to_append = neither_self_nor_neighbor and in_neighborhood
+            if to_append:
                 self.neighbors.append(cell)
 
     def generate_new_position(self):
@@ -88,10 +96,9 @@ class Cell:
                 )
                 # boolean array specifying if there is no overlap between
                 # the proposed child position and the other cells
-                no_overlap = np.all(
-                    distance >= 2 * self.radius
-                )  # or np.all(np.allclose(distance, self.radius)) ###### ACÁ HAY ALGO
-                # if it is true that there is no overlap for every element of the array, we break the loop
+                no_overlap = np.all(distance >= 2 * self.radius)
+                # if it is true that there is no overlap for
+                # every element of the array, we break the loop
                 if no_overlap:
                     break
 
@@ -105,6 +112,7 @@ class Cell:
                     adjacency_threshold=self.adjacency_threshold,
                     radius=self.radius,
                     max_repro_attempts=self.max_repro_attempts,
+                    continuous_graph_generation=self._continuous_graph_generation,
                 )
                 # we add this cell to the culture's cells list
                 self.culture.cells.append(child_cell)
@@ -114,9 +122,10 @@ class Cell:
                 for cell in child_cell.neighbors:
                     cell.neighbors.append(child_cell)
                 # we add the child to the graph (node and edges)
-                self.culture.graph.add_node(child_cell)
-                for cell in child_cell.neighbors:
-                    self.culture.graph.add_edge(child_cell, cell)
+                if self._continuous_graph_generation == True:
+                    self.culture.graph.add_node(child_cell)
+                    for cell in child_cell.neighbors:
+                        self.culture.graph.add_edge(child_cell, cell)
             else:
                 self.available_space = False
                 # if there was no available space, we turn off reproduction
@@ -133,9 +142,15 @@ class Dcc(Cell):
         adjacency_threshold=2 * np.sqrt(2),
         radius=1,
         max_repro_attempts=10000,
+        continuous_graph_generation=False,
     ):
         super().__init__(
-            position, culture, adjacency_threshold, radius, max_repro_attempts
+            position,
+            culture,
+            adjacency_threshold,
+            radius,
+            max_repro_attempts,
+            continuous_graph_generation,
         )
         self.color = colors["dcc"]
 
@@ -171,6 +186,7 @@ class Dcc(Cell):
                     adjacency_threshold=self.adjacency_threshold,
                     radius=self.radius,
                     max_repro_attempts=self.max_repro_attempts,
+                    continuous_graph_generation=self._continuous_graph_generation,
                 )
                 # we add this cell to the culture's cells list
                 self.culture.cells.append(child_cell)
@@ -180,9 +196,10 @@ class Dcc(Cell):
                 for cell in child_cell.neighbors:
                     cell.neighbors.append(child_cell)
                 # we add the child to the graph (node and edges)
-                self.culture.graph.add_node(child_cell)
-                for cell in child_cell.neighbors:
-                    self.culture.graph.add_edge(child_cell, cell)
+                if self._continuous_graph_generation == True:
+                    self.culture.graph.add_node(child_cell)
+                    for cell in child_cell.neighbors:
+                        self.culture.graph.add_edge(child_cell, cell)
             else:
                 self.available_space = False
                 # if there was no available space, we turn off reproduction
@@ -197,12 +214,19 @@ class Csc(Cell):
         radius=1,
         max_repro_attempts=10000,
         prob_stem=0.36,
+        continuous_graph_generation=False,
     ):
         super().__init__(
-            position, culture, adjacency_threshold, radius, max_repro_attempts
+            position,
+            culture,
+            adjacency_threshold,
+            radius,
+            max_repro_attempts,
+            continuous_graph_generation,
         )
         self.color = colors["csc"]
         self.prob_stem = prob_stem
+        self._swap_probability = 0.5
 
     def reproduce(self):
         assert len(self.neighbors) <= len(self.culture.cells)
@@ -217,11 +241,9 @@ class Csc(Cell):
                         for cell in self.culture.cells
                     ]
                 )
-                # boolean array specifying if there is no overlap between
-                # the proposed child position and the other cells
-                no_overlap = np.all(
-                    distance >= 2 * self.radius
-                )  # or np.all(np.allclose(distance, self.radius)) ###### ACÁ HAY ALGO
+                # boolean specifying if there is no overlap between the
+                # proposed child position and any of the other cells
+                no_overlap = np.all(distance >= 2 * self.radius)
                 # if it is true that there is no overlap for every element of the array, we break the loop
                 if no_overlap:
                     break
@@ -239,7 +261,20 @@ class Csc(Cell):
                         radius=self.radius,
                         max_repro_attempts=self.max_repro_attempts,
                         prob_stem=self.prob_stem,
+                        continuous_graph_generation=self._continuous_graph_generation,
                     )
+                    # we add this cell to the culture's cells list
+                    self.culture.cells.append(child_cell)
+                    # we find the child's neighbors
+                    child_cell.find_neighbors()
+                    # we add the child as a neighbor of its neighbors
+                    for cell in child_cell.neighbors:
+                        cell.neighbors.append(child_cell)
+                    # we add the child to the graph (node and edges)
+                    if self._continuous_graph_generation == True:
+                        self.culture.graph.add_node(child_cell)
+                        for cell in child_cell.neighbors:
+                            self.culture.graph.add_edge(child_cell, cell)
                 else:
                     child_cell = Dcc(
                         position=child_position,
@@ -247,18 +282,60 @@ class Csc(Cell):
                         adjacency_threshold=self.adjacency_threshold,
                         radius=self.radius,
                         max_repro_attempts=self.max_repro_attempts,
+                        continuous_graph_generation=self._continuous_graph_generation,
                     )
-                # we add this cell to the culture's cells list
-                self.culture.cells.append(child_cell)
-                # we find the child's neighbors
-                child_cell.find_neighbors()
-                # we add the child as a neighbor of its neighbors
-                for cell in child_cell.neighbors:
-                    cell.neighbors.append(child_cell)
-                # we add the child to the graph (node and edges)
-                self.culture.graph.add_node(child_cell)
-                for cell in child_cell.neighbors:
-                    self.culture.graph.add_edge(child_cell, cell)
+                    # we add this cell to the culture's cells list
+                    self.culture.cells.append(child_cell)
+                    # we find the child's neighbors
+                    child_cell.find_neighbors()
+                    # we swap the positions and neighbors with probability 1/2
+                    if np.random.uniform() <= self._swap_probability:
+                        self.swap_self_with_dcc_child_and_arrange_neighbors(
+                            child=child_cell
+                        )
+                    else:
+                        # we add the child as a neighbor of its neighbors
+                        for cell in child_cell.neighbors:
+                            cell.neighbors.append(child_cell)
+                        # we add the child to the graph (node and edges)
+                        if self._continuous_graph_generation == True:
+                            self.culture.graph.add_node(child_cell)
+                            for cell in child_cell.neighbors:
+                                self.culture.graph.add_edge(child_cell, cell)
             else:
                 self.available_space = False
                 # if there was no available space, we turn off reproduction
+
+    def swap_self_with_dcc_child_and_arrange_neighbors(self, child):
+        # we copy the parent's original information
+        old_parent_position = copy.copy(self.position)
+        old_parent_neighbors = copy.copy(self.neighbors)
+        # we remove self from the neighbors of its neighbors
+        # and add child_cell instead
+        for cell in self.neighbors:
+            cell.neighbors.remove(self)
+            cell.neighbors.append(child)
+        # we assign the info of the child to the parent
+        self.position = copy.copy(child.position)
+        self.neighbors = copy.copy(child.neighbors)
+        # we add self to the neighbors of the neighbor cells found
+        # by the child when it was in the old position (if it is
+        # not already there)
+        for cell in child.neighbors:
+            if self not in cell.neighbors:
+                cell.neighbors.append(self)
+        # we assign the child, the old info of the parent
+        child.position = old_parent_position
+        child.neighbors = old_parent_neighbors
+        # we update the graph
+        if self._continuous_graph_generation == True:
+            # we remove the old node and its edges from the graph
+            self.culture.graph.remove_node(self)
+            # we add the node again with its new edges
+            self.culture.graph.add_node(self)
+            for cell in self.neighbors:
+                self.culture.graph.add_edge(self, cell)
+            # we add the child node and its edges
+            self.culture.graph.add_node(child)
+            for cell in child.neighbors:
+                self.culture.graph.add_edge(child, cell)

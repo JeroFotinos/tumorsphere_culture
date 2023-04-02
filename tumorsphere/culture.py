@@ -9,6 +9,7 @@ class Culture:
         cell_max_repro_attempts=10000,
         first_cell_type="cell",
         prob_stem=0.36,  # Wang HARD substrate value
+        continuous_graph_generation=False,
     ):
         self.cell_max_repro_attempts = cell_max_repro_attempts
         self.adjacency_threshold = adjacency_threshold
@@ -21,6 +22,7 @@ class Culture:
                 adjacency_threshold=self.adjacency_threshold,
                 radius=self.cell_radius,
                 max_repro_attempts=cell_max_repro_attempts,
+                continuous_graph_generation=continuous_graph_generation,
             )
         elif first_cell_type == "dcc":
             first_cell_object = Dcc(
@@ -29,6 +31,7 @@ class Culture:
                 adjacency_threshold=self.adjacency_threshold,
                 radius=self.cell_radius,
                 max_repro_attempts=cell_max_repro_attempts,
+                continuous_graph_generation=continuous_graph_generation,
             )
         elif first_cell_type == "csc":
             first_cell_object = Csc(
@@ -38,6 +41,7 @@ class Culture:
                 radius=self.cell_radius,
                 max_repro_attempts=cell_max_repro_attempts,
                 prob_stem=self.prob_stem,
+                continuous_graph_generation=continuous_graph_generation,
             )
         else:
             raise ValueError(
