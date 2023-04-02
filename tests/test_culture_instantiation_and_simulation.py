@@ -72,6 +72,7 @@ def test_neighbor_list_is_updating(cell_culture, request):
     """
     culture = request.getfixturevalue(cell_culture)
     culture.simulate(1)
+    # import ipdb; ipdb.set_trace()
     for cell in culture.cells:
         assert len(cell.neighbors) == 1
         # we assert that the 2 cells have 1 neighbor each
@@ -156,7 +157,7 @@ def test_neighbors_from_scratch_matches_usual_function_new(
     """
     culture = request.getfixturevalue(cell_culture)
     culture.simulate(num_steps)
-    original_neighbors = copy.copy(culture.cells[0].neighbors)
+    original_neighbors = copy.deepcopy(culture.cells[0].neighbors)
     culture.cells.remove(
         culture.cells[0].neighbors[0]
     )
@@ -235,7 +236,7 @@ def test_position_swap_between_csc_and_dcc_child(request):
     original_csc_position = copy.copy(culture.cells[0].position)
     culture.simulate(1)
     assert isinstance(culture.cells[1], Dcc)
-    assert culture.cells[1].position == original_csc_position
+    assert np.all(culture.cells[1].position == original_csc_position)
 
 
 # to be implemented
