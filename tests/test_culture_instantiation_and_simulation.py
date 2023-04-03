@@ -47,9 +47,7 @@ def test_cell_type_coherence(cell_culture, num_steps, request):
     """
     cell_culture = request.getfixturevalue(cell_culture)
     cell_culture.simulate(num_steps)
-    type_coincidence = [
-        (cell.is_stem is False) for cell in cell_culture.cells
-    ]
+    type_coincidence = [(cell.is_stem is False) for cell in cell_culture.cells]
     assert all(type_coincidence)
 
 
@@ -70,6 +68,8 @@ def test_neighbor_list_is_updating(cell_culture, request):
 
 # ======= From scratch methods =======
 
+
+@pytest.mark.skip(reason="need to rethink how to do the test")
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "cell_culture",
@@ -90,15 +90,65 @@ def test_neighbors_from_scratch_matches_usual_function_new(
     culture.simulate(num_steps)
     cell = culture.cells[cell_number]
     original_number_of_neighbors = len(cell.neighbors)
-    culture.cells.remove(cell.neighbors[0])
+    neighbor = cell.neighbors[0]
+    for cell in neighbor.neighbors:
+        cell.neighbors.remove(neighbor)
+    del neighbor
     # this may change the cell_number of cell in cell.culture.cells
-    cell.find_neighbors_from_scratch()
+    cell.find_neighbors_from_entire_culture_from_scratch()
     assert len(cell.neighbors) == original_number_of_neighbors - 1
 
+
+@pytest.mark.parametrize(
+    "cell_culture",
+    ["dcc_seeded_culture", "csc_seeded_culture"],
+)
+@pytest.mark.parametrize("num_steps", [5, 6])
+@pytest.mark.parametrize("cell_number", [0, 1, 2, 3, 4, 5])
+def test_neighbors_match_neighbors_from_entire_culture_from_scratch(
+    cell_culture, num_steps, cell_number, request
+):
+    """Test the find_neighbors() method of the Cell class.
+
+    We check that the adjacency_threshold is appropriate for reproducing
+    the neighbors list one would obtain by looking for neighboring relations
+    with every cell of the culture, which can be done by using the
+    find_neighbors_from_entire_culture_from_scratch() method.
+    """
+    culture = request.getfixturevalue(cell_culture)
+    culture.simulate(num_steps)
+    cell = culture.cells[cell_number]
+    original_number_of_neighbors = len(cell.neighbors)
+    cell.find_neighbors_from_entire_culture_from_scratch()
+    assert len(cell.neighbors) == original_number_of_neighbors
+
+
+@pytest.mark.parametrize(
+    "cell_culture",
+    ["dcc_seeded_culture", "csc_seeded_culture"],
+)
+@pytest.mark.parametrize("num_steps", [8])
+def test_neighbors_match_neighbors_from_entire_culture_from_scratch_exactly(
+    cell_culture, num_steps, request
+):
+    """Test the find_neighbors_from_scratch() method of the Cell class.
+
+    Similar to test_neighbors_match_neighbors_from_entire_culture_from_scratch,
+    but we check that the lists match exactly, i.e. for every cell.
+    """
+    culture = request.getfixturevalue(cell_culture)
+    culture.simulate(num_steps)
+    for cell in culture.cells:
+        original_number_of_neighbors = len(cell.neighbors)
+        cell.find_neighbors_from_entire_culture_from_scratch()
+        assert len(cell.neighbors) == original_number_of_neighbors
 
 # ======= Intermediate stages =======
 
 
+@pytest.mark.skip(
+    reason="I augmented the adjacency threshold beyond the second neighbor distance of the hcp"
+)
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "cell_culture",

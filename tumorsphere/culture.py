@@ -4,7 +4,7 @@ from tumorsphere.cells import *
 class Culture:
     def __init__(
         self,
-        adjacency_threshold=2 * np.sqrt(2),
+        adjacency_threshold=4,
         cell_radius=1,
         cell_max_repro_attempts=10000,
         first_cell_is_stem=False,
@@ -58,7 +58,11 @@ class Culture:
             sphere_y = cell.position[1] + np.sin(u) * np.sin(v) * cell.radius
             sphere_z = cell.position[2] + np.cos(v) * cell.radius
             ax.plot_surface(
-                sphere_x, sphere_y, sphere_z, color=cell._colors[cell.is_stem], alpha=0.2
+                sphere_x,
+                sphere_y,
+                sphere_z,
+                color=cell._colors[cell.is_stem],
+                alpha=0.2,
             )
 
         ax.set_xlabel("X")
@@ -83,7 +87,11 @@ class Culture:
             sphere_y = cell.position[1] + np.sin(u) * np.sin(v) * cell.radius
             sphere_z = cell.position[2] + np.cos(v) * cell.radius
             ax.plot_surface(
-                sphere_x, sphere_y, sphere_z, color=cell._colors[cell.is_stem], alpha=0.2
+                sphere_x,
+                sphere_y,
+                sphere_z,
+                color=cell._colors[cell.is_stem],
+                alpha=0.2,
             )
 
         ax.set_xlabel("X")
