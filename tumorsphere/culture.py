@@ -125,3 +125,32 @@ class Culture:
             # if not, strange things happened
             for cell in cells:
                 cell.reproduce()
+
+    def any_csc_in_culture_boundary(self):
+        in_boundary = [(cell.available_space) for cell in self.active_cells]
+        any_csc_in_boundary = np.any(in_boundary)
+        return any_csc_in_boundary
+    
+    def simulate_with_data(self, num_times):
+        total_active_and_active_csc = np.zeros((3, num_times))
+        if self.first_cell_is_stem:
+            initial_amount_of_csc = 1
+        else:
+            initial_amount_of_csc = 0
+        total_active_and_active_csc[0,0] = 1
+        total_active_and_active_csc[0,1] = 1
+        total_active_and_active_csc[0,2] = initial_amount_of_csc
+        for i in range(num_times):
+            cells = random.sample(self.active_cells, k=len(self.active_cells))
+            # I had to point to the cells in a copied list,
+            # if not, strange things happened
+            for cell in cells:
+                cell.reproduce()
+            active_csc = 0
+            for cell in self.active_cells:
+                if cell.is_stem:
+                    active_csc = active_csc + 1
+            total_active_and_active_csc[0, i] = len(self.cells)
+            total_active_and_active_csc[1, i] = len(self.active_cells)
+            total_active_and_active_csc[2, i] = active_csc
+        return total_active_and_active_csc
