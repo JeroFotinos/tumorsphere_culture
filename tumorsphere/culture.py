@@ -29,6 +29,7 @@ class Culture:
         )
 
         self.cells = [first_cell_object]
+        self.active_cells = [first_cell_object]
         self.graph = nx.Graph()
         self.graph.add_node(first_cell_object)
 
@@ -119,7 +120,7 @@ class Culture:
 
     def simulate(self, num_times):
         for i in range(num_times):
-            cells = random.sample(self.cells, k=len(self.cells))
+            cells = random.sample(self.active_cells, k=len(self.active_cells))
             # I had to point to the cells in a copied list,
             # if not, strange things happened
             for cell in cells:

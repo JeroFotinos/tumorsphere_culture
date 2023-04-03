@@ -247,8 +247,9 @@ class Cell:
                         prob_stem=self.prob_stem,
                         continuous_graph_generation=self._continuous_graph_generation,
                     )
-                # we add this cell to the culture's cells list
+                # we add this cell to the culture's cells and active_cells lists
                 self.culture.cells.append(child_cell)
+                self.culture.active_cells.append(child_cell)
                 # we add the parent as first neighbor (necessary for
                 # the find_neighbors that are not from_entire_culture)
                 child_cell.neighbors.append(self)
@@ -264,6 +265,7 @@ class Cell:
                         self.culture.graph.add_edge(child_cell, cell)
             else:
                 self.available_space = False
+                self.culture.active_cells.remove(self)
                 # if there was no available space, we turn off reproduction
         # else:
         #     pass
