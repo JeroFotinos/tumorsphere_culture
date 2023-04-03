@@ -17,7 +17,7 @@ class Cell:
         self,
         position,
         culture,
-        adjacency_threshold=2 * np.sqrt(2), # second neighbor distance in HCP
+        adjacency_threshold=4,  # upper bound to third neighbor distance in HCP
         radius=1,
         is_stem=False,
         max_repro_attempts=10000,
@@ -25,7 +25,7 @@ class Cell:
         continuous_graph_generation=False,
     ):
         # Generic attributes
-        self.position = position # NumPy array, vector with 3 components
+        self.position = position  # NumPy array, vector with 3 components
         self.culture = culture
         self.adjacency_threshold = adjacency_threshold
         self.radius = radius  # radius of cell
@@ -38,20 +38,13 @@ class Cell:
         # Plotting and graph related attributes
         self._continuous_graph_generation = continuous_graph_generation
         self._colors = {True: "red", False: "blue"}
-        
+
         # Attributes that evolve with the simulation
         self.neighbors = []
         self.available_space = True
         self.is_stem = is_stem
-        
 
-    # TO DO: a find_neighbors_from_neighbors method that
-    # looks for neighbors of a cell in their neighbors and
-    # their neighbor's neighbors. This will speed things up.
-    # We can implement a test that checks that the result is
-    # the same.
-
-    def find_neighbors_from_scratch(self):
+    def find_neighbors_from_entire_culture_from_scratch(self):
         self.neighbors = []
         # si las células se mueven, hay que calcular toda la lista de cero
         for cell in self.culture.cells:
@@ -66,12 +59,112 @@ class Cell:
             if to_append:
                 self.neighbors.append(cell)
 
-    def find_neighbors(self):
+    def find_neighbors_from_entire_culture(self):
         # self.neighbors = []
         # como las células no se mueven, sólo se pueden agregar vecinos, por
         # lo que no hay necesidad de reiniciar la lista, sólo añadimos
         # los posibles nuevos vecinos
         for cell in self.culture.cells:
+            neither_self_nor_neighbor = (cell is not self) and (
+                cell not in self.neighbors
+            )
+            in_neighborhood = (
+                np.linalg.norm(self.position - cell.position)
+                <= self.adjacency_threshold
+            )
+            to_append = neither_self_nor_neighbor and in_neighborhood
+            if to_append:
+                self.neighbors.append(cell)
+
+    def find_neighbors(self):
+        # first we construct the list of neighbors and neighbors of neighbors
+        neighbors_and_neigh_of_neigh = set(self.neighbors)
+        # if the cell is a newborn, it will only have its parent as neighbor,
+        # so neighbors of its neighbors are just the neighbors of its parent.
+        # The first time we have to go a level deeper.
+        if len(self.neighbors) < 20:
+            for cell1 in self.neighbors:
+                neighbors_and_neigh_of_neigh = (
+                    neighbors_and_neigh_of_neigh.union(set(cell1.neighbors))
+                )
+                for cell2 in cell1.neighbors:
+                    neighbors_and_neigh_of_neigh = (
+                        neighbors_and_neigh_of_neigh.union(
+                            set(cell2.neighbors)
+                        )
+                    )
+                    for cell3 in cell2.neighbors:
+                        neighbors_and_neigh_of_neigh = (
+                            neighbors_and_neigh_of_neigh.union(
+                            set(cell3.neighbors)
+                            )
+                        )
+            neighbors_and_neigh_of_neigh = list(neighbors_and_neigh_of_neigh)
+        else:
+            for cell1 in self.neighbors:
+                neighbors_and_neigh_of_neigh = (
+                    neighbors_and_neigh_of_neigh.union(set(cell.neighbors))
+                )
+                for cell2 in cell1.neighbors:
+                    neighbors_and_neigh_of_neigh = (
+                        neighbors_and_neigh_of_neigh.union(
+                            set(cell2.neighbors)
+                        )
+                    )
+            neighbors_and_neigh_of_neigh = list(neighbors_and_neigh_of_neigh)
+        # now we check if there are cells to append
+        for cell in neighbors_and_neigh_of_neigh:
+            neither_self_nor_neighbor = (cell is not self) and (
+                cell not in self.neighbors
+            )
+            in_neighborhood = (
+                np.linalg.norm(self.position - cell.position)
+                <= self.adjacency_threshold
+            )
+            to_append = neither_self_nor_neighbor and in_neighborhood
+            if to_append:
+                self.neighbors.append(cell)
+
+    def find_neighbors_from_scratch(self):
+        # first we construct the list of neighbors and neighbors of neighbors
+        neighbors_and_neigh_of_neigh = set(self.neighbors)
+        # if the cell is a newborn, it will only have its parent as neighbor,
+        # so neighbors of its neighbors are just the neighbors of its parent.
+        # The first time we have to go a level deeper.
+        if len(self.neighbors) < 20:
+            for cell1 in self.neighbors:
+                neighbors_and_neigh_of_neigh = (
+                    neighbors_and_neigh_of_neigh.union(set(cell1.neighbors))
+                )
+                for cell2 in cell1.neighbors:
+                    neighbors_and_neigh_of_neigh = (
+                        neighbors_and_neigh_of_neigh.union(
+                            set(cell2.neighbors)
+                        )
+                    )
+                    for cell3 in cell2.neighbors:
+                        neighbors_and_neigh_of_neigh = (
+                            neighbors_and_neigh_of_neigh.union(
+                            set(cell3.neighbors)
+                            )
+                        )
+            neighbors_and_neigh_of_neigh = list(neighbors_and_neigh_of_neigh)
+        else:
+            for cell1 in self.neighbors:
+                neighbors_and_neigh_of_neigh = (
+                    neighbors_and_neigh_of_neigh.union(set(cell.neighbors))
+                )
+                for cell2 in cell1.neighbors:
+                    neighbors_and_neigh_of_neigh = (
+                        neighbors_and_neigh_of_neigh.union(
+                            set(cell2.neighbors)
+                        )
+                    )
+            neighbors_and_neigh_of_neigh = list(neighbors_and_neigh_of_neigh)
+        # we reset the neighbors list
+        self.neighbors = []
+        # we add the cells to the list
+        for cell in neighbors_and_neigh_of_neigh:
             neither_self_nor_neighbor = (cell is not self) and (
                 cell not in self.neighbors
             )
@@ -156,6 +249,9 @@ class Cell:
                     )
                 # we add this cell to the culture's cells list
                 self.culture.cells.append(child_cell)
+                # we add the parent as first neighbor (necessary for
+                # the find_neighbors that are not from_entire_culture)
+                child_cell.neighbors.append(self)
                 # we find the child's neighbors
                 child_cell.find_neighbors()
                 # we add the child as a neighbor of its neighbors

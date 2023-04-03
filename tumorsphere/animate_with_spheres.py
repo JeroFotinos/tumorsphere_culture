@@ -19,7 +19,11 @@ def simulate_and_animate_growth(culture, num_steps, filename):
         sphere_y = y + np.sin(u) * np.sin(v) * cell.radius
         sphere_z = z + np.cos(v) * cell.radius
         ax.plot_surface(
-            sphere_x, sphere_y, sphere_z, color=cell._colors[cell.is_stem], alpha=0.2
+            sphere_x,
+            sphere_y,
+            sphere_z,
+            color=cell._colors[cell.is_stem],
+            alpha=0.2,
         )
 
     def update_plot(frame):
@@ -38,7 +42,11 @@ def simulate_and_animate_growth(culture, num_steps, filename):
             sphere_y = y + np.sin(u) * np.sin(v) * cell.radius
             sphere_z = z + np.cos(v) * cell.radius
             ax.plot_surface(
-                sphere_x, sphere_y, sphere_z, color=cell._colors[cell.is_stem], alpha=0.2
+                sphere_x,
+                sphere_y,
+                sphere_z,
+                color=cell._colors[cell.is_stem],
+                alpha=0.2,
             )
 
     # create the animation
