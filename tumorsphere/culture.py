@@ -132,25 +132,51 @@ class Culture:
         return any_csc_in_boundary
 
     def simulate_with_data(self, num_times):
-        total_active_and_active_csc = np.zeros((3, num_times))
+        # we initialize the arrays that will make up the data
+        total = np.zeros(num_times)
+        active = np.zeros(num_times)
+        total_stem = np.zeros(num_times)
+        active_stem = np.zeros(num_times)
+
+        # we count the initial amount of CSCs
         if self.first_cell_is_stem:
             initial_amount_of_csc = 1
         else:
             initial_amount_of_csc = 0
-        total_active_and_active_csc[0, 0] = 1
-        total_active_and_active_csc[0, 1] = 1
-        total_active_and_active_csc[0, 2] = initial_amount_of_csc
+
+        # we asign the initial values for the data
+        total[0] = 1
+        active[0] = 1
+        total_stem[0] = initial_amount_of_csc
+        active_stem[0] = initial_amount_of_csc
+
+        # we simulate for num_times time steps
         for i in range(num_times):
+            # we get a permuted copy of the cells list
             cells = random.sample(self.active_cells, k=len(self.active_cells))
             # I had to point to the cells in a copied list,
             # if not, strange things happened
             for cell in cells:
                 cell.reproduce()
-            active_csc = 0
+
+            # we count the number of CSCs in this time step
+            total_stem_counter = 0
+            for cell in self.cells:
+                if cell.is_stem:
+                    total_stem_counter = total_stem_counter + 1
+
+            # we count the number of active CSCs in this time step
+            active_stem_counter = 0
             for cell in self.active_cells:
                 if cell.is_stem:
-                    active_csc = active_csc + 1
-            total_active_and_active_csc[0, i] = len(self.cells)
-            total_active_and_active_csc[1, i] = len(self.active_cells)
-            total_active_and_active_csc[2, i] = active_csc
-        return total_active_and_active_csc
+                    active_stem_counter = active_stem_counter + 1
+
+            # we asign the data values for this time step
+            total[i] = len(self.cells)
+            active[i] = len(self.active_cells)
+            total_stem[i] = total_stem_counter
+            active_stem[i] = active_stem_counter
+
+            # we stack the arrays that make up the data into a single array to be returned
+            data = np.vstack((total, active, total_stem, active_stem))
+        return data
