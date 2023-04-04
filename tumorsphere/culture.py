@@ -130,16 +130,16 @@ class Culture:
         in_boundary = [(cell.available_space) for cell in self.active_cells]
         any_csc_in_boundary = np.any(in_boundary)
         return any_csc_in_boundary
-    
+
     def simulate_with_data(self, num_times):
         total_active_and_active_csc = np.zeros((3, num_times))
         if self.first_cell_is_stem:
             initial_amount_of_csc = 1
         else:
             initial_amount_of_csc = 0
-        total_active_and_active_csc[0,0] = 1
-        total_active_and_active_csc[0,1] = 1
-        total_active_and_active_csc[0,2] = initial_amount_of_csc
+        total_active_and_active_csc[0, 0] = 1
+        total_active_and_active_csc[0, 1] = 1
+        total_active_and_active_csc[0, 2] = initial_amount_of_csc
         for i in range(num_times):
             cells = random.sample(self.active_cells, k=len(self.active_cells))
             # I had to point to the cells in a copied list,

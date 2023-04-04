@@ -76,44 +76,52 @@ class Cell:
             if to_append:
                 self.neighbors.append(cell)
 
+    def get_list_of_neighbors_up_to_second_degree(self):
+        neighbors_up_to_second_degree = set(self.neighbors)
+        for cell1 in self.neighbors:
+            neighbors_up_to_second_degree = (
+                neighbors_up_to_second_degree.union(set(cell1.neighbors))
+            )
+            for cell2 in cell1.neighbors:
+                neighbors_up_to_second_degree = (
+                    neighbors_up_to_second_degree.union(set(cell2.neighbors))
+                )
+        neighbors_up_to_second_degree = list(neighbors_up_to_second_degree)
+        return neighbors_up_to_second_degree
+
+    def get_list_of_neighbors_up_to_third_degree(self):
+        neighbors_up_to_third_degree = set(self.neighbors)
+        for cell1 in self.neighbors:
+            neighbors_up_to_third_degree = neighbors_up_to_third_degree.union(
+                set(cell1.neighbors)
+            )
+            for cell2 in cell1.neighbors:
+                neighbors_up_to_third_degree = (
+                    neighbors_up_to_third_degree.union(set(cell2.neighbors))
+                )
+                for cell3 in cell2.neighbors:
+                    neighbors_up_to_third_degree = (
+                        neighbors_up_to_third_degree.union(
+                            set(cell3.neighbors)
+                        )
+                    )
+        neighbors_up_to_third_degree = list(neighbors_up_to_third_degree)
+        return neighbors_up_to_third_degree
+
     def find_neighbors(self):
-        # first we construct the list of neighbors and neighbors of neighbors
-        neighbors_and_neigh_of_neigh = set(self.neighbors)
         # if the cell is a newborn, it will only have its parent as neighbor,
         # so neighbors of its neighbors are just the neighbors of its parent.
         # The first time we have to go a level deeper.
         if len(self.neighbors) < 20:
-            for cell1 in self.neighbors:
-                neighbors_and_neigh_of_neigh = (
-                    neighbors_and_neigh_of_neigh.union(set(cell1.neighbors))
-                )
-                for cell2 in cell1.neighbors:
-                    neighbors_and_neigh_of_neigh = (
-                        neighbors_and_neigh_of_neigh.union(
-                            set(cell2.neighbors)
-                        )
-                    )
-                    for cell3 in cell2.neighbors:
-                        neighbors_and_neigh_of_neigh = (
-                            neighbors_and_neigh_of_neigh.union(
-                            set(cell3.neighbors)
-                            )
-                        )
-            neighbors_and_neigh_of_neigh = list(neighbors_and_neigh_of_neigh)
+            neighbors_up_to_certain_degree = (
+                self.get_list_of_neighbors_up_to_third_degree()
+            )
         else:
-            for cell1 in self.neighbors:
-                neighbors_and_neigh_of_neigh = (
-                    neighbors_and_neigh_of_neigh.union(set(cell.neighbors))
-                )
-                for cell2 in cell1.neighbors:
-                    neighbors_and_neigh_of_neigh = (
-                        neighbors_and_neigh_of_neigh.union(
-                            set(cell2.neighbors)
-                        )
-                    )
-            neighbors_and_neigh_of_neigh = list(neighbors_and_neigh_of_neigh)
+            neighbors_up_to_certain_degree = (
+                self.get_list_of_neighbors_up_to_second_degree()
+            )
         # now we check if there are cells to append
-        for cell in neighbors_and_neigh_of_neigh:
+        for cell in neighbors_up_to_certain_degree:
             neither_self_nor_neighbor = (cell is not self) and (
                 cell not in self.neighbors
             )
@@ -126,45 +134,21 @@ class Cell:
                 self.neighbors.append(cell)
 
     def find_neighbors_from_scratch(self):
-        # first we construct the list of neighbors and neighbors of neighbors
-        neighbors_and_neigh_of_neigh = set(self.neighbors)
         # if the cell is a newborn, it will only have its parent as neighbor,
         # so neighbors of its neighbors are just the neighbors of its parent.
         # The first time we have to go a level deeper.
         if len(self.neighbors) < 20:
-            for cell1 in self.neighbors:
-                neighbors_and_neigh_of_neigh = (
-                    neighbors_and_neigh_of_neigh.union(set(cell1.neighbors))
-                )
-                for cell2 in cell1.neighbors:
-                    neighbors_and_neigh_of_neigh = (
-                        neighbors_and_neigh_of_neigh.union(
-                            set(cell2.neighbors)
-                        )
-                    )
-                    for cell3 in cell2.neighbors:
-                        neighbors_and_neigh_of_neigh = (
-                            neighbors_and_neigh_of_neigh.union(
-                            set(cell3.neighbors)
-                            )
-                        )
-            neighbors_and_neigh_of_neigh = list(neighbors_and_neigh_of_neigh)
+            neighbors_up_to_certain_degree = (
+                self.get_list_of_neighbors_up_to_third_degree()
+            )
         else:
-            for cell1 in self.neighbors:
-                neighbors_and_neigh_of_neigh = (
-                    neighbors_and_neigh_of_neigh.union(set(cell.neighbors))
-                )
-                for cell2 in cell1.neighbors:
-                    neighbors_and_neigh_of_neigh = (
-                        neighbors_and_neigh_of_neigh.union(
-                            set(cell2.neighbors)
-                        )
-                    )
-            neighbors_and_neigh_of_neigh = list(neighbors_and_neigh_of_neigh)
+            neighbors_up_to_certain_degree = (
+                self.get_list_of_neighbors_up_to_second_degree()
+            )
         # we reset the neighbors list
         self.neighbors = []
         # we add the cells to the list
-        for cell in neighbors_and_neigh_of_neigh:
+        for cell in neighbors_up_to_certain_degree:
             neither_self_nor_neighbor = (cell is not self) and (
                 cell not in self.neighbors
             )
@@ -191,11 +175,14 @@ class Cell:
         if self.available_space:
             for attempt in range(self.max_repro_attempts):
                 child_position = self.generate_new_position()
+                neighbors_up_to_second_degree = (
+                    self.get_list_of_neighbors_up_to_second_degree()
+                )
                 # array with the distances from the proposed child position to the other cells
                 distance = np.array(
                     [
                         np.linalg.norm(child_position - cell.position)
-                        for cell in self.culture.cells
+                        for cell in neighbors_up_to_second_degree
                     ]
                 )
                 # boolean array specifying if there is no overlap between
