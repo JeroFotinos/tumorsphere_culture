@@ -23,6 +23,10 @@ class Cell:
         max_repro_attempts=10000,
         prob_stem=0.36,  # Wang HARD substrate value
         continuous_graph_generation=False,
+        rng_seed=23978461273864
+        # THE CULTURE MUST PROVIDE A SEED
+        # in spite of the fact that I set a default
+        # (so the code doesn't break e.g. when testing)
     ):
         # Generic attributes
         self.position = position  # NumPy array, vector with 3 components
@@ -34,6 +38,9 @@ class Cell:
         # Stem case attributes
         self.prob_stem = prob_stem
         self._swap_probability = 0.5
+
+        # We instantiate the cell's RNG with the entropy provided
+        self.rng = np.random.default_rng(rng_seed)
 
         # Plotting and graph related attributes
         self._continuous_graph_generation = continuous_graph_generation
@@ -198,7 +205,7 @@ class Cell:
             if no_overlap:
                 # we create a child in that position
                 if self.is_stem:
-                    if np.random.uniform() <= self.prob_stem:
+                    if self.rng.random() <= self.prob_stem:
                         child_cell = Cell(
                             position=child_position,
                             culture=self.culture,
@@ -208,6 +215,7 @@ class Cell:
                             max_repro_attempts=self.max_repro_attempts,
                             prob_stem=self.prob_stem,
                             continuous_graph_generation=self._continuous_graph_generation,
+                            rng_seed=self.rng.integers(low=2**20, high=2**50),
                         )
                     else:
                         child_cell = Cell(
@@ -219,8 +227,9 @@ class Cell:
                             max_repro_attempts=self.max_repro_attempts,
                             prob_stem=self.prob_stem,
                             continuous_graph_generation=self._continuous_graph_generation,
+                            rng_seed=self.rng.integers(low=2**20, high=2**50),
                         )
-                        if np.random.uniform() <= self._swap_probability:
+                        if self.rng.random() <= self._swap_probability:
                             self.is_stem = False
                             child_cell.is_stem = True
                 else:
@@ -233,6 +242,7 @@ class Cell:
                         max_repro_attempts=self.max_repro_attempts,
                         prob_stem=self.prob_stem,
                         continuous_graph_generation=self._continuous_graph_generation,
+                        rng_seed=self.rng.integers(low=2**20, high=2**50),
                     )
                 # we add this cell to the culture's cells and active_cells lists
                 self.culture.cells.append(child_cell)
