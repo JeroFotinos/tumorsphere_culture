@@ -143,6 +143,7 @@ def test_neighbors_match_neighbors_from_entire_culture_from_scratch_exactly(
         cell.find_neighbors_from_entire_culture_from_scratch()
         assert len(cell.neighbors) == original_number_of_neighbors
 
+
 # ======= Intermediate stages =======
 
 
@@ -174,21 +175,26 @@ def test_max_number_of_neighbors(cell_culture, num_steps, request):
     "cell_culture",
     ["dcc_seeded_culture", "csc_seeded_culture"],
 )
-@pytest.mark.parametrize("num_steps", [7])
+@pytest.mark.parametrize("num_steps", [7, 8, 9])
 def test_min_distance_between_cells(cell_culture, num_steps, request):
     """We test that minimum distance between cells is respected.
 
-    (This tests assumes that all cells have the same radius.)
+    This test in essential to check if the idea of looking only to neighbors
+    of certain degree for deciding to accept or not a proposed child position
+    is working properly. (This tests assumes that all cells have the same radius.)
     """
     culture = request.getfixturevalue(cell_culture)
     culture.simulate(num_steps)
     for cell1 in culture.cells:
         for cell2 in culture.cells:
             if cell2 is not cell1:
-                assert (
-                    np.linalg.norm(cell1.position - cell2.position)
-                    >= 2 * cell1.radius
+                d12 = np.linalg.norm(cell1.position - cell2.position)
+                d12_greater_than_minimum = d12 > 2 * cell1.radius
+                d12_close_to_minimum = np.isclose(d12, 2 * cell1.radius)
+                distance_is_appropriate = (
+                    d12_greater_than_minimum or d12_close_to_minimum
                 )
+                assert distance_is_appropriate
 
 
 # ======= Swap between CSC and its DCC child =======
