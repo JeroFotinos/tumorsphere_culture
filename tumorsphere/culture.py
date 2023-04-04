@@ -10,13 +10,25 @@ class Culture:
         first_cell_is_stem=False,
         prob_stem=0.36,  # Wang HARD substrate value
         continuous_graph_generation=False,
+        rng_seed=110293658491283598
+        # THE SIMULATION MUST PROVIDE A SEED
+        # in spite of the fact that I set a default
+        # (so the code doesn't break e.g. when testing)
     ):
+        
+        # attributes to inherit to the cells
         self.cell_max_repro_attempts = cell_max_repro_attempts
         self.adjacency_threshold = adjacency_threshold
         self.cell_radius = cell_radius
         self.prob_stem = prob_stem
+
+        # we instantiate the culture's RNG with the entropy provided
+        self.rng = np.random.default_rng(rng_seed)
+        
+        # state whether this is a csc-seeded culture
         self.first_cell_is_stem = first_cell_is_stem
 
+        # we instantiate the first cell
         first_cell_object = Cell(
             position=np.array([0, 0, 0]),
             culture=self,
@@ -26,8 +38,10 @@ class Culture:
             max_repro_attempts=cell_max_repro_attempts,
             prob_stem=self.prob_stem,
             continuous_graph_generation=continuous_graph_generation,
+            rng_seed=self.rng.integers(low=2**20, high=2**50),
         )
 
+        # we initialize the lists and graphs with the first cell
         self.cells = [first_cell_object]
         self.active_cells = [first_cell_object]
         self.graph = nx.Graph()
@@ -120,7 +134,7 @@ class Culture:
 
     def simulate(self, num_times):
         for i in range(num_times):
-            cells = random.sample(self.active_cells, k=len(self.active_cells))
+            cells = self.rng.permutation(self.active_cells)
             # I had to point to the cells in a copied list,
             # if not, strange things happened
             for cell in cells:
@@ -153,7 +167,7 @@ class Culture:
         # we simulate for num_times time steps
         for i in range(num_times):
             # we get a permuted copy of the cells list
-            cells = random.sample(self.active_cells, k=len(self.active_cells))
+            cells = self.rng.permutation(self.active_cells)
             # I had to point to the cells in a copied list,
             # if not, strange things happened
             for cell in cells:
