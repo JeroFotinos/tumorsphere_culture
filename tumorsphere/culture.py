@@ -15,7 +15,6 @@ class Culture:
         # in spite of the fact that I set a default
         # (so the code doesn't break e.g. when testing)
     ):
-        
         # attributes to inherit to the cells
         self.cell_max_repro_attempts = cell_max_repro_attempts
         self.adjacency_threshold = adjacency_threshold
@@ -24,7 +23,7 @@ class Culture:
 
         # we instantiate the culture's RNG with the entropy provided
         self.rng = np.random.default_rng(rng_seed)
-        
+
         # state whether this is a csc-seeded culture
         self.first_cell_is_stem = first_cell_is_stem
 

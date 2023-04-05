@@ -215,7 +215,9 @@ class Cell:
                             max_repro_attempts=self.max_repro_attempts,
                             prob_stem=self.prob_stem,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=self.rng.integers(low=2**20, high=2**50),
+                            rng_seed=self.rng.integers(
+                                low=2**20, high=2**50
+                            ),
                         )
                     else:
                         child_cell = Cell(
@@ -227,7 +229,9 @@ class Cell:
                             max_repro_attempts=self.max_repro_attempts,
                             prob_stem=self.prob_stem,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=self.rng.integers(low=2**20, high=2**50),
+                            rng_seed=self.rng.integers(
+                                low=2**20, high=2**50
+                            ),
                         )
                         if self.rng.random() <= self._swap_probability:
                             self.is_stem = False
