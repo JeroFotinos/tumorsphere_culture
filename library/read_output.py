@@ -1,10 +1,8 @@
+"""This program plots the simulationdata using the pickled dictionary
+of average data. The paths are thought so the script is used in the
+cluster
+"""
 import pickle
-
-
-import os
-
-
-# print(os.getcwd())
 
 # open the pickled dictionary file
 with open("tumorsphere/sim_average_data.pkl", "rb") as f:
