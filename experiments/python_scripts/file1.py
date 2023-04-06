@@ -448,8 +448,10 @@ class Culture:
 
         # print data
         with open("data/val_ps-val_realiz.dat", "a") as file:
-            file.write(f"{total[0]}, {active[0]}, {total_stem[0]}, {active_stem[0]} \n")
-    
+            file.write(
+                f"{total[0]}, {active[0]}, {total_stem[0]}, {active_stem[0]} \n"
+            )
+
         # we simulate for num_times time steps
         for i in range(num_times):
             #### MEASURING TIME
@@ -501,8 +503,10 @@ class Culture:
 
             # print data
             with open("data/val_ps-val_realiz.dat", "a") as file:
-                file.write(f"{total[i]}, {active[i]}, {total_stem[i]}, {active_stem[i]} \n")
-        
+                file.write(
+                    f"{total[i]}, {active[i]}, {total_stem[i]}, {active_stem[i]} \n"
+                )
+
         return data
 
 
