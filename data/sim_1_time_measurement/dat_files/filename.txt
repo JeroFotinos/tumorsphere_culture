@@ -23,3 +23,12 @@ Time taken: 8053.128194 seconds
 Time taken: 8748.357289 seconds
 Time taken: 10449.057883 seconds
 Time taken: 11498.897731 seconds
+Time taken: 13357.056975 seconds
+Time taken: 14614.209014 seconds
+Time taken: 15724.020714 seconds
+Time taken: 17739.752877 seconds
+Time taken: 19251.122549 seconds
+Time taken: 21322.565975 seconds
+Time taken: 23379.053527 seconds
+Time taken: 24915.564167 seconds
+Time taken: 26603.142904 seconds

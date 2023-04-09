@@ -70,18 +70,27 @@ for file_name in file_list:
 for p in set([x[0] for x in data_dict.keys()]):
 # Create a new file for the averages
     with open(
-        "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/averages/average-sp-{}.dat".format(
+        "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/averages/average-ps-{}.dat".format(
             p
         ),
         "w",
     ) as file:
+        file.write(
+            "{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}\n".format(
+                0, # time step
+                1, # total
+                1, # active
+                1, # total stem
+                1, # active stem
+            )
+        )
         # Calculate the averages for this step
         for key in data_dict.keys():
             if key[0] == p:
                 # Write the averages to the file
                 file.write(
                     "{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}\n".format(
-                        key[1], # time step
+                        key[1]+1, # time step
                         data_dict[key][0]/count_dict[key], # total
                         data_dict[key][1]/count_dict[key], # active
                         data_dict[key][2]/count_dict[key], # total stem
