@@ -27,11 +27,14 @@ for line in lines:
 
 # Create a plot with the time values on the y-axis and the step number on the x-axis
 steps = range(1, len(times) + 1)  # Generate a list of step numbers (1-indexed)
-plt.plot(steps, times)
+plt.plot(steps, times, marker= '.')
+
+# we set the grid
+plt.grid(color = 'green', linestyle = '--', linewidth = 0.5)
 
 # Add labels and title
 xlabel = r"$n$"
-ylabel = r"$t(n) [minutes]$"
+ylabel = r"$t(n)$ [minutes]"
 title = r"Time $t(n)$ to compute the $n$-th step"
 # Here, the r before the title string indicates that it is a raw string,
 # which allows us to use backslashes to specify LaTeX commands.
@@ -41,6 +44,6 @@ plt.title(title)
 
 # Save the plot as a PNG file
 plt.savefig(
-    "./data/sim_1_time_measurement/post_processing/time_by_step.png", dpi=300
+    "./data/sim_1_time_measurement/post_processing/time_by_step.png", dpi=600
 )
 # the dpi (dots per inch) is set to 100 by default, but it's too low for me
