@@ -1,6 +1,6 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Enable LaTeX rendering in matplotlib
 mpl.rcParams["text.usetex"] = True
@@ -25,17 +25,17 @@ for line in lines:
     )  # Remove ' seconds' and convert to float
     times.append(time_val)
 
-# Compute the time differences 
-time_dif = np.zeros(len(times)-1)
+# Compute the time differences
+time_dif = np.zeros(len(times) - 1)
 for n in range(1, len(times)):
-    time_dif[n-1] = times[n] - times[n-1]
+    time_dif[n - 1] = times[n] - times[n - 1]
 
 # Create a plot with the time values on the y-axis and the step number on the x-axis
 steps = range(1, len(times))  # Generate a list of step numbers (1-indexed)
-plt.plot(steps, time_dif, marker= '.')
+plt.plot(steps, time_dif, marker=".")
 
 # we set the grid
-plt.grid(color = 'green', linestyle = '--', linewidth = 0.5)
+plt.grid(color="green", linestyle="--", linewidth=0.5)
 
 # Set y-axis scale to logarithmic
 plt.yscale("log")

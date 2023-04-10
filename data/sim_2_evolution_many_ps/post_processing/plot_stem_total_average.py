@@ -1,6 +1,7 @@
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Set the path to the directory containing the data files
 data_dir = "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/averages/"
@@ -34,7 +35,7 @@ active_cells = []
 total_stem_cells = []
 active_stem_cells = []
 
-for p_index in range(len(p)):    
+for p_index in range(len(p)):
     time.append(data[p_index][:, 0])
     total_cells.append(data[p_index][:, 1])
     active_cells.append(data[p_index][:, 2])
@@ -44,14 +45,20 @@ for p_index in range(len(p)):
 # Plot the curves
 fig, ax = plt.subplots()
 
-for p_index in range(len(p)):    
+for p_index in range(len(p)):
     # ax.plot(time[p_index], total_cells[p_index], label="Total Cells")
     # ax.plot(time[p_index], active_cells[p_index], label="Active Cells")
-    # ax.plot(time[p_index], total_stem_cells[p_index], label=f'$p_s = {p[p_index]}$') # , label="Total Stem Cells"
-    ax.plot(time[p_index], active_stem_cells[p_index], marker= '.', label=f'$p_s = {p[p_index]}$', color=plt.cm.viridis(p_index / len(p))) # , label="Active Stem Cells"
+    ax.plot(
+        time[p_index],
+        total_stem_cells[p_index],
+        marker=".",
+        label=f"$p_s = {p[p_index]}$",
+        color=plt.cm.viridis(p_index / len(p)),
+    )  # , label="Total Stem Cells"
+    # ax.plot(time[p_index], active_stem_cells[p_index], label="Active Stem Cells")
 
 # we set the grid
-plt.grid(color = 'gray', linestyle = '--', linewidth = 0.5)
+plt.grid(color="gray", linestyle="--", linewidth=0.5)
 
 # Set y-axis scale to logarithmic
 plt.yscale("log")
@@ -66,7 +73,7 @@ ax.legend()
 
 # Save the plot as a PNG file
 plt.savefig(
-    "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/averages_plots/average-active-stem-log.png",
+    "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/averages_plots/average-total-stem-log.png",
     dpi=600,
 )
 # the dpi (dots per inch) is set to 100 by default, but it's too low for me

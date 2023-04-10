@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 # Enable LaTeX rendering in matplotlib
 mpl.rcParams["text.usetex"] = True
@@ -27,10 +27,10 @@ for line in lines:
 
 # Create a plot with the time values on the y-axis and the step number on the x-axis
 steps = range(1, len(times) + 1)  # Generate a list of step numbers (1-indexed)
-plt.plot(steps, times, marker= '.')
+plt.plot(steps, times, marker=".")
 
 # we set the grid
-plt.grid(color = 'green', linestyle = '--', linewidth = 0.5)
+plt.grid(color="green", linestyle="--", linewidth=0.5)
 
 # Set y-axis scale to logarithmic
 plt.yscale("log")

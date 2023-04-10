@@ -1,6 +1,7 @@
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Set the path to the directory containing the data files
 data_dir = "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/averages/"
@@ -34,7 +35,7 @@ active_cells = []
 total_stem_cells = []
 active_stem_cells = []
 
-for p_index in range(len(p)):    
+for p_index in range(len(p)):
     time.append(data[p_index][:, 0])
     total_cells.append(data[p_index][:, 1])
     active_cells.append(data[p_index][:, 2])
@@ -42,26 +43,32 @@ for p_index in range(len(p)):
     active_stem_cells.append(data[p_index][:, 4])
 
 # we set the grid
-plt.grid(color = 'gray', linestyle = '--', linewidth = 0.5)
+plt.grid(color="gray", linestyle="--", linewidth=0.5)
 
 # Plot the curves
 fig, ax = plt.subplots()
 
-for p_index in range(len(p)):    
-    ax.plot(time[p_index], total_cells[p_index], marker= '.', label=f'$p_s = {p[p_index]}$', color=plt.cm.viridis(p_index / len(p))) # , label="Total Cells"
+for p_index in range(len(p)):
+    ax.plot(
+        time[p_index],
+        total_cells[p_index],
+        marker=".",
+        label=f"$p_s = {p[p_index]}$",
+        color=plt.cm.viridis(p_index / len(p)),
+    )  # , label="Total Cells"
     # ax.plot(time[p_index], active_cells[p_index], label="Active Cells")
     # ax.plot(time[p_index], total_stem_cells[p_index], label=f'$p_s = {p[p_index]}$') # , label="Total Stem Cells"
     # ax.plot(time[p_index], active_stem_cells[p_index], label=f'$p_s = {p[p_index]}$') # , label="Active Stem Cells"
 
 # we set the grid
-plt.grid(color = 'gray', linestyle = '--', linewidth = 0.5)
+plt.grid(color="gray", linestyle="--", linewidth=0.5)
 
 # Set y-axis scale to logarithmic
 plt.yscale("log")
 
 ax.set_xlabel("Time")
-ax.set_ylabel("Total Stem Cells")
-ax.set_title("Evolution of Total Cancer Stem Cells")
+ax.set_ylabel("Total Cells")
+ax.set_title("Evolution of Total Cancer Cells")
 ax.legend()
 
 # to see the figure

@@ -1,7 +1,7 @@
+import matplotlib.pyplot as plt
+
 from tumorsphere.cells import *
 from tumorsphere.culture import *
-
-import matplotlib.pyplot as plt
 
 
 class Simulation:
