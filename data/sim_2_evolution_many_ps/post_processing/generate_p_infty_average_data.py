@@ -1,12 +1,4 @@
-""""
-This code uses the glob module to list all the files with the pattern 'ps-n.dat'.
-It then reads the data from each file, stores it in a dictionary with the (p, i)
-tuple as the key, where p is the value of p_s and i is the number of time step.
-The values of this dictionary are arrays of four numbers: total cells, active cells, 
-total stem cells and active stem cells, sumed on the realizations. Finally, it loops
-through each unique p value, calculates the averages for each step across all the files with
-that p value, and writes the averages to a new file called 'average-sp-p.dat'.
-"""
+import numpy as np
 
 import glob
 
@@ -32,8 +24,9 @@ for file_name in file_list:
 
     # Loop through each line in the file
     for i, line in enumerate(file_data):
-        # Convert the line to a list of integers
-        line_data = [float(x) for x in line.strip().split(", ")]
+        # Convert the line to a list of integers, and take sign to convert
+        # to 0 or 1 (either there are still cells in that category or not)
+        line_data = [np.sign(float(x)) for x in line.strip().split(", ")]
         # = [total(i), active(i), total stem(i), active stem(i)]
 
         # Add the line data to the dictionary ('i' is the line number,
@@ -59,29 +52,27 @@ for file_name in file_list:
             # At the end of the day, data_dict[(p, i)] contains an array whose
             # j-th element is the sum over the realizations of the j-th element
             # of the i-th time step for p_s = p.
-            # 
+            #
             # Also, count_dict[(p, i)] tells us how many realizations do we have
             # for p_s = p and the time step i. If simulations are incomplete,
             # i.e. if we are working with preliminary data, we can still obtain
             # a correct average because we are taking into account the number
             # of realizations available.
 
-# Loop through each unique ps value
+# Loop through each unique ps value and save the time step and p_infty for that ps
+
 for p in set([x[0] for x in data_dict.keys()]):
-# Create a new file for the averages
+    # Create a new file for the averages
     with open(
-        "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/averages/average-ps-{}.dat".format(
+        "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_t_averages/average-p_infty_vs_t-ps-{}.dat".format(
             p
         ),
         "w",
     ) as file:
         file.write(
-            "{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}\n".format(
-                0, # time step
-                1, # total
-                1, # active
-                1, # total stem
-                1, # active stem
+            "{:.2f}, {:.4f}\n".format(
+                0,  # time step
+                1,  # active stem
             )
         )
         # Calculate the averages for this step
@@ -89,12 +80,37 @@ for p in set([x[0] for x in data_dict.keys()]):
             if key[0] == p:
                 # Write the averages to the file
                 file.write(
-                    "{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}\n".format(
-                        key[1]+1, # time step
-                        data_dict[key][0]/count_dict[key], # total
-                        data_dict[key][1]/count_dict[key], # active
-                        data_dict[key][2]/count_dict[key], # total stem
-                        data_dict[key][3]/count_dict[key], # active stem
-                        
+                    "{:.2f}, {:.4f}\n".format(
+                        key[1] + 1,  # time step
+                        # data_dict[key][0] / count_dict[key],  # total
+                        # data_dict[key][1] / count_dict[key],  # active
+                        # data_dict[key][2] / count_dict[key],  # total stem
+                        data_dict[key][3] / count_dict[key],  # active stem
+                    )
+                )
+
+
+
+# Loop through each unique ps value and save the ps and p_infty in a file that corresponds to the time step 
+
+for i in set([(x[1] + 1) for x in data_dict.keys()]):
+    # Create a new file for the averages
+    with open(
+        "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_ps_averages/average-p_infty_vs_ps-t-{}.dat".format(
+            i
+        ),
+        "w",
+    ) as file:
+        # Calculate the averages for this step
+        for key in data_dict.keys():
+            if key[1] == i:
+                # Write the averages to the file
+                file.write(
+                    "{:.2f}, {:.4f}\n".format(
+                        key[0],  # ps
+                        # data_dict[key][0] / count_dict[key],  # total
+                        # data_dict[key][1] / count_dict[key],  # active
+                        # data_dict[key][2] / count_dict[key],  # total stem
+                        data_dict[key][3] / count_dict[key],  # active stem
                     )
                 )

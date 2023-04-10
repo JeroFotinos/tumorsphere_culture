@@ -1,7 +1,6 @@
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 from scipy.stats import linregress
-
 
 # Enable LaTeX rendering in matplotlib
 mpl.rcParams["text.usetex"] = True
@@ -29,28 +28,30 @@ for line in lines:
 
 # Create a plot with the time values on the y-axis and the step number on the x-axis
 steps = range(1, len(times) + 1)  # Generate a list of step numbers (1-indexed)
-plt.plot(steps, times, marker= '.')
+plt.plot(steps, times, marker=".")
 
 
-# Perform linear regression on the last ten points of the data
-last_ten_steps = steps[-10:]
-last_ten_times = times[-10:]
-slope, intercept, r_value, p_value, std_err = linregress(last_ten_steps, last_ten_times)
+# Perform linear regression on the 25-th step onwards
+last_steps = steps[24:]
+last_times = times[24:]
+slope, intercept, r_value, p_value, std_err = linregress(
+    last_steps, last_times
+)
 
 # Add the linear fit to the plot with label and legend
-fit_label = f'Linear fit: $t(n) = {slope:.2f} n {intercept:.2f}$'
-plt.plot(last_ten_steps, slope*last_ten_steps + intercept, label=fit_label)
+fit_label = f"Linear fit: $t(n) = {slope:.2f} n {intercept:.2f}$"
+plt.plot(last_steps, slope * last_steps + intercept, label=fit_label)
 plt.legend()
 
 # Add text to the plot to display the fit statistics
 text_xpos = steps[-1] - 8.9  # Position the text near the end of the data
 text_ypos = times[-1] * 0.1  # Position the text 10% up from the lowest point
-text = f'$r$ = {r_value:.4f}\n$p$ = {p_value:.4f}\n$\sigma$ = {std_err:.4f}'
+text = f"$r$ = {r_value:.4f}\n$p$ = {p_value:.4f}\n$\sigma$ = {std_err:.4f}"
 plt.text(text_xpos, text_ypos, text)
 
 
 # we set the grid
-plt.grid(color = 'green', linestyle = '--', linewidth = 0.5)
+plt.grid(color="green", linestyle="--", linewidth=0.5)
 
 # Add labels and title
 xlabel = r"$n$"
@@ -64,6 +65,7 @@ plt.title(title)
 
 # Save the plot as a PNG file
 plt.savefig(
-    "./data/sim_1_time_measurement/post_processing/time_by_step_with_reg.png", dpi=600
+    "./data/sim_1_time_measurement/post_processing/time_by_step_with_reg.png",
+    dpi=600,
 )
 # the dpi (dots per inch) is set to 100 by default, but it's too low for me
