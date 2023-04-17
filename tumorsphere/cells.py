@@ -6,7 +6,7 @@ import networkx as nx
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
-colors = {True: "red", False: "blue"}
+# colors = {True: "red", False: "blue"}
 
 # probabilities = {'ps' : 0.36, 'pd' : 0.16}
 # prob_stem = 0.36
@@ -17,10 +17,10 @@ class Cell:
         self,
         position,
         culture,
-        adjacency_threshold=4,  # upper bound to third neighbor distance in HCP
+        adjacency_threshold=4, # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
         radius=1,
         is_stem=False,
-        max_repro_attempts=10000,
+        max_repro_attempts=1000,
         prob_stem=0.36,  # Wang HARD substrate value
         prob_diff = 0,
         continuous_graph_generation=False,
@@ -121,7 +121,7 @@ class Cell:
         # if the cell is a newborn, it will only have its parent as neighbor,
         # so neighbors of its neighbors are just the neighbors of its parent.
         # The first time we have to go a level deeper.
-        if len(self.neighbors) < 20:
+        if len(self.neighbors) < 12:
             neighbors_up_to_certain_degree = (
                 self.get_list_of_neighbors_up_to_third_degree()
             )

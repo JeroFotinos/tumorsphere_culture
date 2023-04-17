@@ -15,8 +15,8 @@ class Simulation:
         num_of_steps_per_realization=10,
         rng_seed=0x87351080E25CB0FAD77A44A3BE03B491,
         cell_radius=1,
-        adjacency_threshold=4,
-        cell_max_repro_attempts=5000,
+        adjacency_threshold=4, # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
+        cell_max_repro_attempts=1000,
         continuous_graph_generation=False,
         # THE USER MUST PROVIDE A HIGH QUALITY SEED
         # in spite of the fact that I set a default
