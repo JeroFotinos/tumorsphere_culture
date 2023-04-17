@@ -46,7 +46,7 @@ class Cell:
 
         # Plotting and graph related attributes
         self._continuous_graph_generation = continuous_graph_generation
-        self._colors = {True: "red", False: "blue"}
+        self._colors = {(True, True): "red", (True, False): "salmon", (False, True): "blue", (False, False): "cornflowerblue"} # the tuple is (is_stem, in_active_cells)
 
         # Attributes that evolve with the simulation
         self.neighbors = []

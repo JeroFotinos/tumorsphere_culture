@@ -69,7 +69,7 @@ class Culture:
 
         for cell in self.cells:
             x, y, z = cell.position
-            ax.scatter(x, y, z, c=cell._colors[cell.is_stem], marker="o")
+            ax.scatter(x, y, z, c=cell._colors[(cell.is_stem, cell in self.active_cells)], marker="o")
 
             # plot a sphere at the position of the cell
             u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
@@ -80,7 +80,7 @@ class Culture:
                 sphere_x,
                 sphere_y,
                 sphere_z,
-                color=cell._colors[cell.is_stem],
+                color=cell._colors[(cell.is_stem, cell in self.active_cells)],
                 alpha=0.2,
             )
 
@@ -98,7 +98,7 @@ class Culture:
 
         for cell in self.cells:
             x, y, z = cell.position
-            ax.scatter(x, y, z, c=cell._colors[cell.is_stem], marker="o")
+            ax.scatter(x, y, z, c=cell._colors[(cell.is_stem, cell in self.active_cells)], marker="o")
 
             # plot a sphere at the position of the cell
             u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
@@ -109,7 +109,7 @@ class Culture:
                 sphere_x,
                 sphere_y,
                 sphere_z,
-                color=cell._colors[cell.is_stem],
+                color=cell._colors[(cell.is_stem, cell in self.active_cells)],
                 alpha=0.2,
             )
 
