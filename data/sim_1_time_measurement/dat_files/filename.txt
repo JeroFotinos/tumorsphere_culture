@@ -37,3 +37,6 @@ Time taken: 31264.257729 seconds
 Time taken: 35891.314404 seconds
 Time taken: 36985.307892 seconds
 Time taken: 39265.891971 seconds
+Time taken: 39725.601346 seconds
+Time taken: 43221.822936 seconds
+Time taken: 45360.740112 seconds

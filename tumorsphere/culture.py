@@ -9,6 +9,7 @@ class Culture:
         cell_max_repro_attempts=10000,
         first_cell_is_stem=False,
         prob_stem=0.36,  # Wang HARD substrate value
+        prob_diff = 0,
         continuous_graph_generation=False,
         rng_seed=110293658491283598
         # THE SIMULATION MUST PROVIDE A SEED
@@ -20,6 +21,7 @@ class Culture:
         self.adjacency_threshold = adjacency_threshold
         self.cell_radius = cell_radius
         self.prob_stem = prob_stem
+        self.prob_diff = prob_diff
 
         # we instantiate the culture's RNG with the entropy provided
         self.rng = np.random.default_rng(rng_seed)
@@ -36,6 +38,7 @@ class Culture:
             is_stem=self.first_cell_is_stem,
             max_repro_attempts=cell_max_repro_attempts,
             prob_stem=self.prob_stem,
+            prob_diff = self.prob_diff,
             continuous_graph_generation=continuous_graph_generation,
             rng_seed=self.rng.integers(low=2**20, high=2**50),
         )
@@ -45,6 +48,8 @@ class Culture:
         self.active_cells = [first_cell_object]
         self.graph = nx.Graph()
         self.graph.add_node(first_cell_object)
+
+    # ========================= Ploting methods ==========================
 
     def plot_culture_dots(self):
         positions = np.array(
@@ -131,6 +136,8 @@ class Culture:
                 if cell2 in cell1.neighbors:
                     self.graph.add_edge(cell1, cell2)
 
+    # ====================================================================
+
     def simulate(self, num_times):
         for i in range(num_times):
             cells = self.rng.permutation(self.active_cells)
@@ -140,16 +147,21 @@ class Culture:
                 cell.reproduce()
 
     def any_csc_in_culture_boundary(self):
-        in_boundary = [(cell.available_space) for cell in self.active_cells]
-        any_csc_in_boundary = np.any(in_boundary)
+        stem_in_boundary = [(cell.available_space and cell.is_stem) for cell in self.active_cells]
+        any_csc_in_boundary = np.any(stem_in_boundary)
         return any_csc_in_boundary
 
+        
+
     def simulate_with_data(self, num_times):
-        # we initialize the arrays that will make up the data
-        total = np.zeros(num_times)
-        active = np.zeros(num_times)
-        total_stem = np.zeros(num_times)
-        active_stem = np.zeros(num_times)
+        
+        # we use a dictionary to store the data arrays and initialize them
+        data = {
+            "total" : np.zeros(num_times),
+            "active" : np.zeros(num_times),
+            "total_stem" : np.zeros(num_times),
+            "active_stem" : np.zeros(num_times),
+        }
 
         # we count the initial amount of CSCs
         if self.first_cell_is_stem:
@@ -158,13 +170,13 @@ class Culture:
             initial_amount_of_csc = 0
 
         # we asign the initial values for the data
-        total[0] = 1
-        active[0] = 1
-        total_stem[0] = initial_amount_of_csc
-        active_stem[0] = initial_amount_of_csc
+        data["total"][0] = 1
+        data["active"][0] = 1
+        data["total_stem"][0] = initial_amount_of_csc
+        data["active_stem"][0] = initial_amount_of_csc
 
         # we simulate for num_times time steps
-        for i in range(num_times):
+        for i in range(1, num_times):
             # we get a permuted copy of the cells list
             cells = self.rng.permutation(self.active_cells)
             # I had to point to the cells in a copied list,
@@ -185,11 +197,12 @@ class Culture:
                     active_stem_counter = active_stem_counter + 1
 
             # we asign the data values for this time step
-            total[i] = len(self.cells)
-            active[i] = len(self.active_cells)
-            total_stem[i] = total_stem_counter
-            active_stem[i] = active_stem_counter
-
-            # we stack the arrays that make up the data into a single array to be returned
-            data = np.vstack((total, active, total_stem, active_stem))
+            data["total"][i] = len(self.cells)
+            data["active"][i] = len(self.active_cells)
+            data["total_stem"][i] = total_stem_counter
+            data["active_stem"][i] = active_stem_counter
+            
         return data
+
+    # def simulate_with_continuos_data
+    # def simulate_with_continuos_data_and_persisted_culture

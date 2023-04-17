@@ -22,6 +22,7 @@ class Cell:
         is_stem=False,
         max_repro_attempts=10000,
         prob_stem=0.36,  # Wang HARD substrate value
+        prob_diff = 0,
         continuous_graph_generation=False,
         rng_seed=23978461273864
         # THE CULTURE MUST PROVIDE A SEED
@@ -37,6 +38,7 @@ class Cell:
 
         # Stem case attributes
         self.prob_stem = prob_stem
+        self.prob_diff = prob_diff
         self._swap_probability = 0.5
 
         # We instantiate the cell's RNG with the entropy provided
@@ -205,7 +207,8 @@ class Cell:
             if no_overlap:
                 # we create a child in that position
                 if self.is_stem:
-                    if self.rng.random() <= self.prob_stem:
+                    random_number = self.rng.random()
+                    if random_number <= self.prob_stem: # ps
                         child_cell = Cell(
                             position=child_position,
                             culture=self.culture,
@@ -214,6 +217,7 @@ class Cell:
                             is_stem=True,
                             max_repro_attempts=self.max_repro_attempts,
                             prob_stem=self.prob_stem,
+                            prob_diff=self.prob_diff,
                             continuous_graph_generation=self._continuous_graph_generation,
                             rng_seed=self.rng.integers(
                                 low=2**20, high=2**50
@@ -228,12 +232,15 @@ class Cell:
                             is_stem=False,
                             max_repro_attempts=self.max_repro_attempts,
                             prob_stem=self.prob_stem,
+                            prob_diff=self.prob_diff,
                             continuous_graph_generation=self._continuous_graph_generation,
                             rng_seed=self.rng.integers(
                                 low=2**20, high=2**50
                             ),
                         )
-                        if self.rng.random() <= self._swap_probability:
+                        if random_number <= (self.prob_stem + self.prob_diff): # pd
+                            self.is_stem = False
+                        elif self.rng.random() <= self._swap_probability: # pa = 1-ps-pd
                             self.is_stem = False
                             child_cell.is_stem = True
                 else:
@@ -245,6 +252,7 @@ class Cell:
                         is_stem=False,
                         max_repro_attempts=self.max_repro_attempts,
                         prob_stem=self.prob_stem,
+                        prob_diff=self.prob_diff,
                         continuous_graph_generation=self._continuous_graph_generation,
                         rng_seed=self.rng.integers(low=2**20, high=2**50),
                     )
