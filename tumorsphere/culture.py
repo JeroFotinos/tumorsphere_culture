@@ -4,9 +4,9 @@ from tumorsphere.cells import *
 class Culture:
     def __init__(
         self,
-        adjacency_threshold=4,
+        adjacency_threshold=4, # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
         cell_radius=1,
-        cell_max_repro_attempts=10000,
+        cell_max_repro_attempts=1000,
         first_cell_is_stem=False,
         prob_stem=0.36,  # Wang HARD substrate value
         prob_diff = 0,
