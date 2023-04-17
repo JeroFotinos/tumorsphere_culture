@@ -7,7 +7,7 @@ import numpy as np
 data_dir = "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_ps_averages/"
 
 # Set of values for p for which are available to plot
-list_of_steps = np.arange(25, 31, 1)
+list_of_steps = np.arange(25, 41, 5)
 # list_of_steps = [30]
 
 # Find the data files for the specified values of p
