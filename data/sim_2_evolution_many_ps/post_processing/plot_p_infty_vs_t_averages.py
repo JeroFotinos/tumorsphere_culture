@@ -3,6 +3,11 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
+# set matplotlib style
+plt.style.use('ggplot')
+plt.rcParams["axes.edgecolor"] = "darkgray"
+plt.rcParams["axes.linewidth"] = 0.8
+
 # Set the path to the directory containing the data files
 data_dir = "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_t_averages/"
 
@@ -10,6 +15,9 @@ data_dir = "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_
 p = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
 # p = tuple(np.arange(0.1, 1.1, 0.1)) # no anda porque devuelve
 # (0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6, 0.7000000000000001, 0.8, 0.9, 1.0) 
+
+# p with reversed order
+p = p[::-1]
 
 # Find the data files for the specified values of p
 data_files = []
@@ -56,11 +64,11 @@ for p_index in range(len(p)):
         active_stem_cells[p_index],
         marker=".",
         label=f"$p_s = {p[p_index]}$",
-        color=plt.cm.viridis(p_index / len(p)),
+        color=plt.cm.magma(p_index / len(p)),
     )  # , label="Active Stem Cells"
 
 # we set the grid
-plt.grid(color="gray", linestyle="--", linewidth=0.5)
+# plt.grid(color="gray", linestyle="--", linewidth=0.5)
 
 # Set y-axis scale to logarithmic
 # plt.yscale("log")
