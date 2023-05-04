@@ -1,6 +1,6 @@
-import numpy as np
-
 import glob
+
+import numpy as np
 
 # List all the files with the pattern 'ps-n.dat'
 file_list = glob.glob(
@@ -90,8 +90,7 @@ for p in set([x[0] for x in data_dict.keys()]):
                 )
 
 
-
-# Loop through each unique ps value and save the ps and p_infty in a file that corresponds to the time step 
+# Loop through each unique ps value and save the ps and p_infty in a file that corresponds to the time step
 
 for i in set([(x[1] + 1) for x in data_dict.keys()]):
     # Create a new file for the averages

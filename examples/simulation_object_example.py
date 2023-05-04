@@ -5,7 +5,7 @@ from tumorsphere.simulation import *
 sim = Simulation(
     first_cell_is_stem=True,
     prob_stem=[0.36],  # Wang HARD substrate value
-    prob_diff = [0],
+    prob_diff=[0],
     num_of_realizations=3,
     num_of_steps_per_realization=4,
     rng_seed=0x87351080E25CB0FAD77A44A3BE03B491,

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # set matplotlib style
-plt.style.use('ggplot')
+plt.style.use("ggplot")
 plt.rcParams["axes.edgecolor"] = "darkgray"
 plt.rcParams["axes.linewidth"] = 0.8
 
@@ -74,7 +74,7 @@ plt.yscale("log")
 ax.set_xlabel("Time")
 ax.set_ylabel("Total Stem Cells")
 ax.set_title("Evolution of Total Cancer Stem Cells")
-ax.legend(prop={'size': 8.5})
+ax.legend(prop={"size": 8.5})
 
 # to see the figure
 # plt.show()

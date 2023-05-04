@@ -9,37 +9,81 @@ the color when plotting. There is a bijection between color and type of a cell.
 DEPRECATED: use '../ovito_plotting/generate_data_ovito.py'.
 """
 
+import glob
+import pickle
+
 from tumorsphere.cells import *
 from tumorsphere.culture import *
 
-import pickle
-import glob
-
-
-with open('./csc_culture.pkl', 'rb') as pickle_file, open("ovito_data.dat","w") as file_to_write:
+with open("./csc_culture.pkl", "rb") as pickle_file, open(
+    "ovito_data.dat", "w"
+) as file_to_write:
     culture_object = pickle.load(pickle_file)
     print("Number of cells:", len(culture_object.cells))
-    file_to_write.write(str(len(culture_object.cells)) + "\n" )
-    file_to_write.write(" Lattice=\"1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0\"Properties=species:S:1:pos:R:3:Color:r:1"+"\n")
-    
-    for cell in culture_object.cells: # csc activas
-        if (cell.is_stem and cell.available_space):
-            line = "active_stem " + str(cell.position[0]) + " " + str(cell.position[1]) + " " + str(cell.position[2]) + " " + "1" + "\n"
+    file_to_write.write(str(len(culture_object.cells)) + "\n")
+    file_to_write.write(
+        ' Lattice="1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:Color:r:1'
+        + "\n"
+    )
+
+    for cell in culture_object.cells:  # csc activas
+        if cell.is_stem and cell.available_space:
+            line = (
+                "active_stem "
+                + str(cell.position[0])
+                + " "
+                + str(cell.position[1])
+                + " "
+                + str(cell.position[2])
+                + " "
+                + "1"
+                + "\n"
+            )
             file_to_write.write(line)
             print(line)
-    for cell in culture_object.cells: # csc quiesc
-        if (cell.is_stem and (not cell.available_space)):
-            line = "quiesc_stem " + str(cell.position[0]) + " " + str(cell.position[1]) + " " + str(cell.position[2]) + " " + "2" + "\n"
+    for cell in culture_object.cells:  # csc quiesc
+        if cell.is_stem and (not cell.available_space):
+            line = (
+                "quiesc_stem "
+                + str(cell.position[0])
+                + " "
+                + str(cell.position[1])
+                + " "
+                + str(cell.position[2])
+                + " "
+                + "2"
+                + "\n"
+            )
             file_to_write.write(line)
             print(line)
-    for cell in culture_object.cells: # dcc activas
-        if ((not cell.is_stem) and cell.available_space):
-            line = "active_diff " + str(cell.position[0]) + " " + str(cell.position[1]) + " " + str(cell.position[2]) + " " + "3" + "\n"
+    for cell in culture_object.cells:  # dcc activas
+        if (not cell.is_stem) and cell.available_space:
+            line = (
+                "active_diff "
+                + str(cell.position[0])
+                + " "
+                + str(cell.position[1])
+                + " "
+                + str(cell.position[2])
+                + " "
+                + "3"
+                + "\n"
+            )
             file_to_write.write(line)
             print(line)
-    for cell in culture_object.cells: # dcc quiesc
+    for cell in culture_object.cells:  # dcc quiesc
         if not (cell.is_stem or cell.available_space):
-            line = "quiesc_diff " + str(cell.position[0]) + " " + str(cell.position[1]) + " " + str(cell.position[2]) + " " + "4" + "\n"
+            line = (
+                "quiesc_diff "
+                + str(cell.position[0])
+                + " "
+                + str(cell.position[1])
+                + " "
+                + str(cell.position[2])
+                + " "
+                + "4"
+                + "\n"
+            )
             file_to_write.write(line)
             print(line)
 
@@ -61,7 +105,7 @@ with open('./csc_culture.pkl', 'rb') as pickle_file, open("ovito_data.dat","w") 
 #             print("Number of cells:", len(culture_object.cells))
 #             file_to_write.write(str(len(culture_object.cells)) + "\n" )
 #             file_to_write.write(" Lattice=\"1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0\"Properties=species:S:1:pos:R:3:Color:r:1"+"\n")
-            
+
 #             for cell in culture_object.cells: # csc activas
 #                 if (cell.is_stem and cell.available_space):
 #                     line = "active_stem " + str(cell.position[0]) + " " + str(cell.position[1]) + " " + str(cell.position[2]) + " " + "1" + "\n"

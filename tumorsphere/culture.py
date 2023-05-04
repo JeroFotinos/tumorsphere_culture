@@ -4,12 +4,12 @@ from tumorsphere.cells import *
 class Culture:
     def __init__(
         self,
-        adjacency_threshold=4, # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
+        adjacency_threshold=4,  # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
         cell_radius=1,
         cell_max_repro_attempts=1000,
         first_cell_is_stem=False,
         prob_stem=0.36,  # Wang HARD substrate value
-        prob_diff = 0,
+        prob_diff=0,
         continuous_graph_generation=False,
         rng_seed=110293658491283598
         # THE SIMULATION MUST PROVIDE A SEED
@@ -38,7 +38,7 @@ class Culture:
             is_stem=self.first_cell_is_stem,
             max_repro_attempts=cell_max_repro_attempts,
             prob_stem=self.prob_stem,
-            prob_diff = self.prob_diff,
+            prob_diff=self.prob_diff,
             continuous_graph_generation=continuous_graph_generation,
             rng_seed=self.rng.integers(low=2**20, high=2**50),
         )
@@ -69,7 +69,13 @@ class Culture:
 
         for cell in self.cells:
             x, y, z = cell.position
-            ax.scatter(x, y, z, c=cell._colors[(cell.is_stem, cell in self.active_cells)], marker="o")
+            ax.scatter(
+                x,
+                y,
+                z,
+                c=cell._colors[(cell.is_stem, cell in self.active_cells)],
+                marker="o",
+            )
 
             # plot a sphere at the position of the cell
             u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
@@ -98,7 +104,13 @@ class Culture:
 
         for cell in self.cells:
             x, y, z = cell.position
-            ax.scatter(x, y, z, c=cell._colors[(cell.is_stem, cell in self.active_cells)], marker="o")
+            ax.scatter(
+                x,
+                y,
+                z,
+                c=cell._colors[(cell.is_stem, cell in self.active_cells)],
+                marker="o",
+            )
 
             # plot a sphere at the position of the cell
             u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
@@ -147,20 +159,20 @@ class Culture:
                 cell.reproduce()
 
     def any_csc_in_culture_boundary(self):
-        stem_in_boundary = [(cell.available_space and cell.is_stem) for cell in self.active_cells]
+        stem_in_boundary = [
+            (cell.available_space and cell.is_stem)
+            for cell in self.active_cells
+        ]
         any_csc_in_boundary = np.any(stem_in_boundary)
         return any_csc_in_boundary
 
-        
-
     def simulate_with_data(self, num_times):
-        
         # we use a dictionary to store the data arrays and initialize them
         data = {
-            "total" : np.zeros(num_times),
-            "active" : np.zeros(num_times),
-            "total_stem" : np.zeros(num_times),
-            "active_stem" : np.zeros(num_times),
+            "total": np.zeros(num_times),
+            "active": np.zeros(num_times),
+            "total_stem": np.zeros(num_times),
+            "active_stem": np.zeros(num_times),
         }
 
         # we count the initial amount of CSCs
@@ -201,7 +213,7 @@ class Culture:
             data["active"][i] = len(self.active_cells)
             data["total_stem"][i] = total_stem_counter
             data["active_stem"][i] = active_stem_counter
-            
+
         return data
 
     # def simulate_with_continuos_data

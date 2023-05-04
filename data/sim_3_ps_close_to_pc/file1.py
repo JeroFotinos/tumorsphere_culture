@@ -7,6 +7,7 @@ import random
 import time
 
 import matplotlib.pyplot as plt
+
 # import networkx as nx
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
