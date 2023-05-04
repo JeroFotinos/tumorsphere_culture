@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import linregress
 
-
 # Set the path to the directory containing the data files
 data_dir = "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/averages/"
 
@@ -44,8 +43,8 @@ for p_index in range(len(p)):
     active_cells.append(data[p_index][:, 2])
     total_stem_cells.append(data[p_index][:, 3])
     active_stem_cells.append(data[p_index][:, 4])
-    time = np.log(time) # log scale in the x axis
-    total_cells = np.log(total_cells) # log scale in the y axis
+    time = np.log(time)  # log scale in the x axis
+    total_cells = np.log(total_cells)  # log scale in the y axis
 
 # we set the grid
 plt.grid(color="gray", linestyle="--", linewidth=0.5)
@@ -73,14 +72,22 @@ for p_index in range(len(p)):
     )
 
     # Add the linear fit to the plot with label and legend
-    fit_label = f"Linear fit: $\log[n(t)] = {slope:.2f} ~ \log(t) {intercept:.2f}$"
+    fit_label = (
+        f"Linear fit: $\log[n(t)] = {slope:.2f} ~ \log(t) {intercept:.2f}$"
+    )
     plt.plot(last_steps, slope * last_steps + intercept, label=fit_label)
     plt.legend()
 
     # Add text to the plot to display the fit statistics
-    text_xpos = time[p_index][-1] - 1  # Position the text near the end of the data
-    text_ypos = total_cells[p_index][-1] * 0.1  # Position the text 10% up from the lowest point
-    text = f"$r$ = {r_value:.4f}\n$p$ = {p_value:.4f}\n$\sigma$ = {std_err:.4f}"
+    text_xpos = (
+        time[p_index][-1] - 1
+    )  # Position the text near the end of the data
+    text_ypos = (
+        total_cells[p_index][-1] * 0.1
+    )  # Position the text 10% up from the lowest point
+    text = (
+        f"$r$ = {r_value:.4f}\n$p$ = {p_value:.4f}\n$\sigma$ = {std_err:.4f}"
+    )
     plt.text(text_xpos, text_ypos, text)
 
 
@@ -88,10 +95,10 @@ for p_index in range(len(p)):
 plt.grid(color="gray", linestyle="--", linewidth=0.5)
 
 # Set x-axis log
-#plt.xscale("log")
+# plt.xscale("log")
 
 # Set y-axis scale to logarithmic
-#plt.yscale("log")
+# plt.yscale("log")
 
 ax.set_xlabel("$\log(t)$")
 ax.set_ylabel("$\log[n(t)]$")

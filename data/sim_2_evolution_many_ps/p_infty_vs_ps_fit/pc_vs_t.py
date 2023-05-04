@@ -6,7 +6,7 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 
 # set matplotlib style
-plt.style.use('ggplot')
+plt.style.use("ggplot")
 plt.rcParams["axes.edgecolor"] = "darkgray"
 plt.rcParams["axes.linewidth"] = 0.8
 
@@ -28,7 +28,9 @@ data_files = []
 for step_index in range(len(list_of_steps)):
     files_for_i = []
     for file_name in os.listdir(data_dir):
-        if file_name.startswith("average-p_infty_vs_ps-t-{}".format(list_of_steps[step_index])):
+        if file_name.startswith(
+            "average-p_infty_vs_ps-t-{}".format(list_of_steps[step_index])
+        ):
             files_for_i.append(file_name)
     files_for_i.sort()  # sort the file names for this p value
     for file_name in files_for_i:
@@ -54,7 +56,7 @@ for step_index in range(len(list_of_steps)):
 # ----------- Fit the data -----------
 # First, we define the function to fit
 def p_infty_of_ps(p_s, p_c, c):
-    return 0.5 * erf((p_s-p_c)/c) + 0.5
+    return 0.5 * erf((p_s - p_c) / c) + 0.5
 
 
 # We do the fit for every step in the list of steps and save it to a file
@@ -66,7 +68,14 @@ bnds = ((0, -1e3), (1, 1e3))
 # notation: ((lower_bound_1st_param, lower_bound_2nd_param), (upper_bound_1st_param, upper_bound_2nd_param))
 
 for step_index in range(len(list_of_steps)):
-    popt_i, pcov_i = curve_fit(p_infty_of_ps, ps[step_index], p_infty[step_index], p0=(0.7, 1), maxfev=5000, bounds=bnds)
+    popt_i, pcov_i = curve_fit(
+        p_infty_of_ps,
+        ps[step_index],
+        p_infty[step_index],
+        p0=(0.7, 1),
+        maxfev=5000,
+        bounds=bnds,
+    )
     popt.append(popt_i)
     pcov.append(pcov_i)
     list_of_pc.append(popt_i[0])
@@ -74,16 +83,19 @@ for step_index in range(len(list_of_steps)):
 
 
 # ----------- Write data to a file -----------
-with open('/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_ps_fit/pc_vs_t.txt', 'w') as data_pc_t:
-    data_pc_t.write(f't, p_c \n')
+with open(
+    "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_ps_fit/pc_vs_t.txt",
+    "w",
+) as data_pc_t:
+    data_pc_t.write(f"t, p_c \n")
     for i in range(len(list_of_steps)):
-        data_pc_t.write(f'{list_of_steps[i]}, {list_of_pc[i]}\n')
+        data_pc_t.write(f"{list_of_steps[i]}, {list_of_pc[i]}\n")
 
 # let's see who is ruinning everything
-print('Times (>20) for which p_c < 0.2: \n')
+print("Times (>20) for which p_c < 0.2: \n")
 for i in range(20, len(list_of_steps)):
     if list_of_pc[i] < 0.2:
-        print(f't = {list_of_steps[i]}\n')
+        print(f"t = {list_of_steps[i]}\n")
 # out:
 # t = 23
 # t = 34
@@ -103,7 +115,10 @@ ax.plot(
 
 ax.set_xlabel("$t$")
 ax.set_ylabel("$p_c$")
-ax.set_title("Fitted percolation probability vs time of observation", fontdict={'fontsize': 12})
+ax.set_title(
+    "Fitted percolation probability vs time of observation",
+    fontdict={"fontsize": 12},
+)
 ax.legend()
 
 # to see the figure

@@ -53,13 +53,17 @@ slope, intercept, r_value, p_value, std_err = linregress(
 )
 
 # Add the linear fit to the plot with label and legend
-fit_label = f"Linear fit: $\log[n_s(t)] = {slope:.2f} ~ \log(t) + {intercept:.2f}$"
+fit_label = (
+    f"Linear fit: $\log[n_s(t)] = {slope:.2f} ~ \log(t) + {intercept:.2f}$"
+)
 plt.plot(last_steps, slope * last_steps + intercept, label=fit_label)
 plt.legend()
 
 # Add text to the plot to display the fit statistics
 text_xpos = time[-1] - 1  # Position the text near the end of the data
-text_ypos = active_stem_cells[-1] * 0.1  # Position the text 10% up from the lowest point
+text_ypos = (
+    active_stem_cells[-1] * 0.1
+)  # Position the text 10% up from the lowest point
 text = f"$r = {r_value:.4f}$\n$p = {p_value:.4f}$\n$\sigma = {std_err:.4f}$"
 plt.text(text_xpos, text_ypos, text)
 

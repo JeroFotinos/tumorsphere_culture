@@ -1,3 +1,9 @@
+"""
+Module containing the Cell class used for simulating cells in a culture.
+
+Classes:
+    - Cell: Represents a single cell in a culture.
+"""
 import copy
 import random
 
@@ -13,16 +19,85 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 class Cell:
+    """Represents a single cell in a culture.
+
+    Parameters
+    ----------
+    position : numpy.ndarray
+        A vector with 3 components representing the position of the cell.
+    culture : tumorsphere.Culture
+        The culture to which the cell belongs.
+    adjacency_threshold : float, optional
+        The maximum distance between cells for them to be considered neighbors.
+        Defaults to 4, but is inherited from cell to cell (so the first cell
+        dictates the value for the rest).
+    radius : float, optional
+        The radius of the cell. Defaults to 1, but is inherited from cell to cell.
+    is_stem : bool, optional
+        True if the cell is a stem cell, False otherwise. Defaults to False,
+        but its value is managed by the parent cell.
+    max_repro_attempts : int, optional
+        The maximum number of times the cell will attempt to reproduce before
+        becoming inactive. Defaults to 1000, but is inherited from cell to cell.
+    prob_stem : float, optional
+        The probability that a stem cell will self-replicate. Defaults to 0.36
+        (for being the value measured for the experiment of Wang et al. on a
+        hard substrate), but is inherited from cell to cell.
+    prob_diff : float
+        The probability that a stem cell will yield a differentiated cell.
+        Defaults to 0 (because the intention was to see if percolation occurs,
+        and )
+    continuous_graph_generation : bool
+        True if the cell should continuously generate a graph of its neighbors, False otherwise.
+    rng_seed : int, optional
+        The seed for the random number generator used by the cell. In most
+        cases, this should be left to be managed by the parent cell.
+
+    Attributes
+    ----------
+    (All parameters, plus the following.)
+    _swap_probability : float
+        The probability that, after an asymmetrical reproduction, the position
+        of the stem cell is the new child position (probability of swapping
+        parent and child positions).
+    _colors : dict
+        It defines the mapping between tuples of boolean values given by
+        (is_stem, in_active_cells) and the color to use when plotting.
+    neighbors : list
+        Contains the list of neighbors, which are cells within a distance
+        equal or less than adjacency_threshold.
+    available_space : bool, default=True
+        Specify whether the cell is considered active. It corresponds to
+        whether the cell has had a time step where it failed to reproduce.
+
+
+    Methods
+    -------
+    find_neighbors_from_entire_culture_from_scratch(self)
+        Allows to expand or subtract margin for a single structure.
+    anonymize(name=True, birth=True, operator=True, creation=True)
+        Allows to overwrite the patient's information.
+    mlc_to_csv(path_or_buff)
+        Creates DICOM MLC information in *csv-able* form.
+    move(struct, value, key, \*args)
+        Allows to move all the points for a single structure.
+    struct_to_csv(path_or_buff, names)
+        Creates DICOM structure information in *csv-able* form.
+    summarize_to_dataframe(self, area)
+        Reports the main information of plan and MLC.
+
+    """
+
     def __init__(
         self,
         position,
         culture,
-        adjacency_threshold=4, # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
+        adjacency_threshold=4,  # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
         radius=1,
         is_stem=False,
         max_repro_attempts=1000,
         prob_stem=0.36,  # Wang HARD substrate value
-        prob_diff = 0,
+        prob_diff=0,
         continuous_graph_generation=False,
         rng_seed=23978461273864
         # THE CULTURE MUST PROVIDE A SEED
@@ -46,7 +121,12 @@ class Cell:
 
         # Plotting and graph related attributes
         self._continuous_graph_generation = continuous_graph_generation
-        self._colors = {(True, True): "red", (True, False): "salmon", (False, True): "blue", (False, False): "cornflowerblue"} # the tuple is (is_stem, in_active_cells)
+        self._colors = {
+            (True, True): "red",
+            (True, False): "salmon",
+            (False, True): "blue",
+            (False, False): "cornflowerblue",
+        }  # the tuple is (is_stem, in_active_cells)
 
         # Attributes that evolve with the simulation
         self.neighbors = []
@@ -54,6 +134,17 @@ class Cell:
         self.is_stem = is_stem
 
     def find_neighbors_from_entire_culture_from_scratch(self):
+        """Find neighboring cells from the entire culture, re-calculating from scratch.
+
+        This method clears the current neighbor list and calculates a new neighbor list
+        for the current cell, iterating over all cells in the culture. For each cell,
+        it checks if it is not the current cell and not already in the neighbor list,
+        and if it is within the adjacency threshold. If all conditions are met, the
+        cell is added to the neighbor list.
+
+        Returns:
+            None
+        """
         self.neighbors = []
         # si las células se mueven, hay que calcular toda la lista de cero
         for cell in self.culture.cells:
@@ -69,7 +160,18 @@ class Cell:
                 self.neighbors.append(cell)
 
     def find_neighbors_from_entire_culture(self):
-        # self.neighbors = []
+        """Find neighboring cells from the entire culture, keeping the current
+        cells in the list.
+
+        This method keeps and updates the neighbor list for the current cell,
+        by looking at all cells in the culture. For each cell, it checks if
+        it is not the current cell and not already in the neighbor list, and
+        if it is within the adjacency threshold. If all conditions are met,
+        the cell is added to the neighbor list.
+
+        Returns:
+            None
+        """
         # como las células no se mueven, sólo se pueden agregar vecinos, por
         # lo que no hay necesidad de reiniciar la lista, sólo añadimos
         # los posibles nuevos vecinos
@@ -86,6 +188,18 @@ class Cell:
                 self.neighbors.append(cell)
 
     def get_list_of_neighbors_up_to_second_degree(self):
+        """Get a list of neighbors up to second degree.
+
+        A cell's neighbors up to second degree are defined as the cell's direct
+        neighbors and the neighbors of those neighbors, excluding the cell itself.
+        This method returns a list of unique cells that meet this criteria.
+
+        Returns
+        -------
+        List[Cell]
+            A list of `Cell` objects that are neighbors of the current cell up
+            to the second degree.
+        """
         neighbors_up_to_second_degree = set(self.neighbors)
         for cell1 in self.neighbors:
             neighbors_up_to_second_degree = (
@@ -99,6 +213,18 @@ class Cell:
         return neighbors_up_to_second_degree
 
     def get_list_of_neighbors_up_to_third_degree(self):
+        """Returns a list of cells that are neighbors of the current cell up
+        to the third degree.
+
+        This method returns a list of unique cells that are neighbors to the
+        cell, or neighbors of neighbors, recurrently up to third degree.
+
+        Returns
+        -------
+        List[Cell]
+            A list of `Cell` objects that are neighbors of the current cell up
+            to the third degree.
+        """
         neighbors_up_to_third_degree = set(self.neighbors)
         for cell1 in self.neighbors:
             neighbors_up_to_third_degree = neighbors_up_to_third_degree.union(
@@ -118,9 +244,24 @@ class Cell:
         return neighbors_up_to_third_degree
 
     def find_neighbors(self):
-        # if the cell is a newborn, it will only have its parent as neighbor,
-        # so neighbors of its neighbors are just the neighbors of its parent.
-        # The first time we have to go a level deeper.
+        """Find neighboring cells from the neighbors of the current cell up
+        to some degree, keeping the current cells in the list.
+
+        This method keeps and updates the neighbor list for the current cell,
+        by looking recursively at neighbors of the cell, up to certain degree.
+        For each cell, it checks if it is not the current cell and not already
+        in the neighbor list, and if it is within the adjacency threshold. If
+        all conditions are met, the cell is added to the neighbor list.
+        If the list of neighbors has less than 12 cells, we look up to third
+        neighbors, if not, just up to second neighbors. This decision stems
+        from the fact that if the cell is a newborn, it will only have its
+        parent as a neighbor, so the neighbors of its neighbors are just the
+        neighbors of its parent. Therefore, the first time we have to go a
+        level deeper.
+
+        Returns:
+            None
+        """
         if len(self.neighbors) < 12:
             neighbors_up_to_certain_degree = (
                 self.get_list_of_neighbors_up_to_third_degree()
@@ -143,9 +284,24 @@ class Cell:
                 self.neighbors.append(cell)
 
     def find_neighbors_from_scratch(self):
-        # if the cell is a newborn, it will only have its parent as neighbor,
-        # so neighbors of its neighbors are just the neighbors of its parent.
-        # The first time we have to go a level deeper.
+        """Find neighboring cells from the neighbors of the current cell up
+        to some degree, re-calculating from scratch.
+
+        This method clears and re-calculates the neighbor list for the current
+        cell, by looking recursively at neighbors of the cell, up to certain
+        degree. For each cell, it checks if it is not the current cell and not
+        already in the neighbor list, and if it is within the adjacency
+        threshold. If all conditions are met, the cell is added to the
+        neighbor list. If the list of neighbors has less than 12 cells, we
+        look up to third neighbors, if not, just up to second neighbors. This
+        decision stems from the fact that if the cell is a newborn, it will
+        only have its parent as a neighbor, so the neighbors of its neighbors
+        are just the neighbors of its parent. Therefore, the first time we
+        have to go a level deeper.
+
+        Returns:
+            None
+        """
         if len(self.neighbors) < 20:
             neighbors_up_to_certain_degree = (
                 self.get_list_of_neighbors_up_to_third_degree()
@@ -170,6 +326,19 @@ class Cell:
                 self.neighbors.append(cell)
 
     def generate_new_position(self):
+        """Generate a proposed position for the child cell, adjacent to the current one.
+
+        A new position for the child cell is randomly generated, at a distance
+        equals to two times the radius of a cell (all cells are assumed to
+        have the same radius) by randomly choosing the angular spherical
+        coordinates from a uniform distribution. It uses the cell current
+        position and its radius.
+
+        Returns
+        -------
+        new_position : numpy.ndarray
+            A 3D vector representing the new position of the cell.
+        """
         theta = np.random.uniform(low=0, high=2 * np.pi)
         phi = np.random.uniform(low=0, high=np.pi)
         x = 2 * self.radius * np.sin(phi) * np.cos(theta)
@@ -179,6 +348,20 @@ class Cell:
         return new_position
 
     def reproduce(self):
+        """The cell reproduces, generating a new child cell.
+
+        Attempts to create a new cell in a random position, adjacent to the
+        current cell, if the cell has available space. If the cell fails to
+        find a position that doesn't overlap with existing cells, for the
+        estabished maximum number of attempts, no new cell is created.
+
+        Raises:
+            AssertionError: If the number of neighbors exceeds the number of
+            cells in the culture.
+
+        Returns:
+            None.
+        """
         assert len(self.neighbors) <= len(self.culture.cells)
 
         if self.available_space:
@@ -208,7 +391,7 @@ class Cell:
                 # we create a child in that position
                 if self.is_stem:
                     random_number = self.rng.random()
-                    if random_number <= self.prob_stem: # ps
+                    if random_number <= self.prob_stem:  # ps
                         child_cell = Cell(
                             position=child_position,
                             culture=self.culture,
@@ -238,9 +421,13 @@ class Cell:
                                 low=2**20, high=2**50
                             ),
                         )
-                        if random_number <= (self.prob_stem + self.prob_diff): # pd
+                        if random_number <= (
+                            self.prob_stem + self.prob_diff
+                        ):  # pd
                             self.is_stem = False
-                        elif self.rng.random() <= self._swap_probability: # pa = 1-ps-pd
+                        elif (
+                            self.rng.random() <= self._swap_probability
+                        ):  # pa = 1-ps-pd
                             self.is_stem = False
                             child_cell.is_stem = True
                 else:

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # set matplotlib style
-plt.style.use('ggplot')
+plt.style.use("ggplot")
 plt.rcParams["axes.edgecolor"] = "darkgray"
 plt.rcParams["axes.linewidth"] = 0.8
 
@@ -14,7 +14,7 @@ data_dir = "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_
 # Set of values for p for which are available to plot
 p = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
 # p = tuple(np.arange(0.1, 1.1, 0.1)) # no anda porque devuelve
-# (0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6, 0.7000000000000001, 0.8, 0.9, 1.0) 
+# (0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6, 0.7000000000000001, 0.8, 0.9, 1.0)
 
 # p with reversed order
 p = p[::-1]
@@ -24,7 +24,9 @@ data_files = []
 for p_index in range(len(p)):
     files_for_p = []
     for file_name in os.listdir(data_dir):
-        if file_name.startswith("average-p_infty_vs_t-ps-{}".format(p[p_index])):
+        if file_name.startswith(
+            "average-p_infty_vs_t-ps-{}".format(p[p_index])
+        ):
             files_for_p.append(file_name)
     files_for_p.sort()  # sort the file names for this p value
     for file_name in files_for_p:

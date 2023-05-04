@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # set matplotlib style
-plt.style.use('ggplot')
+plt.style.use("ggplot")
 plt.rcParams["axes.edgecolor"] = "darkgray"
 plt.rcParams["axes.linewidth"] = 0.8
 
@@ -20,7 +20,9 @@ data_files = []
 for step_index in range(len(list_of_steps)):
     files_for_i = []
     for file_name in os.listdir(data_dir):
-        if file_name.startswith("average-p_infty_vs_ps-t-{}".format(list_of_steps[step_index])):
+        if file_name.startswith(
+            "average-p_infty_vs_ps-t-{}".format(list_of_steps[step_index])
+        ):
             files_for_i.append(file_name)
     files_for_i.sort()  # sort the file names for this p value
     for file_name in files_for_i:
@@ -64,7 +66,10 @@ for step_index in range(len(list_of_steps)):
 
 ax.set_xlabel("$p_s$")
 ax.set_ylabel("$P_\infty (p_s)$")
-ax.set_title("Probability of active CSC presence vs Probability of self-replication", fontdict={'fontsize': 12})
+ax.set_title(
+    "Probability of active CSC presence vs Probability of self-replication",
+    fontdict={"fontsize": 12},
+)
 ax.legend()
 
 # to see the figure

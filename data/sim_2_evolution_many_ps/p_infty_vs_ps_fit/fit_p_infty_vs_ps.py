@@ -6,7 +6,7 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 
 # set matplotlib style
-plt.style.use('ggplot')
+plt.style.use("ggplot")
 plt.rcParams["axes.edgecolor"] = "darkgray"
 plt.rcParams["axes.linewidth"] = 0.8
 
@@ -22,7 +22,9 @@ data_files = []
 for step_index in range(len(list_of_steps)):
     files_for_i = []
     for file_name in os.listdir(data_dir):
-        if file_name.startswith("average-p_infty_vs_ps-t-{}".format(list_of_steps[step_index])):
+        if file_name.startswith(
+            "average-p_infty_vs_ps-t-{}".format(list_of_steps[step_index])
+        ):
             files_for_i.append(file_name)
     files_for_i.sort()  # sort the file names for this p value
     for file_name in files_for_i:
@@ -50,7 +52,7 @@ for step_index in range(len(list_of_steps)):
 # ----------- Fit the data -----------
 # First, we define the function to fit
 def p_infty_of_ps(p_s, p_c, c):
-    return 0.5 * erf((p_s-p_c)/c) + 0.5
+    return 0.5 * erf((p_s - p_c) / c) + 0.5
 
 
 # We do the fit for every step in the list of steps and save it to a file
@@ -61,19 +63,32 @@ list_of_c = []
 bnds = ((0, -1e3), (1, 1e3))
 # notation: ((lower_bound_1st_param, lower_bound_2nd_param), (upper_bound_1st_param, upper_bound_2nd_param))
 
-with open('/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_ps_fit/fit_p_infty_vs_ps_output.txt', 'w') as fit_result:
-    fit_result.write('----------- Fitting Results -----------\n')
+with open(
+    "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_ps_fit/fit_p_infty_vs_ps_output.txt",
+    "w",
+) as fit_result:
+    fit_result.write("----------- Fitting Results -----------\n")
 
 for step_index in range(len(list_of_steps)):
-    popt_i, pcov_i = curve_fit(p_infty_of_ps, ps[step_index], p_infty[step_index], p0=(0.7, 1), maxfev=5000, bounds=bnds)
+    popt_i, pcov_i = curve_fit(
+        p_infty_of_ps,
+        ps[step_index],
+        p_infty[step_index],
+        p0=(0.7, 1),
+        maxfev=5000,
+        bounds=bnds,
+    )
     popt.append(popt_i)
     pcov.append(pcov_i)
     list_of_pc.append(popt_i[0])
     list_of_c.append(popt_i[1])
-    with open('/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_ps_fit/fit_p_infty_vs_ps_output.txt', 'a') as fit_result:
-        fit_result.write(f'Fit results for t = {list_of_steps[step_index]} \n')
-        fit_result.write(f'p_c = {popt_i[0]}, c = {popt_i[1]}\n')
-        fit_result.write(f'pcov = \n{pcov_i}\n\n')
+    with open(
+        "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_ps_fit/fit_p_infty_vs_ps_output.txt",
+        "a",
+    ) as fit_result:
+        fit_result.write(f"Fit results for t = {list_of_steps[step_index]} \n")
+        fit_result.write(f"p_c = {popt_i[0]}, c = {popt_i[1]}\n")
+        fit_result.write(f"pcov = \n{pcov_i}\n\n")
 
 
 # THIS DOESN'T MAKE ANY SENSE, we expect p_c to grow!
@@ -88,8 +103,6 @@ for step_index in range(len(list_of_steps)):
 #     fit_result.write('\n------------------------\n')
 #     fit_result.write(f'Mean and std of p_c over t : \n {mean_pc} \pm {std_pc} \n')
 #     fit_result.write(f'Mean and std of c over t : \n {mean_c} \pm {std_c} \n')
-
-
 
 
 # Plot the curves
@@ -110,8 +123,8 @@ for step_index in range(len(list_of_steps)):
     ax.plot(
         xarg,
         p_infty_of_ps(xarg, popt[step_index][0], popt[step_index][1]),
-        linestyle='dashed',
-        color=plt.cm.magma(step_index / len(list_of_steps))
+        linestyle="dashed",
+        color=plt.cm.magma(step_index / len(list_of_steps)),
     )
 
 # we set the grid
@@ -122,7 +135,10 @@ for step_index in range(len(list_of_steps)):
 
 ax.set_xlabel("$p_s$")
 ax.set_ylabel("$P_\infty (p_s)$")
-ax.set_title("Probability of active CSC presence vs Probability of self-replication", fontdict={'fontsize': 12})
+ax.set_title(
+    "Probability of active CSC presence vs Probability of self-replication",
+    fontdict={"fontsize": 12},
+)
 ax.legend()
 
 # to see the figure
@@ -137,4 +153,3 @@ plt.savefig(
     dpi=600,
 )
 # the dpi (dots per inch) is set to 100 by default, but it's too low for me
-

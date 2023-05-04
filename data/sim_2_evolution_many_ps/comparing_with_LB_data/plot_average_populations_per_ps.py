@@ -29,7 +29,7 @@ for file in os.listdir(dir_lucas):
 # Read the data from the files
 data_jero = np.loadtxt(data_file, delimiter=",", skiprows=0)
 # skiprows = 1 es para el caso en el que las columnas del csv tienen título
-data_lucas = np.loadtxt(lucas_file, skiprows=0) #  delimiter="   ",
+data_lucas = np.loadtxt(lucas_file, skiprows=0)  #  delimiter="   ",
 
 
 # Extract the columns of interest
@@ -46,8 +46,8 @@ col3_lucas = data_lucas[:, 2]
 # Plot the curves
 fig, ax = plt.subplots()
 
-ax.plot(time_lucas, col2_lucas, 'o', label="Lucas Col 2")
-ax.plot(time_lucas, col3_lucas, 'o', label="Lucas Col 3")
+ax.plot(time_lucas, col2_lucas, "o", label="Lucas Col 2")
+ax.plot(time_lucas, col3_lucas, "o", label="Lucas Col 3")
 
 ax.plot(time, total_cells, marker=".", label="Total Cells")
 ax.plot(time, active_cells, marker=".", label="Active Cells")

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # set matplotlib style
-plt.style.use('ggplot')
+plt.style.use("ggplot")
 plt.rcParams["axes.edgecolor"] = "darkgray"
 plt.rcParams["axes.linewidth"] = 0.8
 
@@ -74,7 +74,7 @@ plt.yscale("log")
 ax.set_xlabel("Time")
 ax.set_ylabel("Active Stem Cells")
 ax.set_title("Evolution of Active Cancer Stem Cells")
-ax.legend(loc = 'upper left', prop={'size': 8})
+ax.legend(loc="upper left", prop={"size": 8})
 
 # Put a legend to the right of the current axis
 # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
