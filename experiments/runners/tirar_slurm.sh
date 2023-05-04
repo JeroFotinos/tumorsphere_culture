@@ -35,12 +35,12 @@
 for realiz in {1..10}
 do
 
-for rs in  0.60 0.61 0.62 0.63 0.64 0.65
+for rs in  0.65 0.66 0.67 0.68 0.69 0.71 0.70 0.72 0.73 0.74 0.75
 do 
 
 nombre=S-$realiz-$rs
 
- sed  's/val_ps/'$rs'/g' < file1.py \
+ sed  's/val_ps/'$rs'/g' < template_python_script.py \
 |sed  's/val_realiz/'$realiz'/g'> $nombre.py
 
 

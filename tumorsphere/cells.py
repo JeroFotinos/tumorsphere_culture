@@ -2,7 +2,8 @@
 Module containing the Cell class used for simulating cells in a culture.
 
 Classes:
-    - Cell: Represents a single cell in a culture.
+    - Cell: Represents a single cell in a culture. Dependent on the Culture
+    class.
 """
 import copy
 import random
@@ -41,12 +42,14 @@ class Cell:
         becoming inactive. Defaults to 1000, but is inherited from cell to cell.
     prob_stem : float, optional
         The probability that a stem cell will self-replicate. Defaults to 0.36
-        (for being the value measured for the experiment of Wang et al. on a
-        hard substrate), but is inherited from cell to cell.
+        for being the value measured by Benítez et al. (BMC Cancer, (2021),
+        1-11, 21(1))for the experiment of Wang et al. (Oncology Letters,
+        (2016), 1355-1360, 12(2)) on a hard substrate. Nevertheless, it is
+        inherited from cell to cell.
     prob_diff : float
         The probability that a stem cell will yield a differentiated cell.
         Defaults to 0 (because the intention was to see if percolation occurs,
-        and )
+        and if it doesn't happen at prob_diff = 0, it will never happen).
     continuous_graph_generation : bool
         True if the cell should continuously generate a graph of its neighbors, False otherwise.
     rng_seed : int, optional
@@ -73,19 +76,27 @@ class Cell:
 
     Methods
     -------
-    find_neighbors_from_entire_culture_from_scratch(self)
-        Allows to expand or subtract margin for a single structure.
-    anonymize(name=True, birth=True, operator=True, creation=True)
-        Allows to overwrite the patient's information.
-    mlc_to_csv(path_or_buff)
-        Creates DICOM MLC information in *csv-able* form.
-    move(struct, value, key, \*args)
-        Allows to move all the points for a single structure.
-    struct_to_csv(path_or_buff, names)
-        Creates DICOM structure information in *csv-able* form.
-    summarize_to_dataframe(self, area)
-        Reports the main information of plan and MLC.
-
+    find_neighbors_from_entire_culture_from_scratch()
+        Find neighboring cells from the entire culture, re-calculating from
+        scratch.
+    find_neighbors_from_entire_culture()
+        Find neighboring cells from the entire culture, keeping the current
+        cells in the list.
+    get_list_of_neighbors_up_to_second_degree()
+        Get a list of neighbors up to second degree.
+    get_list_of_neighbors_up_to_third_degree()
+        Returns a list of cells that are neighbors of the current cell up
+        to the third degree.
+    find_neighbors()
+        Find neighboring cells from the neighbors of the current cell up
+        to some degree, keeping the current cells in the list.
+    find_neighbors_from_scratch()
+        Find neighboring cells from the neighbors of the current cell up
+        to some degree, re-calculating from scratch.
+    generate_new_position()
+        Generate a proposed position for the child cell, adjacent to the current one.
+    reproduce()
+        The cell reproduces, generating a new child cell.
     """
 
     def __init__(

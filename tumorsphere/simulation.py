@@ -1,3 +1,11 @@
+"""
+Module containing the Simulation class.
+
+Classes:
+    - Simulation: Class that manages cultures of cells with different
+    parameter combinations, for a given number of realizations per said
+    combination.
+"""
 import matplotlib.pyplot as plt
 
 from tumorsphere.cells import *
@@ -5,6 +13,80 @@ from tumorsphere.culture import *
 
 
 class Simulation:
+    """
+    Class for simulating multiple `Culture` objects with different parameters.
+
+    Parameters
+    ----------
+    first_cell_is_stem : bool, optional
+        Whether the first cell of each `Culture` object should be a stem cell
+        or a differentiated one. Default is `True` (because tumorspheres are
+        CSC-seeded cultures).
+    prob_stem : list of floats, optional
+        The probability that a stem cell will self-replicate. Defaults to 0.36
+        for being the value measured by Benítez et al. (BMC Cancer, (2021),
+        1-11, 21(1))for the experiment of Wang et al. (Oncology Letters,
+        (2016), 1355-1360, 12(2)) on a hard substrate.
+    prob_diff : list of floats, optional
+        The probability that a stem cell will yield a differentiated cell.
+        Defaults to 0 (because the intention was to see if percolation occurs,
+        and if it doesn't happen at prob_diff = 0, it will never happen).
+    num_of_realizations : int, optional
+        Number of `Culture` objects to simulate for each combination of
+        `prob_stem` and `prob_diff`. Default is `10`.
+    num_of_steps_per_realization : int, optional
+        Number of simulation steps to perform for each `Culture` object.
+        Default is `10`.
+    rng_seed : int, optional
+        Seed for the random number generator used in the simulation. This is
+        the seed on which every other seed depends. Default is
+        `0x87351080E25CB0FAD77A44A3BE03B491`.
+    cell_radius : int, optional
+        Radius of the cells in the simulation. Default is `1`.
+    adjacency_threshold : int, optional
+        Distance threshold for two cells to be considered neighbors. Default
+        is `4`, which is an upper bound to the second neighbor distance of
+        approximately `2 * sqrt(2)` in a hexagonal close packing.
+    cell_max_repro_attempts : int, optional
+        Maximum number of attempts to create a new cell during the
+        reproduction of an existing cell in a `Culture` object.
+        Default is`1000`.
+    continuous_graph_generation : bool, optional
+        Whether to update the adjacency graph after each cell division, or to
+        keep it empty until manual generation of the graph. Default is `False`.
+
+    Attributes
+    ----------
+    (All parameters, plus the following.)
+    rng : `numpy.random.Generator`
+        The random number generator used in the simulation to instatiate the
+        generator of cultures and cells.
+    cultures : dict
+        Dictionary storing the `Culture` objects simulated by the `Simulation`.
+        The keys are strings representing the combinations of `prob_stem` and
+        `prob_diff` and the realization number.
+    data : dict
+        Dictionary storing the simulation data for each `Culture` object
+        simulated by the `Simulation`. The keys are strings representing
+        the combinations of `prob_stem` and `prob_diff` and the realization
+        number.
+    average_data : dict
+        Dictionary storing the average simulation data for each combination of
+        `prob_stem` and `prob_diff`. The keys are strings representing the
+        combinations of `prob_stem` and `prob_diff`.
+
+    Methods:
+    --------
+    simulate()
+        Runs the simulation.
+    _average_of_data_ps_i_and_pd_k(i, k)
+        Computes the average of the data for a given pair of probabilities
+        `prob_stem[i]` and `prob_diff[k]`.
+    plot_average_data(ps_index, pd_index)
+        Plot the average data for a given combination of self-replication
+        and differentiation probabilities.
+    """
+
     def __init__(
         self,
         first_cell_is_stem=True,
@@ -55,6 +137,11 @@ class Simulation:
         self.continuous_graph_generation = continuous_graph_generation
 
     def simulate(self):
+        """Simulate the culture growth for different self-replication and
+        differentiation probabilities and realizations and compute the average
+        data for each of the self-replication and differentiation probability
+        combinations.
+        """
         for k in range(len(self.prob_diff)):
             for i in range(len(self.prob_stem)):
                 for j in range(self.num_of_realizations):
@@ -88,6 +175,22 @@ class Simulation:
         # para usarlo como nombre del archivo
 
     def _average_of_data_ps_i_and_pd_k(self, i, k):
+        """Compute the average data for a combination of self-replication and
+        differentiation probabilities for all realizations.
+
+        Parameters
+        ----------
+        i : int
+            Index of the self-replication probability.
+        k : int
+            Index of the differentiation probability.
+
+        Returns
+        -------
+        average : dict
+            A dictionary with the average data for the given combination of
+            self-replication and differentiation probabilities.
+        """
         # For prob_stem[i] and prob_diff[k], we average
         # over the j realizations (m is a string)
         data_of_ps_i_and_pd_k_realizations = {}
@@ -168,6 +271,16 @@ class Simulation:
         return average
 
     def plot_average_data(self, ps_index, pd_index):
+        """Plot the average data for a given combination of self-replication
+        and differentiation probabilities.
+
+        Parameters
+        ----------
+        ps_index : int
+            Index of the self-replication probability.
+        pd_index : int
+            Index of the differentiation probability.
+        """
         # create a figure and axis objects
         fig, ax = plt.subplots()
 
