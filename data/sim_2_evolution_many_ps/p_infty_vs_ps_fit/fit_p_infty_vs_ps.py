@@ -15,7 +15,7 @@ data_dir = "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_
 
 # Set of values for p for which are available to plot
 # list_of_steps = np.arange(55, 24, -10)
-list_of_steps = [59, 55, 45, 35, 30, 25]
+list_of_steps = [55, 45, 35, 30, 25]
 
 # Find the data files for the specified values of p
 data_files = []
@@ -60,7 +60,8 @@ popt = []
 pcov = []
 list_of_pc = []
 list_of_c = []
-bnds = ((0, -1e3), (1, 1e3))
+# bnds = ((0, -1e3), (1, 1e3))
+bnds = ((0, 0), (1, 1))
 # notation: ((lower_bound_1st_param, lower_bound_2nd_param), (upper_bound_1st_param, upper_bound_2nd_param))
 
 with open(
@@ -117,14 +118,14 @@ for step_index in range(len(list_of_steps)):
         marker=".",
         linestyle="None",
         label=f"$t = {list_of_steps[step_index]}$",
-        color=plt.cm.magma(step_index / len(list_of_steps)),
+        color=plt.cm.jet(step_index / len(list_of_steps)),
     )
     # we plot the fitted function
     ax.plot(
         xarg,
         p_infty_of_ps(xarg, popt[step_index][0], popt[step_index][1]),
         linestyle="dashed",
-        color=plt.cm.magma(step_index / len(list_of_steps)),
+        color=plt.cm.jet(step_index / len(list_of_steps)),
     )
 
 # we set the grid
