@@ -64,15 +64,18 @@ popt = []
 pcov = []
 list_of_pc = []
 list_of_c = []
-bnds = ((0, -1e3), (1, 1e3))
-# notation: ((lower_bound_1st_param, lower_bound_2nd_param), (upper_bound_1st_param, upper_bound_2nd_param))
+# bnds = ((0, -1e3), (1, 1e3)) # no tengo idea de cuánto puede valer c
+bnds = ((0, 0), (1, 1)) # los valores típicos para c están entre
+# c = 0.167 para t = 25 y c = 0.021 para t = 59.
+# notation: ((lower_bound_1st_param, lower_bound_2nd_param),
+# (upper_bound_1st_param, upper_bound_2nd_param))
 
 for step_index in range(len(list_of_steps)):
     popt_i, pcov_i = curve_fit(
         p_infty_of_ps,
         ps[step_index],
         p_infty[step_index],
-        p0=(0.7, 1),
+        p0=(0.7, 0.1),
         maxfev=5000,
         bounds=bnds,
     )
@@ -102,6 +105,8 @@ for i in range(20, len(list_of_steps)):
 # t = 45
 # t = 56
 # Diferencia de 11! ... but why?
+# De hecho, es peor todavía porque todos tienen el mismo valor, y coincide
+# con el de t = 1 y 11, es p_c = 0.035008016959456774
 
 # ----------- Plot the curves -----------
 fig, ax = plt.subplots()
