@@ -23,6 +23,7 @@ build-backend = "setuptools.build_meta"
 name = "tumorsphere"
 version = "0.0.1"
 dependencies = [
+    "click",
     "matplotlib",
     "networkx",
     "numpy",
@@ -61,6 +62,9 @@ classifiers = [
 ]
 
 urls = { Homepage = "https://github.com/JeroFotinos/tumorsphere_culture", Repository = "https://github.com/JeroFotinos/tumorsphere_culture" }
+
+[project.scripts]
+tumorsphere = "tumorsphere.cli:cli"
 
 [tool.setuptools]
 include-package-data = true
