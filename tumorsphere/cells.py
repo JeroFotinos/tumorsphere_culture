@@ -5,13 +5,7 @@ Classes:
     - Cell: Represents a single cell in a culture. Dependent on the Culture
     class.
 """
-import copy
-import random
-
-import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 
 # colors = {True: "red", False: "blue"}
 
@@ -466,7 +460,7 @@ class Cell:
                 for cell in child_cell.neighbors:
                     cell.neighbors.append(child_cell)
                 # we add the child to the graph (node and edges)
-                if self._continuous_graph_generation == True:
+                if self._continuous_graph_generation:
                     self.culture.graph.add_node(child_cell)
                     for cell in child_cell.neighbors:
                         self.culture.graph.add_edge(child_cell, cell)
