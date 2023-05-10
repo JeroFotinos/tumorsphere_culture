@@ -386,13 +386,19 @@ class Cell:
                 neighbors_up_to_second_degree = (
                     self.get_neighbors_up_to_second_degree()
                 )
+                cell_positions = [
+                    cell.position for cell in neighbors_up_to_second_degree
+                ]
+
                 # array with the distances from the proposed child position to the other cells
-                distance = np.array(
-                    [
-                        np.linalg.norm(child_position - cell.position)
-                        for cell in neighbors_up_to_second_degree
-                    ]
-                )
+                if len(neighbors_up_to_second_degree) > 0:
+                    cell_positions_mat = np.stack(cell_positions)
+                    distance = np.linalg.norm(
+                        child_position - cell_positions_mat, axis=1
+                    )
+                else:
+                    distance = np.array([])
+
                 # boolean array specifying if there is no overlap between
                 # the proposed child position and the other cells
                 no_overlap = np.all(distance >= 2 * self.radius)
