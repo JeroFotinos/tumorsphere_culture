@@ -201,20 +201,18 @@ class Cell:
 
         Returns
         -------
-        List[Cell]
-            A list of `Cell` objects that are neighbors of the current cell up
+        Set[Cell]
+            A set of `Cell` objects that are neighbors of the current cell up
             to the second degree.
         """
         neighbors_up_to_second_degree = set(self.neighbors)
         for cell1 in self.neighbors:
-            neighbors_up_to_second_degree = (
-                neighbors_up_to_second_degree.union(set(cell1.neighbors))
+            new_neighbors = set(cell1.neighbors).difference(
+                neighbors_up_to_second_degree
             )
-            for cell2 in cell1.neighbors:
-                neighbors_up_to_second_degree = (
-                    neighbors_up_to_second_degree.union(set(cell2.neighbors))
-                )
-        neighbors_up_to_second_degree = list(neighbors_up_to_second_degree)
+            neighbors_up_to_second_degree.update(new_neighbors)
+            for cell2 in new_neighbors:
+                neighbors_up_to_second_degree.update(set(cell2.neighbors))
         return neighbors_up_to_second_degree
 
     def get_list_of_neighbors_up_to_third_degree(self):
@@ -226,26 +224,23 @@ class Cell:
 
         Returns
         -------
-        List[Cell]
-            A list of `Cell` objects that are neighbors of the current cell up
+        Set[Cell]
+            A set of `Cell` objects that are neighbors of the current cell up
             to the third degree.
         """
         neighbors_up_to_third_degree = set(self.neighbors)
         for cell1 in self.neighbors:
-            neighbors_up_to_third_degree = neighbors_up_to_third_degree.union(
-                set(cell1.neighbors)
+            new_neighbors = set(cell1.neighbors).difference(
+                neighbors_up_to_third_degree
             )
-            for cell2 in cell1.neighbors:
-                neighbors_up_to_third_degree = (
-                    neighbors_up_to_third_degree.union(set(cell2.neighbors))
+            neighbors_up_to_third_degree.update(new_neighbors)
+            for cell2 in new_neighbors:
+                new_neighbors_l2 = set(cell2.neighbors).difference(
+                    neighbors_up_to_third_degree
                 )
-                for cell3 in cell2.neighbors:
-                    neighbors_up_to_third_degree = (
-                        neighbors_up_to_third_degree.union(
-                            set(cell3.neighbors)
-                        )
-                    )
-        neighbors_up_to_third_degree = list(neighbors_up_to_third_degree)
+                neighbors_up_to_third_degree.update(new_neighbors_l2)
+                for cell3 in new_neighbors_l2:
+                    neighbors_up_to_third_degree.update(set(cell3.neighbors))
         return neighbors_up_to_third_degree
 
     def find_neighbors(self):
