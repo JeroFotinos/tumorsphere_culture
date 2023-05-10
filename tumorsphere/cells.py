@@ -60,8 +60,8 @@ class Cell:
     _colors : dict
         It defines the mapping between tuples of boolean values given by
         (is_stem, in_active_cells) and the color to use when plotting.
-    neighbors : list
-        Contains the list of neighbors, which are cells within a distance
+    neighbors : set
+        Contains the set of neighbors, which are cells within a distance
         equal or less than adjacency_threshold.
     available_space : bool, default=True
         Specify whether the cell is considered active. It corresponds to
@@ -76,10 +76,10 @@ class Cell:
     find_neighbors_from_entire_culture()
         Find neighboring cells from the entire culture, keeping the current
         cells in the list.
-    get_list_of_neighbors_up_to_second_degree()
-        Get a list of neighbors up to second degree.
-    get_list_of_neighbors_up_to_third_degree()
-        Returns a list of cells that are neighbors of the current cell up
+    get_neighbors_up_to_second_degree()
+        Get the set of neighbors up to second degree.
+    get_neighbors_up_to_third_degree()
+        Returns the set of cells that are neighbors of the current cell up
         to the third degree.
     find_neighbors()
         Find neighboring cells from the neighbors of the current cell up
@@ -134,7 +134,7 @@ class Cell:
         }  # the tuple is (is_stem, in_active_cells)
 
         # Attributes that evolve with the simulation
-        self.neighbors = []
+        self.neighbors = set()
         self.available_space = True
         self.is_stem = is_stem
 
@@ -150,7 +150,7 @@ class Cell:
         Returns:
             None
         """
-        self.neighbors = []
+        self.neighbors = set()
         # si las células se mueven, hay que calcular toda la lista de cero
         for cell in self.culture.cells:
             neither_self_nor_neighbor = (cell is not self) and (
@@ -162,7 +162,7 @@ class Cell:
             )
             to_append = neither_self_nor_neighbor and in_neighborhood
             if to_append:
-                self.neighbors.append(cell)
+                self.neighbors.add(cell)
 
     def find_neighbors_from_entire_culture(self):
         """Find neighboring cells from the entire culture, keeping the current
@@ -190,10 +190,10 @@ class Cell:
             )
             to_append = neither_self_nor_neighbor and in_neighborhood
             if to_append:
-                self.neighbors.append(cell)
+                self.neighbors.add(cell)
 
-    def get_list_of_neighbors_up_to_second_degree(self):
-        """Get a list of neighbors up to second degree.
+    def get_neighbors_up_to_second_degree(self):
+        """Get the set of neighbors up to second degree.
 
         A cell's neighbors up to second degree are defined as the cell's direct
         neighbors and the neighbors of those neighbors, excluding the cell itself.
@@ -207,16 +207,16 @@ class Cell:
         """
         neighbors_up_to_second_degree = set(self.neighbors)
         for cell1 in self.neighbors:
-            new_neighbors = set(cell1.neighbors).difference(
+            new_neighbors = cell1.neighbors.difference(
                 neighbors_up_to_second_degree
             )
             neighbors_up_to_second_degree.update(new_neighbors)
             for cell2 in new_neighbors:
-                neighbors_up_to_second_degree.update(set(cell2.neighbors))
+                neighbors_up_to_second_degree.update(cell2.neighbors)
         return neighbors_up_to_second_degree
 
-    def get_list_of_neighbors_up_to_third_degree(self):
-        """Returns a list of cells that are neighbors of the current cell up
+    def get_neighbors_up_to_third_degree(self):
+        """Returns the set of cells that are neighbors of the current cell up
         to the third degree.
 
         This method returns a list of unique cells that are neighbors to the
@@ -230,17 +230,17 @@ class Cell:
         """
         neighbors_up_to_third_degree = set(self.neighbors)
         for cell1 in self.neighbors:
-            new_neighbors = set(cell1.neighbors).difference(
+            new_neighbors = cell1.neighbors.difference(
                 neighbors_up_to_third_degree
             )
             neighbors_up_to_third_degree.update(new_neighbors)
             for cell2 in new_neighbors:
-                new_neighbors_l2 = set(cell2.neighbors).difference(
+                new_neighbors_l2 = cell2.neighbors.difference(
                     neighbors_up_to_third_degree
                 )
                 neighbors_up_to_third_degree.update(new_neighbors_l2)
                 for cell3 in new_neighbors_l2:
-                    neighbors_up_to_third_degree.update(set(cell3.neighbors))
+                    neighbors_up_to_third_degree.update(cell3.neighbors)
         return neighbors_up_to_third_degree
 
     def find_neighbors(self):
@@ -264,11 +264,11 @@ class Cell:
         """
         if len(self.neighbors) < 12:
             neighbors_up_to_certain_degree = (
-                self.get_list_of_neighbors_up_to_third_degree()
+                self.get_neighbors_up_to_third_degree()
             )
         else:
             neighbors_up_to_certain_degree = (
-                self.get_list_of_neighbors_up_to_second_degree()
+                self.get_neighbors_up_to_second_degree()
             )
         # now we check if there are cells to append
         for cell in neighbors_up_to_certain_degree:
@@ -281,7 +281,7 @@ class Cell:
             )
             to_append = neither_self_nor_neighbor and in_neighborhood
             if to_append:
-                self.neighbors.append(cell)
+                self.neighbors.add(cell)
 
     def find_neighbors_from_scratch(self):
         """Find neighboring cells from the neighbors of the current cell up
@@ -304,14 +304,14 @@ class Cell:
         """
         if len(self.neighbors) < 20:
             neighbors_up_to_certain_degree = (
-                self.get_list_of_neighbors_up_to_third_degree()
+                self.get_neighbors_up_to_third_degree()
             )
         else:
             neighbors_up_to_certain_degree = (
-                self.get_list_of_neighbors_up_to_second_degree()
+                self.get_neighbors_up_to_second_degree()
             )
         # we reset the neighbors list
-        self.neighbors = []
+        self.neighbors = set()
         # we add the cells to the list
         for cell in neighbors_up_to_certain_degree:
             neither_self_nor_neighbor = (cell is not self) and (
@@ -323,7 +323,7 @@ class Cell:
             )
             to_append = neither_self_nor_neighbor and in_neighborhood
             if to_append:
-                self.neighbors.append(cell)
+                self.neighbors.add(cell)
 
     def generate_new_position(self):
         """Generate a proposed position for the child cell, adjacent to the current one.
@@ -368,7 +368,7 @@ class Cell:
             for attempt in range(self.max_repro_attempts):
                 child_position = self.generate_new_position()
                 neighbors_up_to_second_degree = (
-                    self.get_list_of_neighbors_up_to_second_degree()
+                    self.get_neighbors_up_to_second_degree()
                 )
                 # array with the distances from the proposed child position to the other cells
                 distance = np.array(
@@ -448,12 +448,12 @@ class Cell:
                 self.culture.active_cells.append(child_cell)
                 # we add the parent as first neighbor (necessary for
                 # the find_neighbors that are not from_entire_culture)
-                child_cell.neighbors.append(self)
+                child_cell.neighbors.add(self)
                 # we find the child's neighbors
                 child_cell.find_neighbors()
                 # we add the child as a neighbor of its neighbors
                 for cell in child_cell.neighbors:
-                    cell.neighbors.append(child_cell)
+                    cell.neighbors.add(child_cell)
                 # we add the child to the graph (node and edges)
                 if self._continuous_graph_generation:
                     self.culture.graph.add_node(child_cell)
