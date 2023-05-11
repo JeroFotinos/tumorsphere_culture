@@ -2,6 +2,10 @@
 line-length = 79
 target-version = ['py310']
 
+[tool.flake8]
+extend-ignore =['E203', 'E501']
+max-line-length = 79
+
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",
@@ -65,6 +69,14 @@ urls = { Homepage = "https://github.com/JeroFotinos/tumorsphere_culture", Reposi
 
 [project.scripts]
 tumorsphere = "tumorsphere.cli:cli"
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flake8",
+    "flake8-black",
+    "flake8-pyproject"
+]
 
 [tool.setuptools]
 include-package-data = true

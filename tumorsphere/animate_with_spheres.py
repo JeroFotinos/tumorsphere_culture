@@ -1,7 +1,6 @@
 import matplotlib.animation as animation
-
-from tumorsphere.cells import *
-from tumorsphere.culture import *
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def simulate_and_animate_growth(culture, num_steps, filename):
