@@ -6,10 +6,10 @@ Classes:
     parameter combinations, for a given number of realizations per said
     combination.
 """
+import numpy as np
 import matplotlib.pyplot as plt
 
-from tumorsphere.cells import *
-from tumorsphere.culture import *
+from tumorsphere.culture import Culture
 
 
 class Simulation:
