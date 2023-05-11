@@ -6,6 +6,7 @@ Classes:
     class.
 """
 import numpy as np
+from typing import Dict, Set, Tuple
 
 # colors = {True: "red", False: "blue"}
 
@@ -93,22 +94,37 @@ class Cell:
         The cell reproduces, generating a new child cell.
     """
 
+    position: np.ndarray
+    # culture: Culture
+    adjacency_threshold: float
+    radius: float
+    is_stem: bool
+    max_repro_attempts: int
+    prob_stem: float
+    prob_diff: float
+    continuous_graph_generation: bool
+    rng_seed: np.int64
+    _swap_probability: float
+    _colors: Dict[Tuple[bool, bool], str]
+    neighbors: Set["Cell"]
+    available_space: bool
+
     def __init__(
         self,
-        position,
-        culture,
-        adjacency_threshold=4,  # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
-        radius=1,
-        is_stem=False,
-        max_repro_attempts=1000,
-        prob_stem=0.36,  # Wang HARD substrate value
-        prob_diff=0,
-        continuous_graph_generation=False,
-        rng_seed=23978461273864
+        position: np.ndarray,
+        culture,  # : Culture,
+        adjacency_threshold: float = 4,  # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
+        radius: float = 1,
+        is_stem: bool = False,
+        max_repro_attempts: int = 1000,
+        prob_stem: float = 0.36,  # Wang HARD substrate value
+        prob_diff: float = 0,
+        continuous_graph_generation: bool = False,
+        rng_seed: np.int64 = np.int64(23978461273864)
         # THE CULTURE MUST PROVIDE A SEED
         # in spite of the fact that I set a default
         # (so the code doesn't break e.g. when testing)
-    ):
+    ) -> None:
         # Generic attributes
         self.position = position  # NumPy array, vector with 3 components
         self.culture = culture
@@ -138,7 +154,7 @@ class Cell:
         self.available_space = True
         self.is_stem = is_stem
 
-    def find_neighbors_from_entire_culture_from_scratch(self):
+    def find_neighbors_from_entire_culture_from_scratch(self) -> None:
         """Find neighboring cells from the entire culture, re-calculating from scratch.
 
         This method clears the current neighbor list and calculates a new neighbor list
@@ -153,7 +169,7 @@ class Cell:
         self.neighbors = set()
         # si las células se mueven, hay que calcular toda la lista de cero
         for cell in self.culture.cells:
-            neither_self_nor_neighbor = (cell is not self) and (
+            neither_self_nor_neighbor: bool = (cell is not self) and (
                 cell not in self.neighbors
             )
             in_neighborhood = (
@@ -164,7 +180,7 @@ class Cell:
             if to_append:
                 self.neighbors.add(cell)
 
-    def find_neighbors_from_entire_culture(self):
+    def find_neighbors_from_entire_culture(self) -> None:
         """Find neighboring cells from the entire culture, keeping the current
         cells in the list.
 
@@ -181,7 +197,7 @@ class Cell:
         # lo que no hay necesidad de reiniciar la lista, sólo añadimos
         # los posibles nuevos vecinos
         for cell in self.culture.cells:
-            neither_self_nor_neighbor = (cell is not self) and (
+            neither_self_nor_neighbor: bool = (cell is not self) and (
                 cell not in self.neighbors
             )
             in_neighborhood = (
@@ -192,7 +208,7 @@ class Cell:
             if to_append:
                 self.neighbors.add(cell)
 
-    def get_neighbors_up_to_second_degree(self):
+    def get_neighbors_up_to_second_degree(self) -> Set["Cell"]:
         """Get the set of neighbors up to second degree.
 
         A cell's neighbors up to second degree are defined as the cell's direct
@@ -205,9 +221,9 @@ class Cell:
             A set of `Cell` objects that are neighbors of the current cell up
             to the second degree.
         """
-        neighbors_up_to_second_degree = set(self.neighbors)
+        neighbors_up_to_second_degree: Set[Cell] = set(self.neighbors)
         for cell1 in self.neighbors:
-            new_neighbors = cell1.neighbors.difference(
+            new_neighbors: Set[Cell] = cell1.neighbors.difference(
                 neighbors_up_to_second_degree
             )
             neighbors_up_to_second_degree.update(new_neighbors)
@@ -215,7 +231,7 @@ class Cell:
                 neighbors_up_to_second_degree.update(cell2.neighbors)
         return neighbors_up_to_second_degree
 
-    def get_neighbors_up_to_third_degree(self):
+    def get_neighbors_up_to_third_degree(self) -> Set["Cell"]:
         """Returns the set of cells that are neighbors of the current cell up
         to the third degree.
 
@@ -228,14 +244,14 @@ class Cell:
             A set of `Cell` objects that are neighbors of the current cell up
             to the third degree.
         """
-        neighbors_up_to_third_degree = set(self.neighbors)
+        neighbors_up_to_third_degree: Set[Cell] = set(self.neighbors)
         for cell1 in self.neighbors:
-            new_neighbors = cell1.neighbors.difference(
+            new_neighbors: Set[Cell] = cell1.neighbors.difference(
                 neighbors_up_to_third_degree
             )
             neighbors_up_to_third_degree.update(new_neighbors)
             for cell2 in new_neighbors:
-                new_neighbors_l2 = cell2.neighbors.difference(
+                new_neighbors_l2: Set[Cell] = cell2.neighbors.difference(
                     neighbors_up_to_third_degree
                 )
                 neighbors_up_to_third_degree.update(new_neighbors_l2)
@@ -243,7 +259,7 @@ class Cell:
                     neighbors_up_to_third_degree.update(cell3.neighbors)
         return neighbors_up_to_third_degree
 
-    def find_neighbors(self):
+    def find_neighbors(self) -> None:
         """Find neighboring cells from the neighbors of the current cell up
         to some degree, keeping the current cells in the list.
 
@@ -325,7 +341,7 @@ class Cell:
             if to_append:
                 self.neighbors.add(cell)
 
-    def generate_new_position(self):
+    def generate_new_position(self) -> np.ndarray:
         """Generate a proposed position for the child cell, adjacent to the current one.
 
         A new position for the child cell is randomly generated, at a distance
@@ -347,7 +363,7 @@ class Cell:
         new_position = self.position + np.array([x, y, z])
         return new_position
 
-    def reproduce(self):
+    def reproduce(self) -> None:
         """The cell reproduces, generating a new child cell.
 
         Attempts to create a new cell in a random position, adjacent to the
@@ -402,8 +418,8 @@ class Cell:
                             prob_stem=self.prob_stem,
                             prob_diff=self.prob_diff,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=self.rng.integers(
-                                low=2**20, high=2**50
+                            rng_seed=np.int64(
+                                self.rng.integers(low=2**20, high=2**50)
                             ),
                         )
                     else:
@@ -417,8 +433,8 @@ class Cell:
                             prob_stem=self.prob_stem,
                             prob_diff=self.prob_diff,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=self.rng.integers(
-                                low=2**20, high=2**50
+                            rng_seed=np.int64(
+                                self.rng.integers(low=2**20, high=2**50)
                             ),
                         )
                         if random_number <= (
@@ -441,7 +457,9 @@ class Cell:
                         prob_stem=self.prob_stem,
                         prob_diff=self.prob_diff,
                         continuous_graph_generation=self._continuous_graph_generation,
-                        rng_seed=self.rng.integers(low=2**20, high=2**50),
+                        rng_seed=np.int64(
+                            self.rng.integers(low=2**20, high=2**50)
+                        ),
                     )
                 # we add this cell to the culture's cells and active_cells lists
                 self.culture.cells.append(child_cell)
