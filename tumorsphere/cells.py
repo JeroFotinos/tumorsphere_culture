@@ -96,6 +96,7 @@ class Cell:
 
     position: np.ndarray
     # culture: Culture
+    rng: np.random.Generator
     adjacency_threshold: float
     radius: float
     is_stem: bool
@@ -103,7 +104,6 @@ class Cell:
     prob_stem: float
     prob_diff: float
     continuous_graph_generation: bool
-    rng_seed: np.int64
     _swap_probability: float
     _colors: Dict[Tuple[bool, bool], str]
     neighbors: Set["Cell"]
@@ -113,6 +113,7 @@ class Cell:
         self,
         position: np.ndarray,
         culture,  # : Culture,
+        rng: np.random.Generator,
         adjacency_threshold: float = 4,  # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
         radius: float = 1,
         is_stem: bool = False,
@@ -120,14 +121,11 @@ class Cell:
         prob_stem: float = 0.36,  # Wang HARD substrate value
         prob_diff: float = 0,
         continuous_graph_generation: bool = False,
-        rng_seed: np.int64 = np.int64(23978461273864)
-        # THE CULTURE MUST PROVIDE A SEED
-        # in spite of the fact that I set a default
-        # (so the code doesn't break e.g. when testing)
     ) -> None:
         # Generic attributes
         self.position = position  # NumPy array, vector with 3 components
         self.culture = culture
+        self.rng = rng
         self.adjacency_threshold = adjacency_threshold
         self.radius = radius  # radius of cell
         self.max_repro_attempts = max_repro_attempts
@@ -136,9 +134,6 @@ class Cell:
         self.prob_stem = prob_stem
         self.prob_diff = prob_diff
         self._swap_probability = 0.5
-
-        # We instantiate the cell's RNG with the entropy provided
-        self.rng = np.random.default_rng(rng_seed)
 
         # Plotting and graph related attributes
         self._continuous_graph_generation = continuous_graph_generation
@@ -417,6 +412,7 @@ class Cell:
                         child_cell = Cell(
                             position=child_position,
                             culture=self.culture,
+                            rng=self.rng,
                             adjacency_threshold=self.adjacency_threshold,
                             radius=self.radius,
                             is_stem=True,
@@ -424,14 +420,12 @@ class Cell:
                             prob_stem=self.prob_stem,
                             prob_diff=self.prob_diff,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=np.int64(
-                                self.rng.integers(low=2**20, high=2**50)
-                            ),
                         )
                     else:
                         child_cell = Cell(
                             position=child_position,
                             culture=self.culture,
+                            rng=self.rng,
                             adjacency_threshold=self.adjacency_threshold,
                             radius=self.radius,
                             is_stem=False,
@@ -439,9 +433,6 @@ class Cell:
                             prob_stem=self.prob_stem,
                             prob_diff=self.prob_diff,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=np.int64(
-                                self.rng.integers(low=2**20, high=2**50)
-                            ),
                         )
                         if random_number <= (
                             self.prob_stem + self.prob_diff
@@ -456,6 +447,7 @@ class Cell:
                     child_cell = Cell(
                         position=child_position,
                         culture=self.culture,
+                        rng=self.rng,
                         adjacency_threshold=self.adjacency_threshold,
                         radius=self.radius,
                         is_stem=False,
@@ -463,9 +455,6 @@ class Cell:
                         prob_stem=self.prob_stem,
                         prob_diff=self.prob_diff,
                         continuous_graph_generation=self._continuous_graph_generation,
-                        rng_seed=np.int64(
-                            self.rng.integers(low=2**20, high=2**50)
-                        ),
                     )
                 # we add this cell to the culture's cells and active_cells lists
                 self.culture.cells.append(child_cell)

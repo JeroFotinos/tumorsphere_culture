@@ -121,6 +121,7 @@ class Culture:
         first_cell_object = Cell(
             position=np.array([0, 0, 0]),
             culture=self,
+            rng=self.rng,
             adjacency_threshold=self.adjacency_threshold,
             radius=self.cell_radius,
             is_stem=self.first_cell_is_stem,
@@ -128,7 +129,6 @@ class Culture:
             prob_stem=self.prob_stem,
             prob_diff=self.prob_diff,
             continuous_graph_generation=continuous_graph_generation,
-            rng_seed=self.rng.integers(low=2**20, high=2**50),
         )
 
         # we initialize the lists and graphs with the first cell
