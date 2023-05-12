@@ -23,6 +23,9 @@ class Cell:
         A vector with 3 components representing the position of the cell.
     culture : tumorsphere.Culture
         The culture to which the cell belongs.
+    rng : numpy.random.Generator
+        The random number generator used by the cell. In most
+        cases, this should be left to be managed by the culture.
     adjacency_threshold : float, optional
         The maximum distance between cells for them to be considered neighbors.
         Defaults to 4, but is inherited from cell to cell (so the first cell
@@ -47,9 +50,6 @@ class Cell:
         and if it doesn't happen at prob_diff = 0, it will never happen).
     continuous_graph_generation : bool
         True if the cell should continuously generate a graph of its neighbors, False otherwise.
-    rng_seed : int, optional
-        The seed for the random number generator used by the cell. In most
-        cases, this should be left to be managed by the parent cell.
 
     Attributes
     ----------
@@ -76,7 +76,7 @@ class Cell:
         scratch.
     find_neighbors_from_entire_culture()
         Find neighboring cells from the entire culture, keeping the current
-        cells in the list.
+        cells in the set.
     get_neighbors_up_to_second_degree()
         Get the set of neighbors up to second degree.
     get_neighbors_up_to_third_degree()
@@ -84,7 +84,7 @@ class Cell:
         to the third degree.
     find_neighbors()
         Find neighboring cells from the neighbors of the current cell up
-        to some degree, keeping the current cells in the list.
+        to some degree, keeping the current cells in the set.
     find_neighbors_from_scratch()
         Find neighboring cells from the neighbors of the current cell up
         to some degree, re-calculating from scratch.
@@ -152,17 +152,17 @@ class Cell:
     def find_neighbors_from_entire_culture_from_scratch(self) -> None:
         """Find neighboring cells from the entire culture, re-calculating from scratch.
 
-        This method clears the current neighbor list and calculates a new neighbor list
+        This method clears the current neighbor set and calculates a new neighbor set
         for the current cell, iterating over all cells in the culture. For each cell,
-        it checks if it is not the current cell and not already in the neighbor list,
+        it checks if it is not the current cell and not already in the neighbor set,
         and if it is within the adjacency threshold. If all conditions are met, the
-        cell is added to the neighbor list.
+        cell is added to the neighbor set.
 
         Returns:
             None
         """
         self.neighbors = set()
-        # si las células se mueven, hay que calcular toda la lista de cero
+        # si las células se mueven, hay que calcular todo el conjunto de cero
         for cell in self.culture.cells:
             neither_self_nor_neighbor: bool = (cell is not self) and (
                 cell not in self.neighbors
@@ -177,19 +177,19 @@ class Cell:
 
     def find_neighbors_from_entire_culture(self) -> None:
         """Find neighboring cells from the entire culture, keeping the current
-        cells in the list.
+        cells in the set.
 
-        This method keeps and updates the neighbor list for the current cell,
+        This method keeps and updates the neighbor set for the current cell,
         by looking at all cells in the culture. For each cell, it checks if
-        it is not the current cell and not already in the neighbor list, and
+        it is not the current cell and not already in the neighbor set, and
         if it is within the adjacency threshold. If all conditions are met,
-        the cell is added to the neighbor list.
+        the cell is added to the neighbor set.
 
         Returns:
             None
         """
         # como las células no se mueven, sólo se pueden agregar vecinos, por
-        # lo que no hay necesidad de reiniciar la lista, sólo añadimos
+        # lo que no hay necesidad de reiniciar el conjunto, sólo añadimos
         # los posibles nuevos vecinos
         for cell in self.culture.cells:
             neither_self_nor_neighbor: bool = (cell is not self) and (
@@ -230,7 +230,7 @@ class Cell:
         """Returns the set of cells that are neighbors of the current cell up
         to the third degree.
 
-        This method returns a list of unique cells that are neighbors to the
+        This method returns a set of unique cells that are neighbors to the
         cell, or neighbors of neighbors, recurrently up to third degree.
 
         Returns
@@ -256,14 +256,14 @@ class Cell:
 
     def find_neighbors(self) -> None:
         """Find neighboring cells from the neighbors of the current cell up
-        to some degree, keeping the current cells in the list.
+        to some degree, keeping the current cells in the set.
 
-        This method keeps and updates the neighbor list for the current cell,
+        This method keeps and updates the neighbor set for the current cell,
         by looking recursively at neighbors of the cell, up to certain degree.
         For each cell, it checks if it is not the current cell and not already
-        in the neighbor list, and if it is within the adjacency threshold. If
-        all conditions are met, the cell is added to the neighbor list.
-        If the list of neighbors has less than 12 cells, we look up to third
+        in the neighbor set, and if it is within the adjacency threshold. If
+        all conditions are met, the cell is added to the neighbor set.
+        If the set of neighbors has less than 12 cells, we look up to third
         neighbors, if not, just up to second neighbors. This decision stems
         from the fact that if the cell is a newborn, it will only have its
         parent as a neighbor, so the neighbors of its neighbors are just the
@@ -298,12 +298,12 @@ class Cell:
         """Find neighboring cells from the neighbors of the current cell up
         to some degree, re-calculating from scratch.
 
-        This method clears and re-calculates the neighbor list for the current
+        This method clears and re-calculates the neighbor set for the current
         cell, by looking recursively at neighbors of the cell, up to certain
         degree. For each cell, it checks if it is not the current cell and not
-        already in the neighbor list, and if it is within the adjacency
+        already in the neighbor set, and if it is within the adjacency
         threshold. If all conditions are met, the cell is added to the
-        neighbor list. If the list of neighbors has less than 12 cells, we
+        neighbor set. If the set of neighbors has less than 12 cells, we
         look up to third neighbors, if not, just up to second neighbors. This
         decision stems from the fact that if the cell is a newborn, it will
         only have its parent as a neighbor, so the neighbors of its neighbors
@@ -321,9 +321,9 @@ class Cell:
             neighbors_up_to_certain_degree = (
                 self.get_neighbors_up_to_second_degree()
             )
-        # we reset the neighbors list
+        # we reset the neighbors set
         self.neighbors = set()
-        # we add the cells to the list
+        # we add the cells to the set
         for cell in neighbors_up_to_certain_degree:
             neither_self_nor_neighbor = (cell is not self) and (
                 cell not in self.neighbors
