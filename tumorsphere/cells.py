@@ -6,6 +6,7 @@ Classes:
     class.
 """
 import numpy as np
+from typing import Dict, Set, Tuple
 
 # colors = {True: "red", False: "blue"}
 
@@ -22,6 +23,9 @@ class Cell:
         A vector with 3 components representing the position of the cell.
     culture : tumorsphere.Culture
         The culture to which the cell belongs.
+    rng : numpy.random.Generator
+        The random number generator used by the cell. In most
+        cases, this should be left to be managed by the culture.
     adjacency_threshold : float, optional
         The maximum distance between cells for them to be considered neighbors.
         Defaults to 4, but is inherited from cell to cell (so the first cell
@@ -46,9 +50,6 @@ class Cell:
         and if it doesn't happen at prob_diff = 0, it will never happen).
     continuous_graph_generation : bool
         True if the cell should continuously generate a graph of its neighbors, False otherwise.
-    rng_seed : int, optional
-        The seed for the random number generator used by the cell. In most
-        cases, this should be left to be managed by the parent cell.
 
     Attributes
     ----------
@@ -60,8 +61,8 @@ class Cell:
     _colors : dict
         It defines the mapping between tuples of boolean values given by
         (is_stem, in_active_cells) and the color to use when plotting.
-    neighbors : list
-        Contains the list of neighbors, which are cells within a distance
+    neighbors : set
+        Contains the set of neighbors, which are cells within a distance
         equal or less than adjacency_threshold.
     available_space : bool, default=True
         Specify whether the cell is considered active. It corresponds to
@@ -75,15 +76,15 @@ class Cell:
         scratch.
     find_neighbors_from_entire_culture()
         Find neighboring cells from the entire culture, keeping the current
-        cells in the list.
-    get_list_of_neighbors_up_to_second_degree()
-        Get a list of neighbors up to second degree.
-    get_list_of_neighbors_up_to_third_degree()
-        Returns a list of cells that are neighbors of the current cell up
+        cells in the set.
+    get_neighbors_up_to_second_degree()
+        Get the set of neighbors up to second degree.
+    get_neighbors_up_to_third_degree()
+        Returns the set of cells that are neighbors of the current cell up
         to the third degree.
     find_neighbors()
         Find neighboring cells from the neighbors of the current cell up
-        to some degree, keeping the current cells in the list.
+        to some degree, keeping the current cells in the set.
     find_neighbors_from_scratch()
         Find neighboring cells from the neighbors of the current cell up
         to some degree, re-calculating from scratch.
@@ -93,25 +94,38 @@ class Cell:
         The cell reproduces, generating a new child cell.
     """
 
+    position: np.ndarray
+    # culture: Culture
+    rng: np.random.Generator
+    adjacency_threshold: float
+    radius: float
+    is_stem: bool
+    max_repro_attempts: int
+    prob_stem: float
+    prob_diff: float
+    continuous_graph_generation: bool
+    _swap_probability: float
+    _colors: Dict[Tuple[bool, bool], str]
+    neighbors: Set["Cell"]
+    available_space: bool
+
     def __init__(
         self,
-        position,
-        culture,
-        adjacency_threshold=4,  # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
-        radius=1,
-        is_stem=False,
-        max_repro_attempts=1000,
-        prob_stem=0.36,  # Wang HARD substrate value
-        prob_diff=0,
-        continuous_graph_generation=False,
-        rng_seed=23978461273864
-        # THE CULTURE MUST PROVIDE A SEED
-        # in spite of the fact that I set a default
-        # (so the code doesn't break e.g. when testing)
-    ):
+        position: np.ndarray,
+        culture,  # : Culture,
+        rng: np.random.Generator,
+        adjacency_threshold: float = 4,  # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
+        radius: float = 1,
+        is_stem: bool = False,
+        max_repro_attempts: int = 1000,
+        prob_stem: float = 0.36,  # Wang HARD substrate value
+        prob_diff: float = 0,
+        continuous_graph_generation: bool = False,
+    ) -> None:
         # Generic attributes
         self.position = position  # NumPy array, vector with 3 components
         self.culture = culture
+        self.rng = rng
         self.adjacency_threshold = adjacency_threshold
         self.radius = radius  # radius of cell
         self.max_repro_attempts = max_repro_attempts
@@ -120,9 +134,6 @@ class Cell:
         self.prob_stem = prob_stem
         self.prob_diff = prob_diff
         self._swap_probability = 0.5
-
-        # We instantiate the cell's RNG with the entropy provided
-        self.rng = np.random.default_rng(rng_seed)
 
         # Plotting and graph related attributes
         self._continuous_graph_generation = continuous_graph_generation
@@ -134,26 +145,26 @@ class Cell:
         }  # the tuple is (is_stem, in_active_cells)
 
         # Attributes that evolve with the simulation
-        self.neighbors = []
+        self.neighbors = set()
         self.available_space = True
         self.is_stem = is_stem
 
-    def find_neighbors_from_entire_culture_from_scratch(self):
+    def find_neighbors_from_entire_culture_from_scratch(self) -> None:
         """Find neighboring cells from the entire culture, re-calculating from scratch.
 
-        This method clears the current neighbor list and calculates a new neighbor list
+        This method clears the current neighbor set and calculates a new neighbor set
         for the current cell, iterating over all cells in the culture. For each cell,
-        it checks if it is not the current cell and not already in the neighbor list,
+        it checks if it is not the current cell and not already in the neighbor set,
         and if it is within the adjacency threshold. If all conditions are met, the
-        cell is added to the neighbor list.
+        cell is added to the neighbor set.
 
         Returns:
             None
         """
-        self.neighbors = []
-        # si las células se mueven, hay que calcular toda la lista de cero
+        self.neighbors = set()
+        # si las células se mueven, hay que calcular todo el conjunto de cero
         for cell in self.culture.cells:
-            neither_self_nor_neighbor = (cell is not self) and (
+            neither_self_nor_neighbor: bool = (cell is not self) and (
                 cell not in self.neighbors
             )
             in_neighborhood = (
@@ -162,26 +173,26 @@ class Cell:
             )
             to_append = neither_self_nor_neighbor and in_neighborhood
             if to_append:
-                self.neighbors.append(cell)
+                self.neighbors.add(cell)
 
-    def find_neighbors_from_entire_culture(self):
+    def find_neighbors_from_entire_culture(self) -> None:
         """Find neighboring cells from the entire culture, keeping the current
-        cells in the list.
+        cells in the set.
 
-        This method keeps and updates the neighbor list for the current cell,
+        This method keeps and updates the neighbor set for the current cell,
         by looking at all cells in the culture. For each cell, it checks if
-        it is not the current cell and not already in the neighbor list, and
+        it is not the current cell and not already in the neighbor set, and
         if it is within the adjacency threshold. If all conditions are met,
-        the cell is added to the neighbor list.
+        the cell is added to the neighbor set.
 
         Returns:
             None
         """
         # como las células no se mueven, sólo se pueden agregar vecinos, por
-        # lo que no hay necesidad de reiniciar la lista, sólo añadimos
+        # lo que no hay necesidad de reiniciar el conjunto, sólo añadimos
         # los posibles nuevos vecinos
         for cell in self.culture.cells:
-            neither_self_nor_neighbor = (cell is not self) and (
+            neither_self_nor_neighbor: bool = (cell is not self) and (
                 cell not in self.neighbors
             )
             in_neighborhood = (
@@ -190,10 +201,10 @@ class Cell:
             )
             to_append = neither_self_nor_neighbor and in_neighborhood
             if to_append:
-                self.neighbors.append(cell)
+                self.neighbors.add(cell)
 
-    def get_list_of_neighbors_up_to_second_degree(self):
-        """Get a list of neighbors up to second degree.
+    def get_neighbors_up_to_second_degree(self) -> Set["Cell"]:
+        """Get the set of neighbors up to second degree.
 
         A cell's neighbors up to second degree are defined as the cell's direct
         neighbors and the neighbors of those neighbors, excluding the cell itself.
@@ -201,63 +212,58 @@ class Cell:
 
         Returns
         -------
-        List[Cell]
-            A list of `Cell` objects that are neighbors of the current cell up
+        Set[Cell]
+            A set of `Cell` objects that are neighbors of the current cell up
             to the second degree.
         """
-        neighbors_up_to_second_degree = set(self.neighbors)
+        neighbors_up_to_second_degree: Set[Cell] = set(self.neighbors)
         for cell1 in self.neighbors:
-            neighbors_up_to_second_degree = (
-                neighbors_up_to_second_degree.union(set(cell1.neighbors))
+            new_neighbors: Set[Cell] = cell1.neighbors.difference(
+                neighbors_up_to_second_degree
             )
-            for cell2 in cell1.neighbors:
-                neighbors_up_to_second_degree = (
-                    neighbors_up_to_second_degree.union(set(cell2.neighbors))
-                )
-        neighbors_up_to_second_degree = list(neighbors_up_to_second_degree)
+            neighbors_up_to_second_degree.update(new_neighbors)
+            for cell2 in new_neighbors:
+                neighbors_up_to_second_degree.update(cell2.neighbors)
         return neighbors_up_to_second_degree
 
-    def get_list_of_neighbors_up_to_third_degree(self):
-        """Returns a list of cells that are neighbors of the current cell up
+    def get_neighbors_up_to_third_degree(self) -> Set["Cell"]:
+        """Returns the set of cells that are neighbors of the current cell up
         to the third degree.
 
-        This method returns a list of unique cells that are neighbors to the
+        This method returns a set of unique cells that are neighbors to the
         cell, or neighbors of neighbors, recurrently up to third degree.
 
         Returns
         -------
-        List[Cell]
-            A list of `Cell` objects that are neighbors of the current cell up
+        Set[Cell]
+            A set of `Cell` objects that are neighbors of the current cell up
             to the third degree.
         """
-        neighbors_up_to_third_degree = set(self.neighbors)
+        neighbors_up_to_third_degree: Set[Cell] = set(self.neighbors)
         for cell1 in self.neighbors:
-            neighbors_up_to_third_degree = neighbors_up_to_third_degree.union(
-                set(cell1.neighbors)
+            new_neighbors: Set[Cell] = cell1.neighbors.difference(
+                neighbors_up_to_third_degree
             )
-            for cell2 in cell1.neighbors:
-                neighbors_up_to_third_degree = (
-                    neighbors_up_to_third_degree.union(set(cell2.neighbors))
+            neighbors_up_to_third_degree.update(new_neighbors)
+            for cell2 in new_neighbors:
+                new_neighbors_l2: Set[Cell] = cell2.neighbors.difference(
+                    neighbors_up_to_third_degree
                 )
-                for cell3 in cell2.neighbors:
-                    neighbors_up_to_third_degree = (
-                        neighbors_up_to_third_degree.union(
-                            set(cell3.neighbors)
-                        )
-                    )
-        neighbors_up_to_third_degree = list(neighbors_up_to_third_degree)
+                neighbors_up_to_third_degree.update(new_neighbors_l2)
+                for cell3 in new_neighbors_l2:
+                    neighbors_up_to_third_degree.update(cell3.neighbors)
         return neighbors_up_to_third_degree
 
-    def find_neighbors(self):
+    def find_neighbors(self) -> None:
         """Find neighboring cells from the neighbors of the current cell up
-        to some degree, keeping the current cells in the list.
+        to some degree, keeping the current cells in the set.
 
-        This method keeps and updates the neighbor list for the current cell,
+        This method keeps and updates the neighbor set for the current cell,
         by looking recursively at neighbors of the cell, up to certain degree.
         For each cell, it checks if it is not the current cell and not already
-        in the neighbor list, and if it is within the adjacency threshold. If
-        all conditions are met, the cell is added to the neighbor list.
-        If the list of neighbors has less than 12 cells, we look up to third
+        in the neighbor set, and if it is within the adjacency threshold. If
+        all conditions are met, the cell is added to the neighbor set.
+        If the set of neighbors has less than 12 cells, we look up to third
         neighbors, if not, just up to second neighbors. This decision stems
         from the fact that if the cell is a newborn, it will only have its
         parent as a neighbor, so the neighbors of its neighbors are just the
@@ -269,11 +275,11 @@ class Cell:
         """
         if len(self.neighbors) < 12:
             neighbors_up_to_certain_degree = (
-                self.get_list_of_neighbors_up_to_third_degree()
+                self.get_neighbors_up_to_third_degree()
             )
         else:
             neighbors_up_to_certain_degree = (
-                self.get_list_of_neighbors_up_to_second_degree()
+                self.get_neighbors_up_to_second_degree()
             )
         # now we check if there are cells to append
         for cell in neighbors_up_to_certain_degree:
@@ -286,18 +292,18 @@ class Cell:
             )
             to_append = neither_self_nor_neighbor and in_neighborhood
             if to_append:
-                self.neighbors.append(cell)
+                self.neighbors.add(cell)
 
     def find_neighbors_from_scratch(self):
         """Find neighboring cells from the neighbors of the current cell up
         to some degree, re-calculating from scratch.
 
-        This method clears and re-calculates the neighbor list for the current
+        This method clears and re-calculates the neighbor set for the current
         cell, by looking recursively at neighbors of the cell, up to certain
         degree. For each cell, it checks if it is not the current cell and not
-        already in the neighbor list, and if it is within the adjacency
+        already in the neighbor set, and if it is within the adjacency
         threshold. If all conditions are met, the cell is added to the
-        neighbor list. If the list of neighbors has less than 12 cells, we
+        neighbor set. If the set of neighbors has less than 12 cells, we
         look up to third neighbors, if not, just up to second neighbors. This
         decision stems from the fact that if the cell is a newborn, it will
         only have its parent as a neighbor, so the neighbors of its neighbors
@@ -309,15 +315,15 @@ class Cell:
         """
         if len(self.neighbors) < 20:
             neighbors_up_to_certain_degree = (
-                self.get_list_of_neighbors_up_to_third_degree()
+                self.get_neighbors_up_to_third_degree()
             )
         else:
             neighbors_up_to_certain_degree = (
-                self.get_list_of_neighbors_up_to_second_degree()
+                self.get_neighbors_up_to_second_degree()
             )
-        # we reset the neighbors list
-        self.neighbors = []
-        # we add the cells to the list
+        # we reset the neighbors set
+        self.neighbors = set()
+        # we add the cells to the set
         for cell in neighbors_up_to_certain_degree:
             neither_self_nor_neighbor = (cell is not self) and (
                 cell not in self.neighbors
@@ -328,9 +334,9 @@ class Cell:
             )
             to_append = neither_self_nor_neighbor and in_neighborhood
             if to_append:
-                self.neighbors.append(cell)
+                self.neighbors.add(cell)
 
-    def generate_new_position(self):
+    def generate_new_position(self) -> np.ndarray:
         """Generate a proposed position for the child cell, adjacent to the current one.
 
         A new position for the child cell is randomly generated, at a distance
@@ -352,7 +358,7 @@ class Cell:
         new_position = self.position + np.array([x, y, z])
         return new_position
 
-    def reproduce(self):
+    def reproduce(self) -> None:
         """The cell reproduces, generating a new child cell.
 
         Attempts to create a new cell in a random position, adjacent to the
@@ -373,15 +379,21 @@ class Cell:
             for attempt in range(self.max_repro_attempts):
                 child_position = self.generate_new_position()
                 neighbors_up_to_second_degree = (
-                    self.get_list_of_neighbors_up_to_second_degree()
+                    self.get_neighbors_up_to_second_degree()
                 )
+                cell_positions = [
+                    cell.position for cell in neighbors_up_to_second_degree
+                ]
+
                 # array with the distances from the proposed child position to the other cells
-                distance = np.array(
-                    [
-                        np.linalg.norm(child_position - cell.position)
-                        for cell in neighbors_up_to_second_degree
-                    ]
-                )
+                if len(neighbors_up_to_second_degree) > 0:
+                    cell_positions_mat = np.stack(cell_positions)
+                    distance = np.linalg.norm(
+                        child_position - cell_positions_mat, axis=1
+                    )
+                else:
+                    distance = np.array([])
+
                 # boolean array specifying if there is no overlap between
                 # the proposed child position and the other cells
                 no_overlap = np.all(distance >= 2 * self.radius)
@@ -400,6 +412,7 @@ class Cell:
                         child_cell = Cell(
                             position=child_position,
                             culture=self.culture,
+                            rng=self.rng,
                             adjacency_threshold=self.adjacency_threshold,
                             radius=self.radius,
                             is_stem=True,
@@ -407,14 +420,12 @@ class Cell:
                             prob_stem=self.prob_stem,
                             prob_diff=self.prob_diff,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=self.rng.integers(
-                                low=2**20, high=2**50
-                            ),
                         )
                     else:
                         child_cell = Cell(
                             position=child_position,
                             culture=self.culture,
+                            rng=self.rng,
                             adjacency_threshold=self.adjacency_threshold,
                             radius=self.radius,
                             is_stem=False,
@@ -422,9 +433,6 @@ class Cell:
                             prob_stem=self.prob_stem,
                             prob_diff=self.prob_diff,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=self.rng.integers(
-                                low=2**20, high=2**50
-                            ),
                         )
                         if random_number <= (
                             self.prob_stem + self.prob_diff
@@ -439,6 +447,7 @@ class Cell:
                     child_cell = Cell(
                         position=child_position,
                         culture=self.culture,
+                        rng=self.rng,
                         adjacency_threshold=self.adjacency_threshold,
                         radius=self.radius,
                         is_stem=False,
@@ -446,19 +455,18 @@ class Cell:
                         prob_stem=self.prob_stem,
                         prob_diff=self.prob_diff,
                         continuous_graph_generation=self._continuous_graph_generation,
-                        rng_seed=self.rng.integers(low=2**20, high=2**50),
                     )
                 # we add this cell to the culture's cells and active_cells lists
                 self.culture.cells.append(child_cell)
                 self.culture.active_cells.append(child_cell)
                 # we add the parent as first neighbor (necessary for
                 # the find_neighbors that are not from_entire_culture)
-                child_cell.neighbors.append(self)
+                child_cell.neighbors.add(self)
                 # we find the child's neighbors
                 child_cell.find_neighbors()
                 # we add the child as a neighbor of its neighbors
                 for cell in child_cell.neighbors:
-                    cell.neighbors.append(child_cell)
+                    cell.neighbors.add(child_cell)
                 # we add the child to the graph (node and edges)
                 if self._continuous_graph_generation:
                     self.culture.graph.add_node(child_cell)
