@@ -62,6 +62,8 @@ class Culture:
     active_cells : list of Cell
         The list of all active cells in the culture, i.e., cells that still
         have its available_space attribute set to True and can still reproduce.
+    cell_positions : numpy.ndarray
+        Matrix with the positions of each cell in the culture in each row.
     graph : networkx.Graph
         The graph representing the culture. Nodes are cells and edges represent
         the adjacency relationship between cells.
@@ -116,6 +118,8 @@ class Culture:
 
         # state whether this is a csc-seeded culture
         self.first_cell_is_stem = first_cell_is_stem
+
+        self.cell_positions = np.empty((0, 3), float)
 
         # we instantiate the first cell
         first_cell_object = Cell(
