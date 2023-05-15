@@ -75,7 +75,7 @@ for step_index in range(len(list_of_steps)):
         p_infty_of_ps,
         ps[step_index],
         p_infty[step_index],
-        p0=(0.7, 1),
+        p0=(0.7, 0.1),
         maxfev=5000,
         bounds=bnds,
     )
@@ -118,14 +118,14 @@ for step_index in range(len(list_of_steps)):
         marker=".",
         linestyle="None",
         label=f"$t = {list_of_steps[step_index]}$",
-        color=plt.cm.jet(step_index / len(list_of_steps)),
+        color=plt.cm.magma(step_index / len(list_of_steps)),
     )
     # we plot the fitted function
     ax.plot(
         xarg,
         p_infty_of_ps(xarg, popt[step_index][0], popt[step_index][1]),
         linestyle="dashed",
-        color=plt.cm.jet(step_index / len(list_of_steps)),
+        color=plt.cm.magma(step_index / len(list_of_steps)),
     )
 
 # we set the grid
