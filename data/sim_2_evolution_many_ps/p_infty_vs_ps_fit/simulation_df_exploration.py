@@ -88,7 +88,7 @@ mean_df = df.groupby(['ps', 'time'])[cols_to_average].mean().reset_index()
 # sns.set_context("notebook", font_scale=1.2)
 
 # Define color map for different time steps
-cmap = plt.cm.jet_r
+cmap = plt.cm.magma
 
 # Define list of time steps to plot
 list_of_steps = [55, 45, 35, 30, 25]
