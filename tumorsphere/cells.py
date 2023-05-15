@@ -54,6 +54,8 @@ class Cell:
     Attributes
     ----------
     (All parameters, plus the following.)
+    _position_index: int
+        This cell's index in the culture's position matrix
     _swap_probability : float
         The probability that, after an asymmetrical reproduction, the position
         of the stem cell is the new child position (probability of swapping
@@ -94,7 +96,7 @@ class Cell:
         The cell reproduces, generating a new child cell.
     """
 
-    position: np.ndarray
+    _position_index: int
     # culture: Culture
     rng: np.random.Generator
     adjacency_threshold: float
@@ -122,8 +124,12 @@ class Cell:
         prob_diff: float = 0,
         continuous_graph_generation: bool = False,
     ) -> None:
+        # Add this cell to the culture's position matrix
+        self._position_index = len(culture.cell_positions)
+        culture.cell_positions = np.append(
+            culture.cell_positions, [position], axis=0
+        )
         # Generic attributes
-        self.position = position  # NumPy array, vector with 3 components
         self.culture = culture
         self.rng = rng
         self.adjacency_threshold = adjacency_threshold
@@ -148,6 +154,11 @@ class Cell:
         self.neighbors = set()
         self.available_space = True
         self.is_stem = is_stem
+
+    @property
+    def position(self) -> np.ndarray:
+        """A vector with 3 components representing the position of the cell."""
+        return self.culture.cell_positions[self._position_index]
 
     def find_neighbors_from_entire_culture_from_scratch(self) -> None:
         """Find neighboring cells from the entire culture, re-calculating from scratch.
@@ -381,15 +392,18 @@ class Cell:
                 neighbors_up_to_second_degree = (
                     self.get_neighbors_up_to_second_degree()
                 )
-                cell_positions = [
-                    cell.position for cell in neighbors_up_to_second_degree
+                neighbor_indices = [
+                    cell._position_index
+                    for cell in neighbors_up_to_second_degree
                 ]
 
                 # array with the distances from the proposed child position to the other cells
                 if len(neighbors_up_to_second_degree) > 0:
-                    cell_positions_mat = np.stack(cell_positions)
+                    neighbor_position_mat = self.culture.cell_positions[
+                        neighbor_indices, :
+                    ]
                     distance = np.linalg.norm(
-                        child_position - cell_positions_mat, axis=1
+                        child_position - neighbor_position_mat, axis=1
                     )
                 else:
                     distance = np.array([])
