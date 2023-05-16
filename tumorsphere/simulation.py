@@ -6,6 +6,9 @@ Classes:
     parameter combinations, for a given number of realizations per said
     combination.
 """
+import multiprocessing as mp
+from typing import List, Tuple
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -39,7 +42,8 @@ class Simulation:
         Default is `10`.
     rng_seed : int, optional
         Seed for the random number generator used in the simulation. This is
-        the seed on which every other seed depends. Default is
+        the seed on which every other seed depends. Default is the hexadecimal
+        number (representing a 128-bit integer)
         `0x87351080E25CB0FAD77A44A3BE03B491`.
     cell_radius : int, optional
         Radius of the cells in the simulation. Default is `1`.
@@ -78,7 +82,9 @@ class Simulation:
     Methods:
     --------
     simulate()
-        Runs the simulation.
+        Runs the simulation persisting data to one file for each culture.
+    simulate_small()
+        Runs the simulation saving data to a dictionary for interactive use.
     _average_of_data_ps_i_and_pd_k(i, k)
         Computes the average of the data for a given pair of probabilities
         `prob_stem[i]` and `prob_diff[k]`.
@@ -136,11 +142,17 @@ class Simulation:
         self.cell_radius = cell_radius
         self.continuous_graph_generation = continuous_graph_generation
 
-    def simulate(self):
+    def simulate_small(self):
         """Simulate the culture growth for different self-replication and
         differentiation probabilities and realizations and compute the average
         data for each of the self-replication and differentiation probability
         combinations.
+
+        The data of the total number of cells, the number of active cells,
+        the number of stem cells, and the number of active stem cells, is
+        saved in a dictionary, both for every single culture and the average
+        over the realizations. It's recommended for small simulations because
+        it saves the data to a dictionary, without persisting it.
         """
         for k in range(len(self.prob_diff)):
             for i in range(len(self.prob_stem)):
@@ -168,11 +180,6 @@ class Simulation:
                 self.average_data[
                     f"average_pd={self.prob_diff[k]}_ps={self.prob_stem[i]}"
                 ] = self._average_of_data_ps_i_and_pd_k(i, k)
-
-        # picklear los objetos tiene que ser responsabilidad del método
-        # simulate de culture, ya que es algo que se hace en medio de la
-        # evolución, pero va a necesitar que le pase el current_realization_name
-        # para usarlo como nombre del archivo
 
     def _average_of_data_ps_i_and_pd_k(self, i, k):
         """Compute the average data for a combination of self-replication and
@@ -280,6 +287,11 @@ class Simulation:
             Index of the self-replication probability.
         pd_index : int
             Index of the differentiation probability.
+
+        Examples
+        --------
+        >>> fig, ax = simulation.plot_average_data()
+        >>> plt.show()
         """
         # create a figure and axis objects
         fig, ax = plt.subplots()
@@ -308,6 +320,81 @@ class Simulation:
 
         return fig, ax
 
-    # la idea es usar esto haciendo
-    # fig, ax = simulation.plot_average_data()
-    # plt.show()
+
+def simulate(self):
+    """Simulate the culture growth for different self-replication and
+    differentiation probabilities and realizations and persists the data
+    of each culture to its own file.
+
+    The data of the total number of cells, the number of active cells,
+    the number of stem cells, and the number of active stem cells, is
+    persisted to a file with a name specifying the parameters in the
+    format culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat.
+    """
+    for k in range(len(self.prob_diff)):
+        for i in range(len(self.prob_stem)):
+            for j in range(self.num_of_realizations):
+                # we compute a string with the ps and number of this realization
+                current_realization_name = f"culture_pd={self.prob_diff[k]}_ps={self.prob_stem[i]}_realization_{j}"
+                # we instantiate the culture of this realization as an item of
+                # the self.cultures dictionary, with the string as key
+                self.cultures[current_realization_name] = Culture(
+                    adjacency_threshold=self.adjacency_threshold,
+                    cell_radius=self.cell_radius,
+                    cell_max_repro_attempts=self.cell_max_repro_attempts,
+                    first_cell_is_stem=self.first_cell_is_stem,
+                    prob_stem=self.prob_stem[i],
+                    prob_diff=self.prob_diff[k],
+                    continuous_graph_generation=self.continuous_graph_generation,
+                    rng_seed=self.rng.integers(low=2**20, high=2**50),
+                )
+                # we simulate the culture's growth and retrive data in the
+                # self.data dictionary, with the same string as key
+                self.cultures[
+                    current_realization_name
+                ].simulate_with_persistent_data(
+                    self.num_of_steps_per_realization,
+                    current_realization_name,
+                )
+
+    def simulate_single_culture(self, culture_params: Tuple[str, int]) -> None:
+        """Simulate the growth of a single culture with the given parameters
+        and persist the data. To be used by `simulate_parallel`.
+
+        Parameters
+        ----------
+            culture_params: A tuple containing the realization name and the
+            number of steps.
+        """
+        realization_name, num_of_steps = culture_params
+        culture = Culture(
+            adjacency_threshold=self.adjacency_threshold,
+            cell_radius=self.cell_radius,
+            cell_max_repro_attempts=self.cell_max_repro_attempts,
+            first_cell_is_stem=self.first_cell_is_stem,
+            prob_stem=self.prob_stem[i],
+            prob_diff=self.prob_diff[k],
+            continuous_graph_generation=self.continuous_graph_generation,
+            rng_seed=self.rng.integers(low=2**20, high=2**50),
+        )
+        culture.simulate_with_persistent_data(num_of_steps, realization_name)
+
+    def simulate_parallel(self) -> None:
+        """Simulate the culture growth for different self-replication and
+        differentiation probabilities.
+
+        The data of each culture is persisted to its own file.
+        """
+        pool = mp.Pool()
+        params = []
+        for k in range(len(self.prob_diff)):
+            for i in range(len(self.prob_stem)):
+                for j in range(self.num_of_realizations):
+                    realization_name = f"culture_pd={self.prob_diff[k]}_ps={self.prob_stem[i]}_realization_{j}"
+                    params.append(
+                        (realization_name, self.num_of_steps_per_realization)
+                    )
+
+        pool.map(self.simulate_single_culture, params)
+        pool.close()
+        pool.join()
