@@ -5,10 +5,11 @@ Classes:
     - Culture: Class that represents a culture of cells. Usually dependent
     on the Simulation class.
 """
-import matplotlib.pyplot as plt
-import numpy as np
-import networkx as nx
 import time
+
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
 
 from tumorsphere.cells import Cell
 

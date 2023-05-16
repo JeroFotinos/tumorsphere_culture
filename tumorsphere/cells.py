@@ -5,8 +5,9 @@ Classes:
     - Cell: Represents a single cell in a culture. Dependent on the Culture
     class.
 """
-import numpy as np
 from typing import Dict, Set, Tuple
+
+import numpy as np
 
 # colors = {True: "red", False: "blue"}
 

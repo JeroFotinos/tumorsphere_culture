@@ -23,10 +23,14 @@ for file_name in file_list:
         # file_data is a list of strings (one for each line of the file)
 
     # Loop through each line in the file
-    for i, line in enumerate(file_data): # enumerate empieza en 0! (i.e., la línea 1 tiene i=0)
+    for i, line in enumerate(
+        file_data
+    ):  # enumerate empieza en 0! (i.e., la línea 1 tiene i=0)
         # Convert the line to a list of integers, and take sign to convert
         # to 0 or 1 (either there are still cells in that category or not)
-        line_data = [np.sign(float(x)) for x in line.strip().split(", ")] ### !!!!!!
+        line_data = [
+            np.sign(float(x)) for x in line.strip().split(", ")
+        ]  ### !!!!!!
         # = [total(i), active(i), total stem(i), active stem(i)]
         # acá probablemente alcance con tomar line.strip().split(", ")[3]
         # (o -1, las active stem)
@@ -107,7 +111,7 @@ for i in set([(x[1] + 1) for x in data_dict.keys()]):
     ) as file:
         # Calculate the averages for this step
         for key in data_dict.keys():
-            if key[1]+1 == i:
+            if key[1] + 1 == i:
                 # Write the averages to the file
                 file.write(
                     "{:.2f}, {:.4f}\n".format(
