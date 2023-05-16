@@ -65,7 +65,7 @@ pcov = []
 list_of_pc = []
 list_of_c = []
 # bnds = ((0, -1e3), (1, 1e3)) # no tengo idea de cuánto puede valer c
-bnds = ((0, 0), (1, 1)) # los valores típicos para c están entre
+bnds = ((0, 0), (1, 1))  # los valores típicos para c están entre
 # c = 0.167 para t = 25 y c = 0.021 para t = 59.
 # notation: ((lower_bound_1st_param, lower_bound_2nd_param),
 # (upper_bound_1st_param, upper_bound_2nd_param))

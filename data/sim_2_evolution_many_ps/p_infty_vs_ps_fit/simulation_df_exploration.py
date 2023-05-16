@@ -9,11 +9,12 @@ Original file is located at
 """
 
 import io
-import pandas as pd
-import seaborn as sns
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import scipy as sp
+import seaborn as sns
 
 # set matplotlib style
 plt.style.use("ggplot")
@@ -30,19 +31,27 @@ with open(csv_file, "r") as file:
 # sólo una CSC. Agrego esto para todas las simulaciones
 
 # Define the new rows as a dictionary
-new_rows = {'ps': [], 'n': [], 'time': [], 'total_cells': [], 'active_cells': [], 'stem_cells': [], 'active_stem_cells': []}
+new_rows = {
+    "ps": [],
+    "n": [],
+    "time": [],
+    "total_cells": [],
+    "active_cells": [],
+    "stem_cells": [],
+    "active_stem_cells": [],
+}
 
 # Loop over unique values of ps and n
-for ps in df['ps'].unique():
-    for n in df[df['ps']==ps]['n'].unique():
+for ps in df["ps"].unique():
+    for n in df[df["ps"] == ps]["n"].unique():
         # Add the new row
-        new_rows['ps'].append(ps)
-        new_rows['n'].append(n)
-        new_rows['time'].append(0)
-        new_rows['total_cells'].append(1)
-        new_rows['active_cells'].append(1)
-        new_rows['stem_cells'].append(1)
-        new_rows['active_stem_cells'].append(1)
+        new_rows["ps"].append(ps)
+        new_rows["n"].append(n)
+        new_rows["time"].append(0)
+        new_rows["total_cells"].append(1)
+        new_rows["active_cells"].append(1)
+        new_rows["stem_cells"].append(1)
+        new_rows["active_stem_cells"].append(1)
 
 # Append the new rows to the original DataFrame
 df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
@@ -52,27 +61,35 @@ df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
 # el $t = 0$; algunas no llegaron a $t = 60$, por eso da menos).
 # Quedó joya armado el `DataFrame`.
 
-# Lo que quiero hacer ahora, es armar $P_\infty (p_s)$. 
+# Lo que quiero hacer ahora, es armar $P_\infty (p_s)$.
 
 
 # To compute the booleans that indicate the presence of Active CSCs, I came up
 # with two different methods. Let us verify if they match.
 
 # Using lambda function
-df['active_stem_cells_bool1'] = df['active_stem_cells'].apply(lambda x: 1 if x > 0 else 0)
+df["active_stem_cells_bool1"] = df["active_stem_cells"].apply(
+    lambda x: 1 if x > 0 else 0
+)
 
 # Using numpy.sign
-df['active_stem_cells_bool2'] = np.sign(df['active_stem_cells']).astype(int)
+df["active_stem_cells_bool2"] = np.sign(df["active_stem_cells"]).astype(int)
 
 # Compare the two columns
-assert all(df['active_stem_cells_bool1'] == df['active_stem_cells_bool2'])
+assert all(df["active_stem_cells_bool1"] == df["active_stem_cells_bool2"])
 
 # It passes, so I can use either of those.
 
-cols_to_average = ['total_cells', 'active_cells', 'stem_cells', 'active_stem_cells', 'active_stem_cells_bool2']
+cols_to_average = [
+    "total_cells",
+    "active_cells",
+    "stem_cells",
+    "active_stem_cells",
+    "active_stem_cells_bool2",
+]
 
 # Group by 'ps' and 'time' columns, and compute mean for the remaining columns
-mean_df = df.groupby(['ps', 'time'])[cols_to_average].mean().reset_index()
+mean_df = df.groupby(["ps", "time"])[cols_to_average].mean().reset_index()
 
 
 # Que tenga exactamente 610 filas me deja bastante tranquilo, ya que sí o sí
@@ -98,14 +115,20 @@ fig, ax = plt.subplots()
 
 # Loop over time steps and plot active_stem_cells_indicator as a function of ps
 for i, t in enumerate(list_of_steps):
-    df_time = mean_df[mean_df['time'] == t]
-    ax.plot(df_time['ps'], df_time['active_stem_cells_bool2'], color=cmap(i / len(list_of_steps)),
-            marker='.', linestyle='--', label=f'Time: {t}')
+    df_time = mean_df[mean_df["time"] == t]
+    ax.plot(
+        df_time["ps"],
+        df_time["active_stem_cells_bool2"],
+        color=cmap(i / len(list_of_steps)),
+        marker=".",
+        linestyle="--",
+        label=f"Time: {t}",
+    )
 
 # Set axis labels and legend
-ax.set_xlabel('$p_s$', fontsize=14, color='black')
-ax.set_ylabel('$P_{\infty}$', fontsize=14, color='black')
-ax.legend(title='Time Steps', bbox_to_anchor=(0.05, 1), loc='upper left')
+ax.set_xlabel("$p_s$", fontsize=14, color="black")
+ax.set_ylabel("$P_{\infty}$", fontsize=14, color="black")
+ax.legend(title="Time Steps", bbox_to_anchor=(0.05, 1), loc="upper left")
 
 plt.savefig(
     "/home/nate/Devel/tumorsphere_culture/data/sim_2_evolution_many_ps/p_infty_vs_ps_fit/p_infty_vs_ps.png",
@@ -114,9 +137,11 @@ plt.savefig(
 
 # ¡Da igual! Ahora veamos $p_c(t)$.
 
+
 # First, we define the function to fit
 def p_infty_of_ps(p_s, p_c, c):
     return 0.5 * sp.special.erf((p_s - p_c) / c) + 0.5
+
 
 # We do the fit for every step in the list of steps and save it to a file
 popt = []
@@ -128,14 +153,14 @@ bnds = ((0, 0), (1, 1))
 # (upper_bound_1st_param, upper_bound_2nd_param))
 
 # Loop over time steps and plot active_stem_cells_indicator as a function of ps
-times_of_observation = list(set(mean_df['time']))
+times_of_observation = list(set(mean_df["time"]))
 for t in times_of_observation:
-    df_time = mean_df[mean_df['time'] == t]
+    df_time = mean_df[mean_df["time"] == t]
     # we fit with scipy
     popt_i, pcov_i = sp.optimize.curve_fit(
         p_infty_of_ps,
-        df_time['ps'],
-        df_time['active_stem_cells_bool2'],
+        df_time["ps"],
+        df_time["active_stem_cells_bool2"],
         p0=(0.7, 0.1),
         maxfev=5000,
         bounds=bnds,
@@ -154,8 +179,8 @@ ax.plot(
     label=f"$p_c(t)$",
 )
 
-ax.set_xlabel("$t$", fontsize=12, color='black')
-ax.set_ylabel("$p_c$", fontsize=12, color='black')
+ax.set_xlabel("$t$", fontsize=12, color="black")
+ax.set_ylabel("$p_c$", fontsize=12, color="black")
 ax.set_title(
     "Fitted percolation probability vs time of observation",
     fontdict={"fontsize": 12},
