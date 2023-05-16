@@ -90,7 +90,11 @@ class Culture:
         culture.
     simulate_with_data(num_times)
         Simulate culture growth for a specified number of time steps and
-        record the data at each time step.
+        record the data in a dictionary at each time step.
+    simulate_with_persistent_data(num_times, culture_name)
+        Simulate culture growth for a specified number of time steps and
+        persist the data in a file at each time step.
+
     """
 
     def __init__(
@@ -361,5 +365,72 @@ class Culture:
 
         return data
 
-    # def simulate_with_continuos_data
-    # def simulate_with_continuos_data_and_persisted_culture
+    def simulate_with_persistent_data(self, num_times, culture_name):
+        """Simulate culture growth for a specified number of time steps and
+        record the data in a file at each time step, so its available in real
+        time.
+
+        At each time step, we randomly sort the list of active cells and then
+        we tell them to reproduce one by one. The data that gets recorded at
+        each step is the total number of cells, the number of active cells,
+        the number of stem cells, and the number of active stem cells. It no
+        longer saves data in a dictionary, but rather to a file with a
+        specified name.
+
+        Parameters
+        ----------
+        num_times : int
+            The number of time steps to simulate the cellular automaton.
+        culture_name : str
+            The name of the culture in the simulation, in the format
+            culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat
+
+        Returns
+        -------
+        dict
+            A dictionary with keys representing the different types of data that
+            were recorded and values representing the recorded data at each time
+            step, in the form of numpy.array's representing the time series of
+            the data. The types of data recorded are 'total', 'active',
+            'total_stem', and 'active_stem'.
+        """
+
+        # we count the initial amount of CSCs
+        if self.first_cell_is_stem:
+            initial_amount_of_csc = 1
+        else:
+            initial_amount_of_csc = 0
+
+        # we write the header and the data values for this time step
+        with open(f"data/{culture_name}.dat", "w") as file:
+            file.write("total, active, total_stem, active_stem \n")
+            file.write(
+                f"1, 1, {initial_amount_of_csc}, {initial_amount_of_csc} \n"
+            )
+
+        # we simulate for num_times time steps
+        for i in range(1, num_times):
+            # we get a permuted copy of the cells list
+            cells = self.rng.permutation(self.active_cells)
+            # I had to point to the cells in a copied list,
+            # if not, strange things happened
+            for cell in cells:
+                cell.reproduce()
+
+            # we count the number of CSCs in this time step
+            total_stem_counter = 0
+            for cell in self.cells:
+                if cell.is_stem:
+                    total_stem_counter = total_stem_counter + 1
+
+            # we count the number of active CSCs in this time step
+            active_stem_counter = 0
+            for cell in self.active_cells:
+                if cell.is_stem:
+                    active_stem_counter = active_stem_counter + 1
+
+            # we save the data to a file
+            with open(f"data/{culture_name}.dat", "a") as file:
+                file.write(
+                    f"{len(self.cells)}, {len(self.active_cells)}, {total_stem_counter}, {active_stem_counter} \n"
+                )
