@@ -31,7 +31,10 @@ dependencies = [
     "matplotlib",
     "networkx",
     "numpy",
-    "toml"
+    "toml",
+    "pandas",
+    "scipy",
+    "seaborn",
 ]
 # copy y warnings están built-in aparentemente (i.e. no hay que importarlas)
 # creo que "random" está en la misma
