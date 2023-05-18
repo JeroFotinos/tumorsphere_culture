@@ -14,7 +14,6 @@ import numpy as np
 
 from tumorsphere.culture import Culture
 
-
 class Simulation:
     """
     Class for simulating multiple `Culture` objects with different parameters.
@@ -321,80 +320,97 @@ class Simulation:
         return fig, ax
 
 
-def simulate(self):
-    """Simulate the culture growth for different self-replication and
-    differentiation probabilities and realizations and persists the data
-    of each culture to its own file.
-
-    The data of the total number of cells, the number of active cells,
-    the number of stem cells, and the number of active stem cells, is
-    persisted to a file with a name specifying the parameters in the
-    format culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat.
-    """
-    for k in range(len(self.prob_diff)):
-        for i in range(len(self.prob_stem)):
-            for j in range(self.num_of_realizations):
-                # we compute a string with the ps and number of this realization
-                current_realization_name = f"culture_pd={self.prob_diff[k]}_ps={self.prob_stem[i]}_realization_{j}"
-                # we instantiate the culture of this realization as an item of
-                # the self.cultures dictionary, with the string as key
-                self.cultures[current_realization_name] = Culture(
-                    adjacency_threshold=self.adjacency_threshold,
-                    cell_radius=self.cell_radius,
-                    cell_max_repro_attempts=self.cell_max_repro_attempts,
-                    first_cell_is_stem=self.first_cell_is_stem,
-                    prob_stem=self.prob_stem[i],
-                    prob_diff=self.prob_diff[k],
-                    continuous_graph_generation=self.continuous_graph_generation,
-                    rng_seed=self.rng.integers(low=2**20, high=2**50),
-                )
-                # we simulate the culture's growth and retrive data in the
-                # self.data dictionary, with the same string as key
-                self.cultures[
-                    current_realization_name
-                ].simulate_with_persistent_data(
-                    self.num_of_steps_per_realization,
-                    current_realization_name,
-                )
-
-    def simulate_single_culture(self, culture_params: Tuple[str, int]) -> None:
-        """Simulate the growth of a single culture with the given parameters
-        and persist the data. To be used by `simulate_parallel`.
-
-        Parameters
-        ----------
-            culture_params: A tuple containing the realization name and the
-            number of steps.
-        """
-        realization_name, num_of_steps = culture_params
-        culture = Culture(
-            adjacency_threshold=self.adjacency_threshold,
-            cell_radius=self.cell_radius,
-            cell_max_repro_attempts=self.cell_max_repro_attempts,
-            first_cell_is_stem=self.first_cell_is_stem,
-            prob_stem=self.prob_stem[i],
-            prob_diff=self.prob_diff[k],
-            continuous_graph_generation=self.continuous_graph_generation,
-            rng_seed=self.rng.integers(low=2**20, high=2**50),
-        )
-        culture.simulate_with_persistent_data(num_of_steps, realization_name)
-
-    def simulate_parallel(self) -> None:
+    def simulate(self):
         """Simulate the culture growth for different self-replication and
-        differentiation probabilities.
+        differentiation probabilities and realizations and persists the data
+        of each culture to its own file.
 
-        The data of each culture is persisted to its own file.
+        The data of the total number of cells, the number of active cells,
+        the number of stem cells, and the number of active stem cells, is
+        persisted to a file with a name specifying the parameters in the
+        format culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat.
         """
-        pool = mp.Pool()
-        params = []
         for k in range(len(self.prob_diff)):
             for i in range(len(self.prob_stem)):
                 for j in range(self.num_of_realizations):
-                    realization_name = f"culture_pd={self.prob_diff[k]}_ps={self.prob_stem[i]}_realization_{j}"
-                    params.append(
-                        (realization_name, self.num_of_steps_per_realization)
+                    # we compute a string with the ps and number of this realization
+                    current_realization_name = f"culture_pd={self.prob_diff[k]}_ps={self.prob_stem[i]}_realization_{j}"
+                    # we instantiate the culture of this realization as an item of
+                    # the self.cultures dictionary, with the string as key
+                    self.cultures[current_realization_name] = Culture(
+                        adjacency_threshold=self.adjacency_threshold,
+                        cell_radius=self.cell_radius,
+                        cell_max_repro_attempts=self.cell_max_repro_attempts,
+                        first_cell_is_stem=self.first_cell_is_stem,
+                        prob_stem=self.prob_stem[i],
+                        prob_diff=self.prob_diff[k],
+                        continuous_graph_generation=self.continuous_graph_generation,
+                        rng_seed=self.rng.integers(low=2**20, high=2**50),
+                    )
+                    # we simulate the culture's growth and retrive data in the
+                    # self.data dictionary, with the same string as key
+                    self.cultures[
+                        current_realization_name
+                    ].simulate_with_persistent_data(
+                        self.num_of_steps_per_realization,
+                        current_realization_name,
                     )
 
-        pool.map(self.simulate_single_culture, params)
-        pool.close()
-        pool.join()
+    def simulate_parallel(self) -> None:
+        """
+        Simulate the culture growth for different self-replication and
+        differentiation probabilities and realizations and persists the data
+        of each culture to its own file. The simulations are parallelized
+        using multiprocessing.
+
+        The data of the total number of cells, the number of active cells,
+        the number of stem cells, and the number of active stem cells, is
+        persisted to a file with a name specifying the parameters in the
+        format culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat.
+
+        """
+        with mp.Pool(mp.cpu_count()) as p:
+            p.map(simulate_single_culture, [(k, i, j, self) for k in range(len(self.prob_diff)) for i in range(len(self.prob_stem)) for j in range(self.num_of_realizations)])
+
+
+
+def simulate_single_culture(args: Tuple[int, int, int, Simulation]) -> None:
+    """
+    A worker function for multiprocessing.
+
+    This function is used by the multiprocessing.Pool instance in the
+    simulate_parallel method to parallelize the simulation of different
+    cultures. This simulates the growth of a single culture with the given
+    parameters and persist the data.
+
+    Parameters
+    ----------
+    args : tuple
+        A tuple containing the indices for the self-replication probability,
+        differentiation probability, and realization number, and the instance of
+        the Simulation class.
+    
+    Notes
+    -----
+    Due to the way multiprocessing works in Python, you can't directly use
+    instance methods as workers for multiprocessing. The multiprocessing
+    module needs to be able to pickle the target function, and instance
+    methods can't be pickled. Therefore, the instance method worker had to be
+    refactored to a standalone function (or a static method).
+    """
+    k, i, j, sim = args
+    current_realization_name = f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_realization_{j}"
+    sim.cultures[current_realization_name] = Culture(
+        adjacency_threshold=sim.adjacency_threshold,
+        cell_radius=sim.cell_radius,
+        cell_max_repro_attempts=sim.cell_max_repro_attempts,
+        first_cell_is_stem=sim.first_cell_is_stem,
+        prob_stem=sim.prob_stem[i],
+        prob_diff=sim.prob_diff[k],
+        continuous_graph_generation=sim.continuous_graph_generation,
+        rng_seed=sim.rng.integers(low=2**20, high=2**50),
+    )
+    sim.cultures[current_realization_name].simulate_with_persistent_data(
+        sim.num_of_steps_per_realization,
+        current_realization_name,
+    )
