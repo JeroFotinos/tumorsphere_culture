@@ -191,3 +191,54 @@ plt.savefig(
     "/home/nate/Devel/tumorsphere_culture/data/sim_3_ps_close_to_pc/p_infty_vs_ps_fit/pc_vs_t_df_version.png",
     dpi=600,
 )
+
+def create_heatmap(df, output_path):
+    """Creates and saves a heatmap of P_infty for each given probability pd.
+
+    The function creates a heatmap for each given 'pd' value and saves it to
+    the indicated working directory as a .png file. The file is named
+    'heatmap_pd_{}.png', where {} is replaced by the 'pd' value. The heatmap's
+    color intensity indicates the value of 'active_stem_cells_indicator'.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The DataFrame containing the simulation data. It must include 'pd',
+        'ps', 'time', and 'active_stem_cells_indicator' columns.
+    output_path : str
+        The path for saving the plot.
+    pd_values : list
+        The list of unique probabilities pd values for which the heatmap
+        should be created.
+
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    >>> output_path = "/path/to/save/"
+    >>> create_heatmap(df, output_path, df['pd'].unique())
+
+    """
+
+    # Filter the DataFrame for the current 'pd' value
+    df_filtered = df
+    
+    # Pivot the DataFrame
+    df_pivot = df_filtered.pivot(index='ps', columns='time', values='active_stem_cells_bool2')
+    
+    # Create a heatmap
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(df_pivot, cmap="magma", annot=False, fmt=".2f")
+    
+    plt.title('Heatmap of $P_\infty$ by $p_s$ and $t$ for $p_d$ = 0')
+    plt.xlabel('$t$')
+    plt.ylabel('$p_s$')
+    
+    # Save the heatmap to a file
+    plt.savefig(f"{output_path}heatmap_pd_0.png", dpi=600)
+    plt.close()
+
+output_path = '/home/nate/Devel/tumorsphere_culture/data/sim_3_ps_close_to_pc/p_infty_vs_ps_fit/'
+create_heatmap(mean_df, output_path)

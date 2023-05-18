@@ -2,25 +2,22 @@ import click
 
 from tumorsphere.simulation import Simulation
 
-
 @click.command(
     help="Command-line interface for running the tumorsphere simulation."
 )
 @click.option(
     "--prob-stem",
     required=True,
-    type=float,
-    multiple=True,
+    type=str,
     help="List of probabilities for stem cells. "
-    "Multiple values can be provided.",
+    "Values should be comma separated.",
 )
 @click.option(
     "--prob-diff",
     required=True,
-    type=float,
-    multiple=True,
+    type=str,
     help="List of probabilities for differentiated cells. "
-    "Multiple values can be provided.",
+    "Values should be comma separated.",
 )
 @click.option(
     "--realizations",
@@ -46,11 +43,10 @@ def cli(prob_stem, prob_diff, realizations, steps_per_realization, rng_seed):
 
     Parameters
     ----------
-        prob_stem : List[float]
-            List of probabilities that a stem cell will self-replicate.
-        prob_diff : List[float]
-            List of probabilitiesthat a stem cell will yield a differentiated
-            cell.
+        prob_stem : str
+            Comma-separated string of probabilities that a stem cell will self-replicate.
+        prob_diff : str
+            Comma-separated string of probabilities that a stem cell will yield a differentiated cell.
         realizations : int
             Number of `Culture` objects to simulate for each combination of
             `prob_stem` and `prob_diff`.
@@ -61,13 +57,16 @@ def cli(prob_stem, prob_diff, realizations, steps_per_realization, rng_seed):
 
     Examples
     --------
-    >>> python -m tumorsphere.cli --help
-    >>> python -m tumorsphere.cli --prob-stem 0.5 0.3 0.8 --prob-diff 0.2 0.4 0.6 --realizations 10 --steps-per-realization 100 --rng-seed 12345
+    >>> python3 -m tumorsphere.cli --help
+    >>> python3 -m tumorsphere.cli --prob-stem "0.5,0.3,0.8" --prob-diff "0.2,0.4,0.6" --realizations 10 --steps-per-realization 10 --rng-seed 1234567
     """
+    prob_stem = [float(x) for x in prob_stem.split(',')]
+    prob_diff = [float(x) for x in prob_diff.split(',')]
+
     sim = Simulation(
         first_cell_is_stem=True,
-        prob_stem=[prob_stem],
-        prob_diff=[prob_diff],
+        prob_stem=prob_stem,
+        prob_diff=prob_diff,
         num_of_realizations=realizations,
         num_of_steps_per_realization=steps_per_realization,
         rng_seed=rng_seed,
