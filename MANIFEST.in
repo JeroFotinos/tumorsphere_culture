@@ -3,15 +3,20 @@ include README.md
 include pyproject.toml
 
 recursive-include tumorsphere *.py
-recursive-include examples *
+recursive-include library *
 recursive-include .github *
 
 exclude requirements.txt
 # exclude tox.ini
 
 recursive-exclude tests *
+recursive-exclude data *
+recursive-exclude examples *
+recursive-exclude experiments *
+recursive-exclude snapshots *
+recursive-exclude ovito_plotting *
 #recursive-exclude docs *
-#recursive-exclude dicomhandler.egg-info *
+recursive-exclude tumorsphere.egg-info *
 recursive-exclude .pytest_cache *
 recursive-exclude .ipynb_checkpoints *
 recursive-exclude __pycache__ *
