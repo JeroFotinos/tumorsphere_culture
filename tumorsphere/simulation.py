@@ -14,6 +14,7 @@ import numpy as np
 
 from tumorsphere.culture import Culture
 
+
 class Simulation:
     """
     Class for simulating multiple `Culture` objects with different parameters.
@@ -81,6 +82,8 @@ class Simulation:
     Methods:
     --------
     simulate()
+        Runs the simulation persisting data to one file for each culture.
+    simulate_parallel()
         Runs the simulation persisting data to one file for each culture.
     simulate_small()
         Runs the simulation saving data to a dictionary for interactive use.
@@ -319,7 +322,6 @@ class Simulation:
 
         return fig, ax
 
-
     def simulate(self):
         """Simulate the culture growth for different self-replication and
         differentiation probabilities and realizations and persists the data
@@ -370,8 +372,15 @@ class Simulation:
 
         """
         with mp.Pool(mp.cpu_count()) as p:
-            p.map(simulate_single_culture, [(k, i, j, self) for k in range(len(self.prob_diff)) for i in range(len(self.prob_stem)) for j in range(self.num_of_realizations)])
-
+            p.map(
+                simulate_single_culture,
+                [
+                    (k, i, j, self)
+                    for k in range(len(self.prob_diff))
+                    for i in range(len(self.prob_stem))
+                    for j in range(self.num_of_realizations)
+                ],
+            )
 
 
 def simulate_single_culture(args: Tuple[int, int, int, Simulation]) -> None:
@@ -389,7 +398,7 @@ def simulate_single_culture(args: Tuple[int, int, int, Simulation]) -> None:
         A tuple containing the indices for the self-replication probability,
         differentiation probability, and realization number, and the instance of
         the Simulation class.
-    
+
     Notes
     -----
     Due to the way multiprocessing works in Python, you can't directly use
@@ -399,7 +408,9 @@ def simulate_single_culture(args: Tuple[int, int, int, Simulation]) -> None:
     refactored to a standalone function (or a static method).
     """
     k, i, j, sim = args
-    current_realization_name = f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_realization_{j}"
+    current_realization_name = (
+        f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_realization_{j}"
+    )
     sim.cultures[current_realization_name] = Culture(
         adjacency_threshold=sim.adjacency_threshold,
         cell_radius=sim.cell_radius,
