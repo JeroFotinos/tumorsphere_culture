@@ -52,6 +52,10 @@ class Culture:
         The seed to be used by the culture's random number generator. Default is
         110293658491283598. Nevertheless, this should be managed by the
         Simulation object.
+    measure_time : bool, optional
+        Whether to measure the time it takes to simulate one time step.
+        Default is False. This is used for performance testing purposes.
+        Results are saved to a file called time_measurements.dat.
 
     Attributes
     ----------
@@ -106,7 +110,8 @@ class Culture:
         prob_stem=0.36,  # Wang HARD substrate value
         prob_diff=0,
         continuous_graph_generation=False,
-        rng_seed=110293658491283598
+        rng_seed=110293658491283598,
+        measure_time=False,
         # THE SIMULATION MUST PROVIDE A SEED
         # in spite of the fact that I set a default
         # (so the code doesn't break e.g. when testing)
@@ -145,6 +150,9 @@ class Culture:
         self.active_cells = [first_cell_object]
         self.graph = nx.Graph()
         self.graph.add_node(first_cell_object)
+
+        # other attributes
+        self.measure_time = measure_time
 
     # ========================= Ploting methods ==========================
 
@@ -410,6 +418,11 @@ class Culture:
 
         # we simulate for num_times time steps
         for i in range(1, num_times):
+            if self.measure_time:
+                # For measuring the time it takes to simulate one time step
+                # start the timer
+                start_time = time.perf_counter()
+
             # we get a permuted copy of the cells list
             cells = self.rng.permutation(self.active_cells)
             # I had to point to the cells in a copied list,
@@ -434,3 +447,17 @@ class Culture:
                 file.write(
                     f"{len(self.cells)}, {len(self.active_cells)}, {total_stem_counter}, {active_stem_counter} \n"
                 )
+
+            if self.measure_time:
+                # For measuring the time it takes to simulate one time step
+                # stop the timer
+                end_time = time.perf_counter()
+
+                # calculate the elapsed time
+                elapsed_time = end_time - start_time
+
+                # print the elapsed time
+                with open("time_per_step.dat", "a") as file:
+                    file.write(
+                        f"{elapsed_time:.6f} seconds" + "\n"
+                    )

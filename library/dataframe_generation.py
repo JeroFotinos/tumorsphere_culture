@@ -15,10 +15,11 @@ import glob
 import pandas as pd
 import os
 
+
 def extract_params_from_filename(filename):
     """
     Extract the parameters pd, ps and n from the filename.
-    
+
     The parameters that characterize a simulation are `ps` (self-replication probability
     of the CSCs), `pd` (probability that a CSC will yield a DCC) and the realization
     number `n`. The names of the files are supposed to be on the format
@@ -33,13 +34,13 @@ def extract_params_from_filename(filename):
     -------
     pd, ps, n : tuple of float, float, int
         The extracted parameters.
-    
+
     Notes
     -----
     Parameter extraction from the filename is abstracted and separated into its own
     function to keep the main data loading function cleaner and more focused. This can be
     particularly useful if the file name parsing logic becomes more complex in the future.
-    
+
     """
     # starting in 1 to remove the string "culture"
     # "_" is a placeholder for the string "realization"
@@ -47,13 +48,14 @@ def extract_params_from_filename(filename):
     p_d = p_d.replace("pd=", "")
     p_s = p_s.replace("ps=", "")
     n = n.replace("realization", "")
-    
+
     return float(p_d), float(p_s), int(n)
+
 
 def load_simulation_data(data_dir):
     """
     Load simulation data from a directory of .dat files into a pandas DataFrame.
-    
+
     Reads the files in the indicated directory. The files are supposed to be CSVs,
     containing four columns: numbers of total cells, active cells, stem cells and
     active stem cells; in that order, as a function of time (each row representing
@@ -68,12 +70,12 @@ def load_simulation_data(data_dir):
     -------
     df : pandas.DataFrame
         A DataFrame containing the combined data from all simulations.
-    
+
     Notes
     -----
     Parameter extraction form file name is delegated to the
     extract_params_from_filename function.
-    
+
     Examples
     --------
     >>> df = load_simulation_data("/path/to/data/dir")
@@ -98,7 +100,9 @@ def load_simulation_data(data_dir):
     for file_path in glob.glob(os.path.join(data_dir, "*.dat")):
         # Extract the values of pd, ps, and n from the file name
         try:
-            p_d, p_s, n = extract_params_from_filename(os.path.basename(file_path))
+            p_d, p_s, n = extract_params_from_filename(
+                os.path.basename(file_path)
+            )
         except ValueError:
             print(f"Skipping file {file_path} due to improper format.")
             continue
@@ -135,7 +139,7 @@ def load_simulation_data(data_dir):
     # Convert the columns to the desired data types
     df[["n", "time"]] = df[["n", "time"]].astype(int)
     df[["ps", "pd"]] = df[["ps", "pd"]].astype(float)
-    
+
     return df
 
 

@@ -6,11 +6,13 @@ import seaborn as sns
 from scipy.special import erf
 from scipy.optimize import curve_fit
 
+
 def set_plot_style():
     """Sets the plot style to be used for the graphs."""
     plt.style.use("ggplot")
     plt.rcParams["axes.edgecolor"] = "darkgray"
     plt.rcParams["axes.linewidth"] = 0.8
+
 
 def p_infty_of_ps(p_s, p_c, c):
     """
@@ -32,6 +34,7 @@ def p_infty_of_ps(p_s, p_c, c):
     """
     return 0.5 * erf((p_s - p_c) / c) + 0.5
 
+
 def read_data(csv_file):
     """
     Reads the csv file and returns a pandas DataFrame.
@@ -50,6 +53,7 @@ def read_data(csv_file):
         df = pd.read_csv(file)
 
     return df
+
 
 def add_zero_time_point(df):
     """
@@ -96,6 +100,7 @@ def add_zero_time_point(df):
 
     return df
 
+
 def add_active_stem_cells_indicator(df):
     """
     Adds a new column to the DataFrame that indicates whether there are active stem cells.
@@ -112,14 +117,17 @@ def add_active_stem_cells_indicator(df):
     """
 
     # If 'active_stem_cells' is object, print out unique values to investigate
-    if df['active_stem_cells'].dtypes == 'object':
+    if df["active_stem_cells"].dtypes == "object":
         print("Some strings detected in the place of numbers.")
-        print(df['active_stem_cells'].unique())
+        print(df["active_stem_cells"].unique())
 
     # Using numpy.sign
-    df["active_stem_cells_indicator"] = np.sign(df["active_stem_cells"]).astype(int)
+    df["active_stem_cells_indicator"] = np.sign(
+        df["active_stem_cells"]
+    ).astype(int)
 
     return df
+
 
 def average_over_realizations(df):
     """Computes the mean time evolution for the cell numbers, for every ps and
@@ -147,9 +155,12 @@ def average_over_realizations(df):
     ]
 
     # Group by 'pd', 'ps' and 'time' columns, and compute mean for the remaining columns
-    mean_df = df.groupby(["pd", "ps", "time"])[cols_to_average].mean().reset_index()
+    mean_df = (
+        df.groupby(["pd", "ps", "time"])[cols_to_average].mean().reset_index()
+    )
 
     return mean_df
+
 
 def plot_p_infty_vs_ps(mean_df, list_of_steps, output_path, pd_values=[0]):
     """Plots P_infty as a function of ps for different time steps and for each
@@ -176,7 +187,9 @@ def plot_p_infty_vs_ps(mean_df, list_of_steps, output_path, pd_values=[0]):
 
         # Loop over time steps and plot active_stem_cells_indicator as a function of ps
         for i, t in enumerate(list_of_steps):
-            df_time = mean_df[(mean_df["time"] == t) & (mean_df["pd"] == pd_value)]
+            df_time = mean_df[
+                (mean_df["time"] == t) & (mean_df["pd"] == pd_value)
+            ]
             ax.plot(
                 df_time["ps"],
                 df_time["active_stem_cells_indicator"],
@@ -189,13 +202,18 @@ def plot_p_infty_vs_ps(mean_df, list_of_steps, output_path, pd_values=[0]):
         # Set axis labels and legend
         ax.set_xlabel("$p_s$", fontsize=14, color="black")
         ax.set_ylabel("$P_{\infty}$", fontsize=14, color="black")
-        ax.legend(title="Time Steps", bbox_to_anchor=(0.05, 1), loc="upper left")
+        ax.legend(
+            title="Time Steps", bbox_to_anchor=(0.05, 1), loc="upper left"
+        )
 
         # Save the plot to a file
         plt.savefig(f"{output_path}_pd_{pd_value}.png", dpi=600)
         plt.close(fig)  # Close the figure to free up memory
 
-def plot_p_infty_vs_ps_with_fit(mean_df, time_steps, output_path, pd_values=[0]):
+
+def plot_p_infty_vs_ps_with_fit(
+    mean_df, time_steps, output_path, pd_values=[0]
+):
     """Plots P_infty as a function of ps for the given time steps and fits the
     p_infty_of_ps function to the data.
 
@@ -224,8 +242,10 @@ def plot_p_infty_vs_ps_with_fit(mean_df, time_steps, output_path, pd_values=[0])
     for pd_value in pd_values:
         for i, t in enumerate(time_steps):
             # Get the mean_df for the selected p_d and time
-            df_time = mean_df[(mean_df["time"] == t) & (mean_df["pd"] == pd_value)]
-            
+            df_time = mean_df[
+                (mean_df["time"] == t) & (mean_df["pd"] == pd_value)
+            ]
+
             # Plot the data points
             ax.scatter(
                 df_time["ps"],
@@ -246,7 +266,9 @@ def plot_p_infty_vs_ps_with_fit(mean_df, time_steps, output_path, pd_values=[0])
             )
 
             # Generate x values for the fitted function
-            x_values = np.linspace(min(df_time["ps"]), max(df_time["ps"]), num=100)
+            x_values = np.linspace(
+                min(df_time["ps"]), max(df_time["ps"]), num=100
+            )
 
             # Generate y values for the fitted function
             y_values = p_infty_of_ps(x_values, *popt)
@@ -266,6 +288,7 @@ def plot_p_infty_vs_ps_with_fit(mean_df, time_steps, output_path, pd_values=[0])
     ax.legend(title="Time Steps", bbox_to_anchor=(0.05, 1), loc="upper left")
 
     plt.savefig(f"{output_path}_fit_pd_{pd_value}.png", dpi=600)
+
 
 def plot_fitted_pc_vs_t(mean_df, output_path, pd_values=[0]):
     """Fits the function to the data for each time step and each pd, and plots
@@ -295,7 +318,9 @@ def plot_fitted_pc_vs_t(mean_df, output_path, pd_values=[0]):
         # Loop over time steps
         times_of_observation = sorted(set(mean_df["time"]))
         for t in times_of_observation:
-            df_time = mean_df[(mean_df["time"] == t) & (mean_df["pd"] == pd_value)]
+            df_time = mean_df[
+                (mean_df["time"] == t) & (mean_df["pd"] == pd_value)
+            ]
             # we fit with scipy
             popt_i, pcov_i = curve_fit(
                 p_infty_of_ps,
@@ -311,11 +336,13 @@ def plot_fitted_pc_vs_t(mean_df, output_path, pd_values=[0]):
             list_of_c.append(popt_i[1])
 
         # Save the parameters to a CSV file
-        pd.DataFrame({
-            "t": times_of_observation,
-            "pc": list_of_pc,
-            "c": list_of_c,
-        }).to_csv(f"{output_path}_pd_{pd_value}.csv", index=False)
+        pd.DataFrame(
+            {
+                "t": times_of_observation,
+                "pc": list_of_pc,
+                "c": list_of_c,
+            }
+        ).to_csv(f"{output_path}_pd_{pd_value}.csv", index=False)
 
         fig, ax = plt.subplots()
         ax.plot(
@@ -336,6 +363,7 @@ def plot_fitted_pc_vs_t(mean_df, output_path, pd_values=[0]):
 
         plt.savefig(f"{output_path}_pd_{pd_value}.png", dpi=600)
         plt.close(fig)  # Close the figure to free up memory
+
 
 def create_heatmap(df, output_path, pd_values=[0]):
     """Creates and saves a heatmap of P_infty for each given probability pd.
@@ -368,22 +396,27 @@ def create_heatmap(df, output_path, pd_values=[0]):
     """
     for pd in pd_values:
         # Filter the DataFrame for the current 'pd' value
-        df_filtered = df[df['pd'] == pd]
-        
+        df_filtered = df[df["pd"] == pd]
+
         # Pivot the DataFrame
-        df_pivot = df_filtered.pivot(index='ps', columns='time', values='active_stem_cells_indicator')
-        
+        df_pivot = df_filtered.pivot(
+            index="ps", columns="time", values="active_stem_cells_indicator"
+        )
+
         # Create a heatmap
-        plt.figure(figsize=(10,8))
+        plt.figure(figsize=(10, 8))
         sns.heatmap(df_pivot, cmap="magma", annot=True, fmt=".2f")
-        
-        plt.title(f'Heatmap of active_stem_cells_indicator by $p_s$ and $t$ for $p_d$ = {pd}')
-        plt.xlabel('$t$')
-        plt.ylabel('$p_s$')
-        
+
+        plt.title(
+            f"Heatmap of active_stem_cells_indicator by $p_s$ and $t$ for $p_d$ = {pd}"
+        )
+        plt.xlabel("$t$")
+        plt.ylabel("$p_s$")
+
         # Save the heatmap to a file
         plt.savefig(f"{output_path}heatmap_pd_{pd}.png", dpi=600)
         plt.close()
+
 
 def create_pc_heatmap(mean_df, output_path, time_step):
     """Creates and saves a heatmap of pc for a given time step.
@@ -410,13 +443,15 @@ def create_pc_heatmap(mean_df, output_path, time_step):
 
     df_filtered = mean_df[mean_df["time"] == time_step]
     pc_values = []
-    
+
     # Loop over unique pd and ps values
     for p_d in df_filtered["pd"].unique():
         for ps in df_filtered["ps"].unique():
             # Filter for current pd and ps
-            df_ps_pd = df_filtered[(df_filtered["pd"] == p_d) & (df_filtered["ps"] == ps)]
-            
+            df_ps_pd = df_filtered[
+                (df_filtered["pd"] == p_d) & (df_filtered["ps"] == ps)
+            ]
+
             # Fit the function to the data
             popt, _ = curve_fit(
                 p_infty_of_ps,
@@ -426,35 +461,38 @@ def create_pc_heatmap(mean_df, output_path, time_step):
                 maxfev=5000,
                 bounds=bnds,
             )
-            
-            pc_values.append({
-                "pd": p_d,
-                "ps": ps,
-                "pc": popt[0],  # popt[0] is the fitted value of pc
-            })
+
+            pc_values.append(
+                {
+                    "pd": p_d,
+                    "ps": ps,
+                    "pc": popt[0],  # popt[0] is the fitted value of pc
+                }
+            )
 
     # Create a DataFrame from the pc_values list of dictionaries
     df_pc = pd.DataFrame(pc_values)
 
     # Sort the DataFrame by pd and ps
-    df_pc = df_pc.sort_values(by=['pd', 'ps'])
+    df_pc = df_pc.sort_values(by=["pd", "ps"])
 
     # Pivot the DataFrame to create a grid of ps, pd, and pc values
-    df_pivot = df_pc.pivot(index='pd', columns='ps', values='pc')
+    df_pivot = df_pc.pivot(index="pd", columns="ps", values="pc")
 
     # Create the heatmap
     plt.figure(figsize=(10, 8))
-    sns.heatmap(df_pivot, cmap="magma", cbar_kws={'label': '$p_c$'})
+    sns.heatmap(df_pivot, cmap="magma", cbar_kws={"label": "$p_c$"})
     plt.title(f"Critic percolation probability $p_c$ at time {time_step}")
     plt.xlabel("$p_s$")
     plt.ylabel("$p_d$")
-    
+
     # Invert the y-axis to have pd in ascending order from bottom to top
     plt.gca().invert_yaxis()
 
     # Save the heatmap to a file
     plt.savefig(f"{output_path}pc_heatmap_t_{time_step}.png", dpi=600)
     plt.close()
+
 
 if __name__ == "__main__":
     csv_file = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/df_simulations.csv"
@@ -467,8 +505,12 @@ if __name__ == "__main__":
     df = add_zero_time_point(df)
     df = add_active_stem_cells_indicator(df)
     mean_df = average_over_realizations(df)
-    plot_p_infty_vs_ps(mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0.2])
-    plot_p_infty_vs_ps_with_fit(mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0.2])
+    plot_p_infty_vs_ps(
+        mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0.2]
+    )
+    plot_p_infty_vs_ps_with_fit(
+        mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0.2]
+    )
     plot_fitted_pc_vs_t(mean_df, plot2_output_path, pd_values=[0.2])
     create_heatmap(mean_df, output_path, pd_values=[0.2])
     create_pc_heatmap(mean_df, output_path, time_step=10)

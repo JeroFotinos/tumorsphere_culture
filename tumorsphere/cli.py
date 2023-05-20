@@ -2,6 +2,7 @@ import click
 
 from tumorsphere.simulation import Simulation
 
+
 @click.command(
     help="Command-line interface for running the tumorsphere simulation."
 )
@@ -60,8 +61,8 @@ def cli(prob_stem, prob_diff, realizations, steps_per_realization, rng_seed):
     >>> python3 -m tumorsphere.cli --help
     >>> python3 -m tumorsphere.cli --prob-stem "0.5,0.3,0.8" --prob-diff "0.2,0.4,0.6" --realizations 10 --steps-per-realization 10 --rng-seed 1234567
     """
-    prob_stem = [float(x) for x in prob_stem.split(',')]
-    prob_diff = [float(x) for x in prob_diff.split(',')]
+    prob_stem = [float(x) for x in prob_stem.split(",")]
+    prob_diff = [float(x) for x in prob_diff.split(",")]
 
     sim = Simulation(
         first_cell_is_stem=True,
