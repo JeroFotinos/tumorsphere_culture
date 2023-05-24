@@ -14,4 +14,4 @@
 
 source ~/miniconda3/bin/activate
 conda activate
-python -m tumorsphere.cli --prob-stem "0.68,0.70,0.72,0.74,0.76" --prob-diff "0" --realizations 10 --steps-per-realization 100 --rng-seed 1292317634567
+python -m tumorsphere.cli --prob-stem "0.68,0.70,0.72,0.74,0.76" --prob-diff "0" --realizations 10 --steps-per-realization 100 --rng-seed 1292317634567 --parallel-processes 50

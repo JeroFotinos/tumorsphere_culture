@@ -358,7 +358,7 @@ class Simulation:
                         current_realization_name,
                     )
 
-    def simulate_parallel(self) -> None:
+    def simulate_parallel(self, number_of_processes: int = None) -> None:
         """
         Simulate the culture growth for different self-replication and
         differentiation probabilities and realizations and persists the data
@@ -368,10 +368,25 @@ class Simulation:
         The data of the total number of cells, the number of active cells,
         the number of stem cells, and the number of active stem cells, is
         persisted to a file with a name specifying the parameters in the
-        format culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat.
+        format culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat. You
+        can specify the number of simultaneous processes to use in the
+        simulation with the `number_of_processes` parameter. If
+        `number_of_processes` is None (default), the number of processes is
+        equal to the number of cores in the machine. To limit the number of
+        processes is useful when running the simulation in a cluster, where
+        the number of cores is limited, or when running with all the resources
+        might trigger an alarm.
 
+        Parameters
+        ----------
+        number_of_processes : int
+            The number of the processes. If None (default), the number of
+            processes is equal to the number of cores in the machine.
         """
-        with mp.Pool(mp.cpu_count()) as p:
+        if number_of_processes is None:
+            number_of_processes = mp.cpu_count()
+        
+        with mp.Pool(number_of_processes) as p:
             p.map(
                 simulate_single_culture,
                 [
