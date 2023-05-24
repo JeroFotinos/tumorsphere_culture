@@ -3,9 +3,9 @@
 #$ -N tumorsph_sim_6
 #$ -o log/tumorsph_sim_6
 #$ -e log/tumorsph_sim_6
-#$ -l m_mem_free=2G
+#$ -l m_mem_free=200G
 #$ -cwd
-#$ -pe smp 50 ### we request the number of cores
+####$ -pe env_name 50 ### we request the number of cores
 
 
 ### Script to submit the simulation.
