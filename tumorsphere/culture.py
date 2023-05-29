@@ -458,6 +458,4 @@ class Culture:
 
                 # print the elapsed time
                 with open("time_per_step.dat", "a") as file:
-                    file.write(
-                        f"{elapsed_time:.6f} seconds" + "\n"
-                    )
+                    file.write(f"{elapsed_time:.6f} seconds" + "\n")

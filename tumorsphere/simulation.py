@@ -385,7 +385,7 @@ class Simulation:
         """
         if number_of_processes is None:
             number_of_processes = mp.cpu_count()
-        
+
         with mp.Pool(number_of_processes) as p:
             p.map(
                 simulate_single_culture,

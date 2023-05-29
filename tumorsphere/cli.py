@@ -46,7 +46,14 @@ from tumorsphere.simulation import Simulation
     show_default=True,
     help="Number of simultaneous processes. Default is None, which uses all available cores.",
 )
-def cli(prob_stem, prob_diff, realizations, steps_per_realization, rng_seed, parallel_processes):
+def cli(
+    prob_stem,
+    prob_diff,
+    realizations,
+    steps_per_realization,
+    rng_seed,
+    parallel_processes,
+):
     """
     Command-line interface for running the tumorsphere simulation.
 
