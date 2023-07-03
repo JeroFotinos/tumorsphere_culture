@@ -499,7 +499,7 @@ class Cell:
 # ============================================================================
 
 
-@dataclass(frozen=False)
+@dataclass(frozen=False, slots=True)
 class CellLite:
     """Represents a single cell in a Culture.
 
