@@ -1,6 +1,6 @@
 import click
 
-from tumorsphere.simulation import Simulation
+from tumorsphere.simulation import SimulationLite
 
 
 @click.command(
@@ -83,7 +83,7 @@ def cli(
     prob_stem = [float(x) for x in prob_stem.split(",")]
     prob_diff = [float(x) for x in prob_diff.split(",")]
 
-    sim = Simulation(
+    sim = SimulationLite(
         first_cell_is_stem=True,
         prob_stem=prob_stem,
         prob_diff=prob_diff,
@@ -93,7 +93,7 @@ def cli(
         cell_radius=1,
         adjacency_threshold=4,
         cell_max_repro_attempts=1000,
-        continuous_graph_generation=False,
+        # continuous_graph_generation=False, # for Simulation
     )
     sim.simulate_parallel(parallel_processes)
 

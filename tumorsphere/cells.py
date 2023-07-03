@@ -5,14 +5,10 @@ Classes:
     - Cell: Represents a single cell in a culture. Dependent on the Culture
     class.
 """
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, Optional
+from dataclasses import dataclass, field
 
 import numpy as np
-
-# colors = {True: "red", False: "blue"}
-
-# probabilities = {'ps' : 0.36, 'pd' : 0.16}
-# prob_stem = 0.36
 
 
 class Cell:
@@ -494,3 +490,93 @@ class Cell:
         # else:
         #     pass
         # if the cell's neighbourhood is already full, we do nothing (reproduction is turned off)
+
+
+# ============================================================================
+#
+# ------------------------------- LITE VERSION -------------------------------
+#
+# ============================================================================
+
+
+@dataclass(frozen=False)
+class CellLite:
+    """Represents a single cell in a Culture.
+
+    Attributes
+    ----------
+    culture: CultureLite
+        The culture to which the cell belongs.
+    is_stem: bool
+        Whether the cell is a stem cell or not.
+    parent_index: Optional[int]
+        The index of the parent cell in the culture's cell_positions array.
+        Default is 0.
+    neighbors_indexes: Set[int]
+        A set of indexes corresponding to the neighboring cells in the
+        culture's cell_positions array. Default is an empty set.
+    available_space: bool
+        Whether the cell has available space around it or not. Default is True.
+    _position_index: Optional[int]
+        The index of the cell's position in the culture's cell_positions array.
+        It's not directly settable during instantiation.
+
+    Methods
+    -------
+    __init__(position, culture, is_stem, parent_index=0, neighbors_indexes=set(), available_space=True)
+        Initializes the CellLite object and sets the _position_index attribute
+        based on the position given.
+
+    """
+
+    culture: "CultureLite"
+    is_stem: bool
+    parent_index: Optional[int] = 0
+    neighbors_indexes: Set[int] = field(default_factory=set)
+    available_space: bool = True
+    _position_index: Optional[int] = field(default=False, init=False)
+
+    def __init__(
+        self,
+        position: np.ndarray,
+        culture: "CultureLite",
+        is_stem: bool,
+        parent_index: Optional[int] = 0,
+        available_space: bool = True,  # not to be set by user
+    ) -> None:
+        """
+        Initializes the CellLite object.
+
+        Parameters
+        ----------
+        position : np.ndarray
+            The position of the cell. This is used to update the cell_positions in the culture and
+            set the _position_index attribute, but is not stored as an attribute in the object itself.
+        culture : CultureLite
+            The culture to which the cell belongs.
+        is_stem : bool
+            Whether the cell is a stem cell or not.
+        parent_index : Optional[int], default=0
+            The index of the parent cell in the culture's cell_positions array.
+        neighbors_indexes : Set[int], default=set()
+            A set of indexes corresponding to the neighboring cells in the culture's cell_positions array.
+        available_space : bool, default=True
+            Whether the cell has available space around it or not.
+
+        """
+        self.culture = culture
+        self.is_stem = is_stem
+        self.parent_index = parent_index
+        self.neighbors_indexes = set()
+        self.available_space = available_space
+
+        # we FIRST get the cell's index
+        self._position_index = len(culture.cell_positions)
+
+        # and THEN add the cell to the culture's position matrix and cell
+        # lists, in the previous index
+        culture.cell_positions = np.append(
+            culture.cell_positions, [position], axis=0
+        )
+        self.culture.cells.append(self)
+        self.culture.active_cells.append(self._position_index)

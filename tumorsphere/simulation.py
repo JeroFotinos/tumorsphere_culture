@@ -12,7 +12,7 @@ from typing import List, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tumorsphere.culture import Culture
+from tumorsphere.culture import Culture, CultureLite
 
 
 class Simulation:
@@ -434,6 +434,190 @@ def simulate_single_culture(args: Tuple[int, int, int, Simulation]) -> None:
         prob_stem=sim.prob_stem[i],
         prob_diff=sim.prob_diff[k],
         continuous_graph_generation=sim.continuous_graph_generation,
+        rng_seed=sim.rng.integers(low=2**20, high=2**50),
+    )
+    sim.cultures[current_realization_name].simulate_with_persistent_data(
+        sim.num_of_steps_per_realization,
+        current_realization_name,
+    )
+
+
+class SimulationLite:
+    """Class for simulating multiple `CultureLite` objects with different
+    parameters.
+
+    Parameters
+    ----------
+    first_cell_is_stem : bool, optional
+        Whether the first cell of each `Culture` object should be a stem cell
+        or a differentiated one. Default is `True` (because tumorspheres are
+        CSC-seeded cultures).
+    prob_stem : list of floats, optional
+        The probability that a stem cell will self-replicate. Defaults to 0.36
+        for being the value measured by Benítez et al. (BMC Cancer, (2021),
+        1-11, 21(1))for the experiment of Wang et al. (Oncology Letters,
+        (2016), 1355-1360, 12(2)) on a hard substrate.
+    prob_diff : list of floats, optional
+        The probability that a stem cell will yield a differentiated cell.
+        Defaults to 0 (because the intention was to see if percolation occurs,
+        and if it doesn't happen at prob_diff = 0, it will never happen).
+    num_of_realizations : int, optional
+        Number of `Culture` objects to simulate for each combination of
+        `prob_stem` and `prob_diff`. Default is `10`.
+    num_of_steps_per_realization : int, optional
+        Number of simulation steps to perform for each `Culture` object.
+        Default is `10`.
+    rng_seed : int, optional
+        Seed for the random number generator used in the simulation. This is
+        the seed on which every other seed depends. Default is the hexadecimal
+        number (representing a 128-bit integer)
+        `0x87351080E25CB0FAD77A44A3BE03B491`.
+    cell_radius : int, optional
+        Radius of the cells in the simulation. Default is `1`.
+    adjacency_threshold : int, optional
+        Distance threshold for two cells to be considered neighbors. Default
+        is `4`, which is an upper bound to the second neighbor distance of
+        approximately `2 * sqrt(2)` in a hexagonal close packing.
+    cell_max_repro_attempts : int, optional
+        Maximum number of attempts to create a new cell during the
+        reproduction of an existing cell in a `Culture` object.
+        Default is`1000`.
+
+    Attributes
+    ----------
+    (All parameters, plus the following.)
+    rng : `numpy.random.Generator`
+        The random number generator used in the simulation to instatiate the
+        generator of cultures and cells.
+    cultures : dict
+        Dictionary storing the `Culture` objects simulated by the `Simulation`.
+        The keys are strings representing the combinations of `prob_stem` and
+        `prob_diff` and the realization number.
+
+
+    Methods:
+    --------
+    simulate()
+        Runs the simulation persisting data to one file for each culture.
+    simulate_parallel()
+        Runs the simulation persisting data to one file for each culture.
+    simulate_small()
+        Runs the simulation saving data to a dictionary for interactive use.
+    _average_of_data_ps_i_and_pd_k(i, k)
+        Computes the average of the data for a given pair of probabilities
+        `prob_stem[i]` and `prob_diff[k]`.
+    plot_average_data(ps_index, pd_index)
+        Plot the average data for a given combination of self-replication
+        and differentiation probabilities.
+    """
+
+    def __init__(
+        self,
+        first_cell_is_stem=True,
+        prob_stem=[0.36],  # Wang HARD substrate value
+        prob_diff=[0],  # p_d; probability that a CSC gives a DCC and then
+        # loses stemness (i.e. prob. that a CSC gives two DCCs)
+        num_of_realizations=10,
+        num_of_steps_per_realization=10,
+        rng_seed=0x87351080E25CB0FAD77A44A3BE03B491,
+        cell_radius=1,
+        adjacency_threshold=4,  # 2.83 approx 2*np.sqrt(2), hcp second neighbor distance
+        cell_max_repro_attempts=1000,
+    ):
+        # main simulation attributes
+        self.first_cell_is_stem = first_cell_is_stem
+        self.prob_stem = prob_stem
+        self.prob_diff = prob_diff
+        self.num_of_realizations = num_of_realizations
+        self.num_of_steps_per_realization = num_of_steps_per_realization
+        self._rng_seed = rng_seed
+        self.rng = np.random.default_rng(rng_seed)
+
+        # dictionary storing the culture objects
+        self.cultures = {}
+
+        # attributes to pass to the culture (and cells)
+        self.cell_max_repro_attempts = cell_max_repro_attempts
+        self.adjacency_threshold = adjacency_threshold
+        self.cell_radius = cell_radius
+
+    def simulate_parallel(self, number_of_processes: int = None) -> None:
+        """
+        Simulate the culture growth for different self-replication and
+        differentiation probabilities and realizations and persists the data
+        of each culture to its own file. The simulations are parallelized
+        using multiprocessing.
+
+        The data of the total number of cells, the number of active cells,
+        the number of stem cells, and the number of active stem cells, is
+        persisted to a file with a name specifying the parameters in the
+        format culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat. You
+        can specify the number of simultaneous processes to use in the
+        simulation with the `number_of_processes` parameter. If
+        `number_of_processes` is None (default), the number of processes is
+        equal to the number of cores in the machine. To limit the number of
+        processes is useful when running the simulation in a cluster, where
+        the number of cores is limited, or when running with all the resources
+        might trigger an alarm.
+
+        Parameters
+        ----------
+        number_of_processes : int
+            The number of the processes. If None (default), the number of
+            processes is equal to the number of cores in the machine.
+        """
+        if number_of_processes is None:
+            number_of_processes = mp.cpu_count()
+
+        with mp.Pool(number_of_processes) as p:
+            p.map(
+                simulate_single_culture_lite,
+                [
+                    (k, i, j, self)
+                    for k in range(len(self.prob_diff))
+                    for i in range(len(self.prob_stem))
+                    for j in range(self.num_of_realizations)
+                ],
+            )
+
+
+def simulate_single_culture_lite(
+    args: Tuple[int, int, int, Simulation]
+) -> None:
+    """
+    A worker function for multiprocessing.
+
+    This function is used by the multiprocessing.Pool instance in the
+    simulate_parallel method to parallelize the simulation of different
+    cultures. This simulates the growth of a single culture with the given
+    parameters and persist the data.
+
+    Parameters
+    ----------
+    args : tuple
+        A tuple containing the indices for the self-replication probability,
+        differentiation probability, and realization number, and the instance of
+        the Simulation class.
+
+    Notes
+    -----
+    Due to the way multiprocessing works in Python, you can't directly use
+    instance methods as workers for multiprocessing. The multiprocessing
+    module needs to be able to pickle the target function, and instance
+    methods can't be pickled. Therefore, the instance method worker had to be
+    refactored to a standalone function (or a static method).
+    """
+    k, i, j, sim = args
+    current_realization_name = (
+        f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_realization_{j}"
+    )
+    sim.cultures[current_realization_name] = CultureLite(
+        adjacency_threshold=sim.adjacency_threshold,
+        cell_radius=sim.cell_radius,
+        cell_max_repro_attempts=sim.cell_max_repro_attempts,
+        first_cell_is_stem=sim.first_cell_is_stem,
+        prob_stem=sim.prob_stem[i],
+        prob_diff=sim.prob_diff[k],
         rng_seed=sim.rng.integers(low=2**20, high=2**50),
     )
     sim.cultures[current_realization_name].simulate_with_persistent_data(
