@@ -571,12 +571,15 @@ class SimulationLite:
         if number_of_processes is None:
             number_of_processes = mp.cpu_count()
         
+        # Generate seeds for all realizations
+        seeds = self.rng.integers(low=2**20, high=2**50, size=self.num_of_realizations)
+        
         if ovito:
             with mp.Pool(number_of_processes) as p:
                 p.map(
                     simulate_single_culture_lite_ovito,
                     [
-                        (k, i, j, self)
+                        (k, i, seeds[j], self)
                         for k in range(len(self.prob_diff))
                         for i in range(len(self.prob_stem))
                         for j in range(self.num_of_realizations)
@@ -587,7 +590,7 @@ class SimulationLite:
                 p.map(
                     simulate_single_culture_lite,
                     [
-                        (k, i, j, self)
+                        (k, i, seeds[j], self)
                         for k in range(len(self.prob_diff))
                         for i in range(len(self.prob_stem))
                         for j in range(self.num_of_realizations)
@@ -621,9 +624,9 @@ def simulate_single_culture_lite(
     methods can't be pickled. Therefore, the instance method worker had to be
     refactored to a standalone function (or a static method).
     """
-    k, i, j, sim = args
+    k, i, seed, sim = args
     current_realization_name = (
-        f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_realization_{j}"
+        f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}"
     )
     sim.cultures[current_realization_name] = CultureLite(
         adjacency_threshold=sim.adjacency_threshold,
@@ -632,7 +635,7 @@ def simulate_single_culture_lite(
         first_cell_is_stem=sim.first_cell_is_stem,
         prob_stem=sim.prob_stem[i],
         prob_diff=sim.prob_diff[k],
-        rng_seed=sim.rng.integers(low=2**20, high=2**50),
+        rng_seed=seed
     )
     sim.cultures[current_realization_name].simulate_with_persistent_data(
         sim.num_of_steps_per_realization,
@@ -667,9 +670,9 @@ def simulate_single_culture_lite_ovito(
     methods can't be pickled. Therefore, the instance method worker had to be
     refactored to a standalone function (or a static method).
     """
-    k, i, j, sim = args
+    k, i, seed, sim = args
     current_realization_name = (
-        f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_realization_{j}"
+        f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}"
     )
     sim.cultures[current_realization_name] = CultureLite(
         adjacency_threshold=sim.adjacency_threshold,
@@ -678,7 +681,7 @@ def simulate_single_culture_lite_ovito(
         first_cell_is_stem=sim.first_cell_is_stem,
         prob_stem=sim.prob_stem[i],
         prob_diff=sim.prob_diff[k],
-        rng_seed=sim.rng.integers(low=2**20, high=2**50),
+        rng_seed=seed
     )
     sim.cultures[current_realization_name].simulate_with_ovito_data(
         sim.num_of_steps_per_realization,

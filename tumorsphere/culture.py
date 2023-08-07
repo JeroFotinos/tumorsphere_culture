@@ -681,8 +681,11 @@ class CultureLite:
         new_position : numpy.ndarray
             A 3D vector representing the new position of the cell.
         """
-        theta = np.random.uniform(low=0, high=2 * np.pi)
-        phi = np.random.uniform(low=0, high=np.pi)
+        # theta = np.random.uniform(low=0, high=2 * np.pi)
+        # phi = np.random.uniform(low=0, high=np.pi)
+        theta = self.rng.uniform(low=0, high=2 * np.pi)
+        phi = self.rng.uniform(low=0, high=np.pi)
+        
         x = 2 * self.cell_radius * np.sin(phi) * np.cos(theta)
         y = 2 * self.cell_radius * np.sin(phi) * np.sin(theta)
         z = 2 * self.cell_radius * np.cos(phi)
@@ -824,7 +827,7 @@ class CultureLite:
             The number of time steps to simulate the cellular automaton.
         culture_name : str
             The name of the culture in the simulation, in the format
-            culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat
+            culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}.dat
         """
 
         # we count the initial amount of CSCs
@@ -879,9 +882,7 @@ class CultureLite:
             The number of time steps to simulate the cellular automaton.
         culture_name : str
             The name of the culture in the simulation, in the format
-            culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat
-        path : str
-            The path where the data for Ovito will be saved.
+            culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}.dat
         """
 
         # we count the initial amount of CSCs
