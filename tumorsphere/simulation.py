@@ -541,7 +541,9 @@ class SimulationLite:
         self.adjacency_threshold = adjacency_threshold
         self.cell_radius = cell_radius
 
-    def simulate_parallel(self, number_of_processes: int = None) -> None:
+    def simulate_parallel(
+        self, ovito: bool = False, number_of_processes: int = None
+    ) -> None:
         """
         Simulate the culture growth for different self-replication and
         differentiation probabilities and realizations and persists the data
@@ -568,17 +570,29 @@ class SimulationLite:
         """
         if number_of_processes is None:
             number_of_processes = mp.cpu_count()
-
-        with mp.Pool(number_of_processes) as p:
-            p.map(
-                simulate_single_culture_lite,
-                [
-                    (k, i, j, self)
-                    for k in range(len(self.prob_diff))
-                    for i in range(len(self.prob_stem))
-                    for j in range(self.num_of_realizations)
-                ],
-            )
+        
+        if ovito:
+            with mp.Pool(number_of_processes) as p:
+                p.map(
+                    simulate_single_culture_lite_ovito,
+                    [
+                        (k, i, j, self)
+                        for k in range(len(self.prob_diff))
+                        for i in range(len(self.prob_stem))
+                        for j in range(self.num_of_realizations)
+                    ],
+                )
+        else:
+            with mp.Pool(number_of_processes) as p:
+                p.map(
+                    simulate_single_culture_lite,
+                    [
+                        (k, i, j, self)
+                        for k in range(len(self.prob_diff))
+                        for i in range(len(self.prob_stem))
+                        for j in range(self.num_of_realizations)
+                    ],
+                )
 
 
 def simulate_single_culture_lite(
@@ -621,6 +635,52 @@ def simulate_single_culture_lite(
         rng_seed=sim.rng.integers(low=2**20, high=2**50),
     )
     sim.cultures[current_realization_name].simulate_with_persistent_data(
+        sim.num_of_steps_per_realization,
+        current_realization_name,
+    )
+
+
+def simulate_single_culture_lite_ovito(
+    args: Tuple[int, int, int, Simulation]
+) -> None:
+    """
+    Copy of simulate_single_culture_lite for Ovito plotting. A worker function
+    for multiprocessing.
+
+    This function is used by the multiprocessing.Pool instance in the
+    simulate_parallel method to parallelize the simulation of different
+    cultures. This simulates the growth of a single culture with the given
+    parameters and persist the data.
+
+    Parameters
+    ----------
+    args : tuple
+        A tuple containing the indices for the self-replication probability,
+        differentiation probability, and realization number, and the instance of
+        the Simulation class.
+
+    Notes
+    -----
+    Due to the way multiprocessing works in Python, you can't directly use
+    instance methods as workers for multiprocessing. The multiprocessing
+    module needs to be able to pickle the target function, and instance
+    methods can't be pickled. Therefore, the instance method worker had to be
+    refactored to a standalone function (or a static method).
+    """
+    k, i, j, sim = args
+    current_realization_name = (
+        f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_realization_{j}"
+    )
+    sim.cultures[current_realization_name] = CultureLite(
+        adjacency_threshold=sim.adjacency_threshold,
+        cell_radius=sim.cell_radius,
+        cell_max_repro_attempts=sim.cell_max_repro_attempts,
+        first_cell_is_stem=sim.first_cell_is_stem,
+        prob_stem=sim.prob_stem[i],
+        prob_diff=sim.prob_diff[k],
+        rng_seed=sim.rng.integers(low=2**20, high=2**50),
+    )
+    sim.cultures[current_realization_name].simulate_with_ovito_data(
         sim.num_of_steps_per_realization,
         current_realization_name,
     )

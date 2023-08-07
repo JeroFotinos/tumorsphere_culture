@@ -3,8 +3,10 @@
 
 from tumorsphere.cells import *
 from tumorsphere.culture import *
+from tumorsphere.simulation import *
 
 # culture.cell_positions[cell._position_index] replace for culture.cell_positions[cell._position_index]
+
 
 def make_data_file(path, culture, i):
     path_to_write = f"{path}/ovito_data.{i}"
@@ -91,25 +93,53 @@ def make_data_file(path, culture, i):
 #     csc_culture.simulate(1)
 #     make_data_file(csc_culture, i + 1)
 
-folder = './ovito_plotting/huevo_o_no'
+# folder = "./ovito_plotting/huevo_o_no"
 
 
-num_steps = 24
+# num_steps = 24
 
-prob_diff = 0.0
-prob_stem = 0.7
-j = 1
+# prob_diff = 0.0
+# prob_stem = 0.7
+# realizations = 1
 
-culture_name = f"culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat"
+#culture_name = f"culture_pd={prob_diff}_ps={prob_stem}_realization_{realizations}.dat"
 
-big_culture = CultureLite(
-    first_cell_is_stem=True,
-    prob_stem=0.7,
-)
+# big_culture = CultureLite(
+#     first_cell_is_stem=True,
+#     prob_stem=0.7,
+# )
 
-# this version just saves the final state due to changes in the culture and cell classes (Lite versions)
-big_culture.simulate_with_persistent_data(
-    num_times=num_steps,
-    culture_name=culture_name,
+# # this version just saves the final state due to changes in the culture and cell classes (Lite versions)
+# big_culture.simulate_with_persistent_data(
+#     num_times=num_steps,
+#     culture_name=culture_name,
+# )
+# make_data_file(path=folder, culture=big_culture, i=num_steps)
+
+
+# big_culture.simulate_with_ovito_data(
+#     path=folder, num_times=num_steps, culture_name=culture_name
+# )
+
+steps_per_realization = 24
+
+prob_diff = [0.0]
+prob_stem = [0.7]
+realizations = 4
+parallel_processes = 4
+rng_seed=0x87351080E25CB0FAD77A44A3BE03B491
+
+sim = SimulationLite(
+        first_cell_is_stem=True,
+        prob_stem=prob_stem,
+        prob_diff=prob_diff,
+        num_of_realizations=realizations,
+        num_of_steps_per_realization=steps_per_realization,
+        rng_seed=rng_seed,
+        cell_radius=1,
+        adjacency_threshold=4,
+        cell_max_repro_attempts=1000,
+        # continuous_graph_generation=False, # for Simulation
     )
-make_data_file(path=folder, culture=big_culture, i=num_steps)
+
+sim.simulate_parallel(number_of_processes=parallel_processes, ovito=True)

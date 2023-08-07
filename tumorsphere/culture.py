@@ -866,3 +866,135 @@ class CultureLite:
                 file.write(
                     f"{len(self.cells)}, {len(self.active_cells)}, {total_stem_counter}, {active_stem_counter} \n"
                 )
+
+    def simulate_with_ovito_data(
+        self, num_times: int, culture_name: str
+    ) -> None:
+        """Idem to simulate_with_persistent_data, but saving data for plotting
+        with ovito.
+
+        Parameters
+        ----------
+        num_times : int
+            The number of time steps to simulate the cellular automaton.
+        culture_name : str
+            The name of the culture in the simulation, in the format
+            culture_pd={prob_diff}_ps={prob_stem}_realization_{j}.dat
+        path : str
+            The path where the data for Ovito will be saved.
+        """
+
+        # we count the initial amount of CSCs
+        if self.first_cell_is_stem:
+            initial_amount_of_csc = 1
+        else:
+            initial_amount_of_csc = 0
+
+        # we write the header and the data values for this time step
+        with open(f"data/{culture_name}.dat", "w") as file:
+            file.write("total, active, total_stem, active_stem \n")
+            file.write(
+                f"1, 1, {initial_amount_of_csc}, {initial_amount_of_csc} \n"
+            )
+
+        # we simulate for num_times time steps
+        for i in range(1, num_times):
+            # we get a permuted copy of the cells list
+            active_cell_indexes = self.rng.permutation(self.active_cells)
+            # I had to point to the cells in a copied list,
+            # if not, strange things happened
+            for index in active_cell_indexes:
+                self.reproduce(index)
+
+            # we count the number of CSCs in this time step
+            total_stem_counter = 0
+            for cell in self.cells:
+                if cell.is_stem:
+                    total_stem_counter = total_stem_counter + 1
+
+            # we count the number of active CSCs in this time step
+            active_stem_counter = 0
+            for index in self.active_cells:
+                if self.cells[index].is_stem:
+                    active_stem_counter = active_stem_counter + 1
+
+            # we save the data to a file
+            with open(f"data/{culture_name}.dat", "a") as file:
+                file.write(
+                    f"{len(self.cells)}, {len(self.active_cells)}, {total_stem_counter}, {active_stem_counter} \n"
+                )
+
+            # we save the data for ovito
+            self.make_ovito_data_file(t=i, culture_name=culture_name)
+
+    def make_ovito_data_file(self, t, culture_name):
+        """Writes the data file in path for ovito, for time step t of self.
+        Auxiliar function for simulate_with_ovito_data.
+        """
+        path_to_write = f"ovito_data_{culture_name}.{t}"
+        with open(path_to_write, "w") as file_to_write:
+            file_to_write.write(str(len(self.cells)) + "\n")
+            file_to_write.write(
+                ' Lattice="1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:Color:r:1'
+                + "\n"
+            )
+
+            for cell in self.cells:  # csc activas
+                if cell.is_stem and cell.available_space:
+                    line = (
+                        "active_stem "
+                        + str(self.cell_positions[cell._position_index][0])
+                        + " "
+                        + str(self.cell_positions[cell._position_index][1])
+                        + " "
+                        + str(self.cell_positions[cell._position_index][2])
+                        + " "
+                        + "1"
+                        + "\n"
+                    )
+                    file_to_write.write(line)
+
+            for cell in self.cells:  # csc quiesc
+                if cell.is_stem and (not cell.available_space):
+                    line = (
+                        "quiesc_stem "
+                        + str(self.cell_positions[cell._position_index][0])
+                        + " "
+                        + str(self.cell_positions[cell._position_index][1])
+                        + " "
+                        + str(self.cell_positions[cell._position_index][2])
+                        + " "
+                        + "2"
+                        + "\n"
+                    )
+                    file_to_write.write(line)
+
+            for cell in self.cells:  # dcc activas
+                if (not cell.is_stem) and cell.available_space:
+                    line = (
+                        "active_diff "
+                        + str(self.cell_positions[cell._position_index][0])
+                        + " "
+                        + str(self.cell_positions[cell._position_index][1])
+                        + " "
+                        + str(self.cell_positions[cell._position_index][2])
+                        + " "
+                        + "3"
+                        + "\n"
+                    )
+                    file_to_write.write(line)
+
+            for cell in self.cells:  # dcc quiesc
+                if not (cell.is_stem or cell.available_space):
+                    line = (
+                        "quiesc_diff "
+                        + str(self.cell_positions[cell._position_index][0])
+                        + " "
+                        + str(self.cell_positions[cell._position_index][1])
+                        + " "
+                        + str(self.cell_positions[cell._position_index][2])
+                        + " "
+                        + "4"
+                        + "\n"
+                    )
+                    file_to_write.write(line)
