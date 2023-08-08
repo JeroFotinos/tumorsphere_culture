@@ -683,7 +683,10 @@ class CultureLite:
         """
         # theta = np.random.uniform(low=0, high=2 * np.pi)
         # phi = np.random.uniform(low=0, high=np.pi)
-        theta = self.rng.uniform(low=0, high=2 * np.pi)
+        # theta = self.rng.uniform(low=0, high=2 * np.pi)
+        # , size=number_of_points
+        cos_theta = self.rng.uniform(low=-1, high=1)
+        theta = np.arccos(cos_theta)  # Convert cos(theta) to theta
         phi = self.rng.uniform(low=0, high=np.pi)
         
         x = 2 * self.cell_radius * np.sin(phi) * np.cos(theta)
