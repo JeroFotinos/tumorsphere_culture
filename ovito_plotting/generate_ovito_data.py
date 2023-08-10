@@ -7,7 +7,7 @@ from tumorsphere.culture import *
 from tumorsphere.simulation import *
 
 
-steps_per_realization = 15
+steps_per_realization = 18
 
 prob_diff = [0.0]
 prob_stem = [0.7]

@@ -687,11 +687,11 @@ class CultureLite:
         # , size=number_of_points
         cos_theta = self.rng.uniform(low=-1, high=1)
         theta = np.arccos(cos_theta)  # Convert cos(theta) to theta
-        phi = self.rng.uniform(low=0, high=np.pi)
+        phi = self.rng.uniform(low=0, high=2*np.pi)
         
-        x = 2 * self.cell_radius * np.sin(phi) * np.cos(theta)
-        y = 2 * self.cell_radius * np.sin(phi) * np.sin(theta)
-        z = 2 * self.cell_radius * np.cos(phi)
+        x = 2 * self.cell_radius * np.sin(theta) * np.cos(phi)
+        y = 2 * self.cell_radius * np.sin(theta) * np.sin(phi)
+        z = 2 * self.cell_radius * np.cos(theta)
         cell_position = self.cell_positions[cell_index]
         new_position = cell_position + np.array([x, y, z])
         return new_position
@@ -888,18 +888,18 @@ class CultureLite:
             culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}.dat
         """
 
-        # we count the initial amount of CSCs
-        if self.first_cell_is_stem:
-            initial_amount_of_csc = 1
-        else:
-            initial_amount_of_csc = 0
+        # # we count the initial amount of CSCs
+        # if self.first_cell_is_stem:
+        #     initial_amount_of_csc = 1
+        # else:
+        #     initial_amount_of_csc = 0
 
         # we write the header and the data values for this time step
-        with open(f"data/{culture_name}.dat", "w") as file:
-            file.write("total, active, total_stem, active_stem \n")
-            file.write(
-                f"1, 1, {initial_amount_of_csc}, {initial_amount_of_csc} \n"
-            )
+        # with open(f"data/{culture_name}.dat", "w") as file:
+        #     file.write("total, active, total_stem, active_stem \n")
+        #     file.write(
+        #         f"1, 1, {initial_amount_of_csc}, {initial_amount_of_csc} \n"
+        #     )
 
         # we simulate for num_times time steps
         for i in range(1, num_times):
@@ -911,22 +911,22 @@ class CultureLite:
                 self.reproduce(index)
 
             # we count the number of CSCs in this time step
-            total_stem_counter = 0
-            for cell in self.cells:
-                if cell.is_stem:
-                    total_stem_counter = total_stem_counter + 1
+            # total_stem_counter = 0
+            # for cell in self.cells:
+            #     if cell.is_stem:
+            #         total_stem_counter = total_stem_counter + 1
 
             # we count the number of active CSCs in this time step
-            active_stem_counter = 0
-            for index in self.active_cells:
-                if self.cells[index].is_stem:
-                    active_stem_counter = active_stem_counter + 1
+            # active_stem_counter = 0
+            # for index in self.active_cells:
+            #     if self.cells[index].is_stem:
+            #         active_stem_counter = active_stem_counter + 1
 
-            # we save the data to a file
-            with open(f"data/{culture_name}.dat", "a") as file:
-                file.write(
-                    f"{len(self.cells)}, {len(self.active_cells)}, {total_stem_counter}, {active_stem_counter} \n"
-                )
+            # # we save the data to a file
+            # with open(f"data/{culture_name}.dat", "a") as file:
+            #     file.write(
+            #         f"{len(self.cells)}, {len(self.active_cells)}, {total_stem_counter}, {active_stem_counter} \n"
+            #     )
 
             # we save the data for ovito
             self.make_ovito_data_file(t=i, culture_name=culture_name)
@@ -935,7 +935,7 @@ class CultureLite:
         """Writes the data file in path for ovito, for time step t of self.
         Auxiliar function for simulate_with_ovito_data.
         """
-        path_to_write = f"ovito_data_{culture_name}.{t}"
+        path_to_write = f"ovito_data_{culture_name}.{t:03}"
         with open(path_to_write, "w") as file_to_write:
             file_to_write.write(str(len(self.cells)) + "\n")
             file_to_write.write(
