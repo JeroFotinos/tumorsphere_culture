@@ -46,6 +46,14 @@ from tumorsphere.simulation import SimulationLite
     show_default=True,
     help="Number of simultaneous processes. Default is None, which uses all available cores.",
 )
+@click.option(
+    "--ovito",
+    required=False,
+    type=bool,
+    default=False,
+    show_default=True,
+    help="If True, it generates the data for plotting with Ovito instead of the usual data of the simulaiton.",
+)
 def cli(
     prob_stem,
     prob_diff,
@@ -53,6 +61,7 @@ def cli(
     steps_per_realization,
     rng_seed,
     parallel_processes,
+    ovito,
 ):
     """
     Command-line interface for running the tumorsphere simulation.
@@ -74,11 +83,14 @@ def cli(
             Number of simultaneous processes. If None (default), uses all
             available cores. When running in a cluster, it should match the
             number of cores requested to the queueing system.
+        ovito : bool, optional
+            False by default. If True, it generates the data for plotting with
+            Ovito instead of the usual data of the simulaiton.
 
     Examples
     --------
     >>> python3 -m tumorsphere.cli --help
-    >>> python3 -m tumorsphere.cli --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4
+    >>> python3 -m tumorsphere.cli --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4 --ovito False
     """
     prob_stem = [float(x) for x in prob_stem.split(",")]
     prob_diff = [float(x) for x in prob_diff.split(",")]
@@ -95,7 +107,7 @@ def cli(
         cell_max_repro_attempts=1000,
         # continuous_graph_generation=False, # for Simulation
     )
-    sim.simulate_parallel(parallel_processes)
+    sim.simulate_parallel(ovito=ovito, number_of_processes=parallel_processes)
 
 
 if __name__ == "__main__":
