@@ -5,6 +5,7 @@ Classes:
     - Culture: Class that represents a culture of cells. Usually dependent
     on the Simulation class.
 """
+import sqlite3
 from typing import Set
 
 import numpy as np
@@ -103,6 +104,70 @@ class Culture:
             parent_index=0,
             available_space=True,
         )
+
+        # connection to the SQLite database
+        self.conn = sqlite3.connect('tumorsphere_simulation.db')
+        
+        # we create the tables of the DB
+        self._create_tables()
+
+        # we insert the register corresponding to this culture
+        with self.conn:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                INSERT INTO Cultures (_position_index, parent_index, position_x, position_y, position_z, t_creation, culture)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
+            """, (self._position_index, self.parent_index, position[0], position[1], position[2], t_creation, culture.culture_id))
+
+
+    
+    # ----------------database related behavior----------------
+
+    def _create_tables(self):
+        with self.conn:
+            cursor = self.conn.cursor()
+
+            # Enable foreign key constraints for this connection
+            cursor.execute("PRAGMA foreign_keys = ON;")
+
+            # Creating the Culture table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS Cultures (
+                    culture_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    prob_stem REAL NOT NULL,
+                    prob_diff REAL NOT NULL,
+                    culture_seed INTEGER NOT NULL,
+                    simulation_start TIMESTAMP NOT NULL,
+                    adjacency_threshold REAL NOT NULL,
+                    swap_probability REAL NOT NULL
+                );
+            """)
+
+            # Creating the Cells table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS Cells (
+                    cell_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    _position_index INTEGER NOT NULL,
+                    parent_index INTEGER,
+                    position_x REAL NOT NULL,
+                    position_y REAL NOT NULL,
+                    position_z REAL NOT NULL,
+                    t_creation INTEGER NOT NULL,
+                    t_deactivation INTEGER,
+                    culture INTEGER,
+                    FOREIGN KEY(culture) REFERENCES Cultures(culture_id)
+                );
+            """)
+
+            # Creating the StemChange table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS StemChange (
+                    change_id INTEGER,
+                    t_change INTEGER NOT NULL,
+                    is_stem BOOLEAN NOT NULL,
+                    FOREIGN KEY(cell) REFERENCES Cells(cell_id)
+                );
+            """)
 
     # ------------------cell related behavior------------------
 
@@ -430,19 +495,6 @@ class Culture:
             culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}.dat
         """
 
-        # # we count the initial amount of CSCs
-        # if self.first_cell_is_stem:
-        #     initial_amount_of_csc = 1
-        # else:
-        #     initial_amount_of_csc = 0
-
-        # we write the header and the data values for this time step
-        # with open(f"data/{culture_name}.dat", "w") as file:
-        #     file.write("total, active, total_stem, active_stem \n")
-        #     file.write(
-        #         f"1, 1, {initial_amount_of_csc}, {initial_amount_of_csc} \n"
-        #     )
-
         # we simulate for num_times time steps
         for i in range(1, num_times):
             # we get a permuted copy of the cells list
@@ -451,24 +503,6 @@ class Culture:
             # if not, strange things happened
             for index in active_cell_indexes:
                 self.reproduce(index)
-
-            # we count the number of CSCs in this time step
-            # total_stem_counter = 0
-            # for cell in self.cells:
-            #     if cell.is_stem:
-            #         total_stem_counter = total_stem_counter + 1
-
-            # we count the number of active CSCs in this time step
-            # active_stem_counter = 0
-            # for index in self.active_cells:
-            #     if self.cells[index].is_stem:
-            #         active_stem_counter = active_stem_counter + 1
-
-            # # we save the data to a file
-            # with open(f"data/{culture_name}.dat", "a") as file:
-            #     file.write(
-            #         f"{len(self.cells)}, {len(self.active_cells)}, {total_stem_counter}, {active_stem_counter} \n"
-            #     )
 
             # we save the data for ovito
             self.make_ovito_data_file(t=i, culture_name=culture_name)

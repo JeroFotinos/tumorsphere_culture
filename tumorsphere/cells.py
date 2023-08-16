@@ -103,3 +103,12 @@ class Cell:
         )
         self.culture.cells.append(self)
         self.culture.active_cells.append(self._position_index)
+
+        # we insert a register in the Cells table of the SQLite DB
+        with culture.conn:
+            cursor = culture.conn.cursor()
+            cursor.execute("""
+                INSERT INTO Cells (_position_index, parent_index, position_x, position_y, position_z, t_creation, culture)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
+            """, (self._position_index, self.parent_index, position[0], position[1], position[2], t_creation, culture.culture_id))
+
