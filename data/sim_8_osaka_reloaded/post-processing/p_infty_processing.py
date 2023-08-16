@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import scipy as sp
 import seaborn as sns
-from scipy.special import erf
 from scipy.optimize import curve_fit
+from scipy.special import erf
 
 
 def set_plot_style():
@@ -68,7 +68,7 @@ def add_zero_time_point(df):
     -------
     df : pandas.DataFrame
         The modified DataFrame.
-    
+
     Notes
     -----
     This functions assumes that the culture is started by a stem cell.
@@ -88,7 +88,9 @@ def add_zero_time_point(df):
     # Loop over unique values of p_d, ps, and n
     for p_d in df["pd"].unique():
         for ps in df[df["pd"] == p_d]["ps"].unique():
-            for culture_seed in df[(df["pd"] == p_d) & (df["ps"] == ps)]["culture_seed"].unique():
+            for culture_seed in df[(df["pd"] == p_d) & (df["ps"] == ps)][
+                "culture_seed"
+            ].unique():
                 # Add the new row
                 new_rows["pd"].append(p_d)
                 new_rows["ps"].append(ps)
@@ -295,7 +297,9 @@ def plot_p_infty_vs_ps_with_fit(
     plt.savefig(f"{output_path}_fit_pd_{pd_value}.png", dpi=600)
 
 
-def plot_fitted_pc_vs_t(mean_df, csv_output_path, png_output_path, pd_values=[0]):
+def plot_fitted_pc_vs_t(
+    mean_df, csv_output_path, png_output_path, pd_values=[0]
+):
     """Fits the function to the data for each time step and each pd, and plots
     the fitted percolation probability. Also, it generates a CSV file for each
     p_d value, storing 3 columns with the value for t, and the corresponding
@@ -523,6 +527,11 @@ if __name__ == "__main__":
         output_path=plot1_output_path,
         pd_values=[0],
     )
-    plot_fitted_pc_vs_t(mean_df=mean_df, csv_output_path=csv_output_path, png_output_path=plot2_output_path, pd_values=[0])
+    plot_fitted_pc_vs_t(
+        mean_df=mean_df,
+        csv_output_path=csv_output_path,
+        png_output_path=plot2_output_path,
+        pd_values=[0],
+    )
     create_heatmap(mean_df, png_output_path, pd_values=[0])
     create_pc_heatmap(mean_df, png_output_path, time_step=10)

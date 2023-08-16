@@ -1,5 +1,6 @@
-from tumorsphere.culture import Culture
 import re  # for regular expressions
+
+from tumorsphere.culture import Culture
 
 # # Create a culture object and simulate it
 # cult = Culture(

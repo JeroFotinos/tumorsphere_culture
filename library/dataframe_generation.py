@@ -12,8 +12,9 @@ To use this module, simply run it from the command line:
 """
 
 import glob
-import pandas as pd
 import os
+
+import pandas as pd
 
 
 def extract_params_from_filename(filename):

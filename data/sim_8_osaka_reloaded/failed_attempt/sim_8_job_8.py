@@ -3,9 +3,9 @@ from tumorsphere.simulation import SimulationLite
 # Parameter list
 prob_stem = [0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.9, 0.95]
 prob_diff = [0]
-realizations=4
-steps_per_realization=60
-rng_seed=1292317634567
+realizations = 4
+steps_per_realization = 60
+rng_seed = 1292317634567
 parallel_processes = 32
 
 sim = SimulationLite(

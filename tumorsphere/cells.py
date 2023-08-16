@@ -5,8 +5,8 @@ Classes:
     - Cell: Represents a single cell in a culture. Dependent on the Culture
     class.
 """
-from typing import Dict, Set, Tuple, Optional
 from dataclasses import dataclass, field
+from typing import Optional, Set
 
 import numpy as np
 
@@ -44,7 +44,8 @@ class Cell:
 
     Notes
     -----
-    Since slots are used in this dataclass, multiple inheritance is not supported.
+    Since slots are used in this dataclass, multiple inheritance is not
+    supported.
 
     """
 
@@ -77,7 +78,8 @@ class Cell:
         is_stem : bool
             Whether the cell is a stem cell or not.
         parent_index : Optional[int], default=0
-            The index of the parent cell in the culture's cell_positions array.
+            The index of the parent cell in the culture's cell_positions
+            array.
         neighbors_indexes : Set[int], default=set()
             A set of indexes corresponding to the neighboring cells in the
             culture's cell_positions array.

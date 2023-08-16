@@ -7,9 +7,8 @@ Classes:
     combination.
 """
 import multiprocessing as mp
-from typing import List, Tuple
+from typing import Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from tumorsphere.culture import Culture
@@ -98,7 +97,7 @@ class Simulation:
         self.swap_probability = swap_probability
         self._rng_seed = rng_seed
         self.rng = np.random.default_rng(rng_seed)
-    
+
         # dictionary storing the culture objects
         self.cultures = {}
 
@@ -110,7 +109,7 @@ class Simulation:
     def simulate_parallel(
         self, ovito: bool = False, number_of_processes: int = None
     ) -> None:
-        """ Simulate culture growth `self.num_of_realizations` number of times
+        """Simulate culture growth `self.num_of_realizations` number of times
         for each combination of self-replication (elements of the
         `self.prob_stem` list) and differentiation probabilities (elements of
         the `self.prob_diff` list), realizations and persists the data of each
@@ -137,10 +136,12 @@ class Simulation:
         """
         if number_of_processes is None:
             number_of_processes = mp.cpu_count()
-        
+
         # Generate seeds for all realizations
-        seeds = self.rng.integers(low=2**20, high=2**50, size=self.num_of_realizations)
-        
+        seeds = self.rng.integers(
+            low=2**20, high=2**50, size=self.num_of_realizations
+        )
+
         if ovito:
             with mp.Pool(number_of_processes) as p:
                 p.map(
@@ -165,9 +166,7 @@ class Simulation:
                 )
 
 
-def simulate_single_culture(
-    args: Tuple[int, int, int, Simulation]
-) -> None:
+def simulate_single_culture(args: Tuple[int, int, int, Simulation]) -> None:
     """A worker function for multiprocessing.
 
     This function is used by the multiprocessing.Pool instance in the
@@ -202,7 +201,7 @@ def simulate_single_culture(
         prob_stem=sim.prob_stem[i],
         prob_diff=sim.prob_diff[k],
         rng_seed=seed,
-        swap_probability = sim.swap_probability,
+        swap_probability=sim.swap_probability,
     )
     sim.cultures[current_realization_name].simulate_with_persistent_data(
         sim.num_of_steps_per_realization,
@@ -247,7 +246,7 @@ def simulate_single_culture_ovito(
         first_cell_is_stem=sim.first_cell_is_stem,
         prob_stem=sim.prob_stem[i],
         prob_diff=sim.prob_diff[k],
-        rng_seed=seed
+        rng_seed=seed,
     )
     sim.cultures[current_realization_name].simulate_with_ovito_data(
         sim.num_of_steps_per_realization,
