@@ -21,8 +21,9 @@ turn, if the seed is repeted, the actual realization is repeted.
 """
 
 import glob
-import pandas as pd
 import os
+
+import pandas as pd
 
 
 def extract_params_from_filename(filename):

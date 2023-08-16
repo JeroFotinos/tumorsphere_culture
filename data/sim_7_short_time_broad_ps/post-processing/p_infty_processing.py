@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import scipy as sp
 import seaborn as sns
-from scipy.special import erf
 from scipy.optimize import curve_fit
+from scipy.special import erf
 
 
 def set_plot_style():

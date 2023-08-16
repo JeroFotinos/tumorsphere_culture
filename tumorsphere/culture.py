@@ -5,11 +5,8 @@ Classes:
     - Culture: Class that represents a culture of cells. Usually dependent
     on the Simulation class.
 """
-import time
-from typing import Dict, Set, Tuple, Optional
+from typing import Set
 
-import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
 
 from tumorsphere.cells import Cell
@@ -33,8 +30,8 @@ class Culture:
         Parameters
         ----------
         adjacency_threshold : int, optional
-            The maximum distance at which two cells can be considered neighbors,
-            by default 4.
+            The maximum distance at which two cells can be considered
+            neighbors, by default 4.
         cell_radius : int, optional
             The radius of a cell, by default 1.
         cell_max_repro_attempts : int, optional
@@ -47,14 +44,16 @@ class Culture:
         prob_diff : float, optional
             The probability that a cell differentiates, by default 0.
         rng_seed : int, optional
-            Seed for the random number generator, by default 110293658491283598.
+            Seed for the random number generator, by default
+            110293658491283598.
 
         Attributes
         ----------
         cell_max_repro_attempts : int
             Maximum number of reproduction attempts a cell can make.
         adjacency_threshold : int
-            The maximum distance at which two cells can be considered neighbors.
+            The maximum distance at which two cells can be considered
+            neighbors.
         cell_radius : int
             The radius of a cell.
         prob_stem : float
@@ -232,8 +231,8 @@ class Culture:
         # , size=number_of_points
         cos_theta = self.rng.uniform(low=-1, high=1)
         theta = np.arccos(cos_theta)  # Convert cos(theta) to theta
-        phi = self.rng.uniform(low=0, high=2*np.pi)
-        
+        phi = self.rng.uniform(low=0, high=2 * np.pi)
+
         x = 2 * self.cell_radius * np.sin(theta) * np.cos(phi)
         y = 2 * self.cell_radius * np.sin(theta) * np.sin(phi)
         z = 2 * self.cell_radius * np.cos(theta)
@@ -241,9 +240,7 @@ class Culture:
         new_position = cell_position + np.array([x, y, z])
         return new_position
 
-    def reproduce(
-        self, cell_index: int
-    ) -> None:  ##### ANTES ERA UN CELL; chequear que no haya cell.position
+    def reproduce(self, cell_index: int) -> None:
         """The given cell reproduces, generating a new child cell.
 
         Attempts to create a new cell in a random position, adjacent to the
