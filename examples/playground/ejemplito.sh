@@ -1,0 +1,1 @@
+python3 -m tumorsphere.cli --prob-stem "0.6,0.8" --prob-diff "0" --realizations 2 --steps-per-realization 6 --rng-seed 1234 --parallel-processes 4 --ovito False
