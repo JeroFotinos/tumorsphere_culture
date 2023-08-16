@@ -87,6 +87,7 @@ class Simulation:
         cell_radius=1,
         adjacency_threshold=4,
         cell_max_repro_attempts=1000,
+        swap_probability=0.5,
     ):
         # main simulation attributes
         self.first_cell_is_stem = first_cell_is_stem
@@ -94,9 +95,10 @@ class Simulation:
         self.prob_diff = prob_diff
         self.num_of_realizations = num_of_realizations
         self.num_of_steps_per_realization = num_of_steps_per_realization
+        self.swap_probability = swap_probability
         self._rng_seed = rng_seed
         self.rng = np.random.default_rng(rng_seed)
-
+    
         # dictionary storing the culture objects
         self.cultures = {}
 
@@ -199,7 +201,8 @@ def simulate_single_culture(
         first_cell_is_stem=sim.first_cell_is_stem,
         prob_stem=sim.prob_stem[i],
         prob_diff=sim.prob_diff[k],
-        rng_seed=seed
+        rng_seed=seed,
+        swap_probability = sim.swap_probability,
     )
     sim.cultures[current_realization_name].simulate_with_persistent_data(
         sim.num_of_steps_per_realization,

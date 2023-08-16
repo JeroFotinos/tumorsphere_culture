@@ -25,6 +25,7 @@ class Culture:
         prob_stem: float = 0,
         prob_diff: float = 0,
         rng_seed: int = 110293658491283598,
+        swap_probability: float = 0.5,
     ):
         """
         Initialize a new culture of cells.
@@ -60,7 +61,7 @@ class Culture:
             The probability that a cell becomes a stem cell.
         prob_diff : float
             The probability that a cell differentiates.
-        _swap_probability : float
+        swap_probability : float
             The probability that a cell swaps its type with its offspring.
         rng : numpy.random.Generator
             Random number generator.
@@ -80,7 +81,7 @@ class Culture:
         self.cell_radius = cell_radius
         self.prob_stem = prob_stem
         self.prob_diff = prob_diff
-        self._swap_probability = 0.5
+        self.swap_probability = swap_probability
 
         # we instantiate the culture's RNG with the entropy provided
         self.rng = np.random.default_rng(rng_seed)
@@ -312,7 +313,7 @@ class Culture:
                         ):  # pd
                             cell.is_stem = False
                         elif (
-                            self.rng.random() <= self._swap_probability
+                            self.rng.random() <= self.swap_probability
                         ):  # pa = 1-ps-pd
                             cell.is_stem = False
                             child_cell.is_stem = True
