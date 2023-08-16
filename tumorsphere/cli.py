@@ -1,6 +1,6 @@
 import click
 
-from tumorsphere.simulation import SimulationLite
+from tumorsphere.simulation import Simulation
 
 
 @click.command(
@@ -95,7 +95,7 @@ def cli(
     prob_stem = [float(x) for x in prob_stem.split(",")]
     prob_diff = [float(x) for x in prob_diff.split(",")]
 
-    sim = SimulationLite(
+    sim = Simulation(
         first_cell_is_stem=True,
         prob_stem=prob_stem,
         prob_diff=prob_diff,
