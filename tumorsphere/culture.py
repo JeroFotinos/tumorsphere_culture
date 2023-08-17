@@ -96,7 +96,7 @@ class Culture:
 
         # we initialize the lists of cells
         self.cells = []
-        self.active_cells = []
+        self.active_cell_indexes = []
 
         # time at wich the culture was created
         self.simulation_start = self._get_simulation_time()
@@ -140,7 +140,7 @@ class Culture:
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS Cells (
-                _position_index INTEGER PRIMARY KEY,
+                _index INTEGER PRIMARY KEY,
                 parent_index INTEGER,
                 position_x REAL NOT NULL,
                 position_y REAL NOT NULL,
@@ -161,7 +161,7 @@ class Culture:
                 cell_id INTEGER NOT NULL,
                 t_change INTEGER NOT NULL,
                 is_stem BOOLEAN NOT NULL,
-                FOREIGN KEY(cell_id) REFERENCES Cells(_position_index)
+                FOREIGN KEY(cell_id) REFERENCES Cells(_index)
             );
             """
             )
@@ -196,7 +196,7 @@ class Culture:
                 VALUES (?, ?, ?);
             """,
             (
-                cell_index,
+                int(cell_index),
                 tic,
                 stemness,
             ),
@@ -211,9 +211,9 @@ class Culture:
                 """
                 UPDATE Cells
                 SET t_deactivation = ?
-                WHERE _position_index = ?;
+                WHERE _index = ?;
                 """,
-                (tic, cell_index)
+                (tic, int(cell_index))
             )
 
 
@@ -316,7 +316,7 @@ class Culture:
                 # )
                 distance = np.linalg.norm(
                     self.cell_positions[cell_index]
-                    - self.cell_positions[a_cell._position_index]
+                    - self.cell_positions[a_cell._index]
                 )
                 in_neighborhood = distance <= self.adjacency_threshold
                 if in_neighborhood:
@@ -429,14 +429,14 @@ class Culture:
                             self.prob_stem + self.prob_diff
                         ):  # pd
                             cell.is_stem = False
-                            self.record_stemness(cell._position_index, tic)
+                            self.record_stemness(cell_index, tic)
                         elif (
                             self.rng.random() <= self.swap_probability
                         ):  # pa = 1-ps-pd
                             cell.is_stem = False
-                            self.record_stemness(cell._position_index, tic)
+                            self.record_stemness(cell_index, tic)
                             child_cell.is_stem = True
-                            self.record_stemness(child_cell._position_index, tic)
+                            self.record_stemness(child_cell._index, tic)
                 else:
                     child_cell = Cell(
                         position=child_position,
@@ -448,17 +448,17 @@ class Culture:
                 # we add the parent as neighbor of the child
                 child_cell.neighbors_indexes.add(cell_index)
                 # we find the child's neighbors
-                self.find_neighbors(child_cell._position_index)
+                self.find_neighbors(child_cell._index)
                 # we add the child as a neighbor of its neighbors
                 for neighbor_index in self.cells[
-                    child_cell._position_index
+                    child_cell._index
                 ].neighbors_indexes:
                     self.cells[neighbor_index].neighbors_indexes.add(
-                        child_cell._position_index
+                        child_cell._index
                     )
             else:
                 cell.available_space = False
-                self.active_cells.remove(cell._position_index)
+                self.active_cell_indexes.remove(cell_index)
                 self.record_deactivation(cell_index, tic)
                 # if there was no available space, we turn off reproduction
                 # and record the change in the Cells table of the DataBase
@@ -493,7 +493,7 @@ class Culture:
         # we simulate for num_times time steps
         for i in range(1, num_times):
             # we get a permuted copy of the cells list
-            active_cell_indexes = self.rng.permutation(self.active_cells)
+            active_cell_indexes = self.rng.permutation(self.active_cell_indexes)
             # and reproduce the cells in this random order
             for index in active_cell_indexes:
                 self.reproduce(cell_index=index, tic=i)
@@ -546,7 +546,7 @@ class Culture:
         # we simulate for num_times time steps
         for i in range(1, num_times):
             # we get a permuted copy of the cells list
-            active_cell_indexes = self.rng.permutation(self.active_cells)
+            active_cell_indexes = self.rng.permutation(self.active_cell_indexes)
             # I had to point to the cells in a copied list,
             # if not, strange things happened
             for index in active_cell_indexes:
@@ -560,14 +560,14 @@ class Culture:
 
             # we count the number of active CSCs in this time step
             active_stem_counter = 0
-            for index in self.active_cells:
+            for index in self.active_cell_indexes:
                 if self.cells[index].is_stem:
                     active_stem_counter = active_stem_counter + 1
 
             # we save the data to a file
             with open(f"data/{culture_name}.dat", "a") as file:
                 file.write(
-                    f"{len(self.cells)}, {len(self.active_cells)}, {total_stem_counter}, {active_stem_counter} \n"
+                    f"{len(self.cells)}, {len(self.active_cell_indexes)}, {total_stem_counter}, {active_stem_counter} \n"
                 )
 
     def simulate_with_ovito_data(
@@ -597,7 +597,7 @@ class Culture:
         # we simulate for num_times time steps
         for i in range(1, num_times):
             # we get a permuted copy of the cells list
-            active_cell_indexes = self.rng.permutation(self.active_cells)
+            active_cell_indexes = self.rng.permutation(self.active_cell_indexes)
             # I had to point to the cells in a copied list,
             # if not, strange things happened
             for index in active_cell_indexes:
@@ -622,11 +622,11 @@ class Culture:
                 if cell.is_stem and cell.available_space:
                     line = (
                         "active_stem "
-                        + str(self.cell_positions[cell._position_index][0])
+                        + str(self.cell_positions[cell._index][0])
                         + " "
-                        + str(self.cell_positions[cell._position_index][1])
+                        + str(self.cell_positions[cell._index][1])
                         + " "
-                        + str(self.cell_positions[cell._position_index][2])
+                        + str(self.cell_positions[cell._index][2])
                         + " "
                         + "1"
                         + "\n"
@@ -637,11 +637,11 @@ class Culture:
                 if cell.is_stem and (not cell.available_space):
                     line = (
                         "quiesc_stem "
-                        + str(self.cell_positions[cell._position_index][0])
+                        + str(self.cell_positions[cell._index][0])
                         + " "
-                        + str(self.cell_positions[cell._position_index][1])
+                        + str(self.cell_positions[cell._index][1])
                         + " "
-                        + str(self.cell_positions[cell._position_index][2])
+                        + str(self.cell_positions[cell._index][2])
                         + " "
                         + "2"
                         + "\n"
@@ -652,11 +652,11 @@ class Culture:
                 if (not cell.is_stem) and cell.available_space:
                     line = (
                         "active_diff "
-                        + str(self.cell_positions[cell._position_index][0])
+                        + str(self.cell_positions[cell._index][0])
                         + " "
-                        + str(self.cell_positions[cell._position_index][1])
+                        + str(self.cell_positions[cell._index][1])
                         + " "
-                        + str(self.cell_positions[cell._position_index][2])
+                        + str(self.cell_positions[cell._index][2])
                         + " "
                         + "3"
                         + "\n"
@@ -667,11 +667,11 @@ class Culture:
                 if not (cell.is_stem or cell.available_space):
                     line = (
                         "quiesc_diff "
-                        + str(self.cell_positions[cell._position_index][0])
+                        + str(self.cell_positions[cell._index][0])
                         + " "
-                        + str(self.cell_positions[cell._position_index][1])
+                        + str(self.cell_positions[cell._index][1])
                         + " "
-                        + str(self.cell_positions[cell._position_index][2])
+                        + str(self.cell_positions[cell._index][2])
                         + " "
                         + "4"
                         + "\n"

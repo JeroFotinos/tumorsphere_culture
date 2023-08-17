@@ -29,7 +29,7 @@ class Cell:
         culture's cell_positions array. Default is an empty set.
     available_space: bool
         Whether the cell has available space around it or not. Default is True.
-    _position_index: Optional[int]
+    _index: Optional[int]
         The index of the cell's position in the culture's cell_positions array.
         It's not directly settable during instantiation.
 
@@ -39,7 +39,7 @@ class Cell:
         position, culture, is_stem, parent_index=0, neighbors_indexes=set(),
         available_space=True
         )
-        Initializes the Cell object and sets the _position_index attribute
+        Initializes the Cell object and sets the _index attribute
         based on the position given.
 
     Notes
@@ -54,7 +54,7 @@ class Cell:
     parent_index: Optional[int] = 0
     neighbors_indexes: Set[int] = field(default_factory=set)
     available_space: bool = True
-    _position_index: Optional[int] = field(default=False, init=False)
+    _index: Optional[int] = field(default=False, init=False)
 
     def __init__(
         self,
@@ -72,7 +72,7 @@ class Cell:
         ----------
         position : np.ndarray
             The position of the cell. This is used to update the
-            cell_positions in the culture and set the _position_index
+            cell_positions in the culture and set the _index
             attribute, but is not stored as an attribute in the object itself.
         culture : Culture
             The culture to which the cell belongs.
@@ -95,7 +95,7 @@ class Cell:
         self.available_space = available_space
 
         # we FIRST get the cell's index
-        self._position_index = len(culture.cell_positions)
+        self._index = len(culture.cell_positions)
 
         # and THEN add the cell to the culture's position matrix and cell
         # lists, in the previous index
@@ -103,7 +103,7 @@ class Cell:
             culture.cell_positions, [position], axis=0
         )
         self.culture.cells.append(self)
-        self.culture.active_cells.append(self._position_index)
+        self.culture.active_cell_indexes.append(self._index)
 
         # if we're simulating with the SQLite DB, we insert a register in the
         # Cells table of the SQLite DB
@@ -112,15 +112,15 @@ class Cell:
                 cursor = culture.conn.cursor()
                 cursor.execute(
                     """
-                    INSERT INTO Cells (_position_index, parent_index, position_x, position_y, position_z, t_creation, culture_id)
+                    INSERT INTO Cells (_index, parent_index, position_x, position_y, position_z, t_creation, culture_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?);
                 """,
                     (
-                        self._position_index,
+                        self._index,
                         int(self.parent_index),
-                        self.culture.cell_positions[self._position_index][0],
-                        self.culture.cell_positions[self._position_index][1],
-                        self.culture.cell_positions[self._position_index][2],
+                        self.culture.cell_positions[self._index][0],
+                        self.culture.cell_positions[self._index][1],
+                        self.culture.cell_positions[self._index][2],
                         creation_time,
                         self.culture.culture_id,
                     ),
@@ -131,7 +131,7 @@ class Cell:
                     VALUES (?, ?, ?);
                 """,
                 (
-                    self._position_index,
+                    self._index,
                     creation_time,
                     self.is_stem,
                 ),
