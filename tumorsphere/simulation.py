@@ -107,7 +107,7 @@ class Simulation:
         self.cell_radius = cell_radius
 
     def simulate_parallel(
-        self, ovito: bool = False, number_of_processes: int = None
+        self, ovito: bool = False, dat_files: bool = False, number_of_processes: int = None
     ) -> None:
         """Simulate culture growth `self.num_of_realizations` number of times
         for each combination of self-replication (elements of the
@@ -146,6 +146,17 @@ class Simulation:
             with mp.Pool(number_of_processes) as p:
                 p.map(
                     simulate_single_culture_ovito,
+                    [
+                        (k, i, seeds[j], self)
+                        for k in range(len(self.prob_diff))
+                        for i in range(len(self.prob_stem))
+                        for j in range(self.num_of_realizations)
+                    ],
+                )
+        elif dat_files:
+            with mp.Pool(number_of_processes) as p:
+                p.map(
+                    simulate_single_culture_dat_files,
                     [
                         (k, i, seeds[j], self)
                         for k in range(len(self.prob_diff))
@@ -203,7 +214,51 @@ def simulate_single_culture(args: Tuple[int, int, int, Simulation]) -> None:
         rng_seed=seed,
         swap_probability=sim.swap_probability,
     )
-    sim.cultures[current_realization_name].simulate_with_persistent_data(
+    sim.cultures[current_realization_name].simulate(
+        sim.num_of_steps_per_realization,
+        current_realization_name,
+    )
+
+
+def simulate_single_culture_dat_files(args: Tuple[int, int, int, Simulation]) -> None:
+    """Copy of simulate_single_culture that outputs `.dat` files with
+    population numbers only. A worker function for multiprocessing.
+
+    This function is used by the multiprocessing.Pool instance in the
+    simulate_parallel method to parallelize the simulation of different
+    cultures. This simulates the growth of a single culture with the given
+    parameters and persist the data.
+
+    Parameters
+    ----------
+    args : tuple
+        A tuple containing the indices for the self-replication probability,
+        differentiation probability, the seed to be used in the random number
+        generator of the culture, and the instance of the Simulation class.
+
+    Notes
+    -----
+    Due to the way multiprocessing works in Python, you can't directly use
+    instance methods as workers for multiprocessing. The multiprocessing
+    module needs to be able to pickle the target function, and instance
+    methods can't be pickled. Therefore, the instance method worker had to be
+    refactored to a standalone function (or a static method).
+    """
+    k, i, seed, sim = args
+    current_realization_name = (
+        f"culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}"
+    )
+    sim.cultures[current_realization_name] = Culture(
+        adjacency_threshold=sim.adjacency_threshold,
+        cell_radius=sim.cell_radius,
+        cell_max_repro_attempts=sim.cell_max_repro_attempts,
+        first_cell_is_stem=sim.first_cell_is_stem,
+        prob_stem=sim.prob_stem[i],
+        prob_diff=sim.prob_diff[k],
+        rng_seed=seed,
+        swap_probability=sim.swap_probability,
+    )
+    sim.cultures[current_realization_name].simulate_with_dat_files(
         sim.num_of_steps_per_realization,
         current_realization_name,
     )

@@ -63,6 +63,7 @@ class Cell:
         is_stem: bool,
         parent_index: Optional[int] = 0,
         available_space: bool = True,  # not to be set by user
+        creation_time: int = 0,
     ) -> None:
         """
         Initializes the Cell object.
@@ -104,11 +105,34 @@ class Cell:
         self.culture.cells.append(self)
         self.culture.active_cells.append(self._position_index)
 
-        # we insert a register in the Cells table of the SQLite DB
-        with culture.conn:
-            cursor = culture.conn.cursor()
-            cursor.execute("""
-                INSERT INTO Cells (_position_index, parent_index, position_x, position_y, position_z, t_creation, culture)
-                VALUES (?, ?, ?, ?, ?, ?, ?);
-            """, (self._position_index, self.parent_index, position[0], position[1], position[2], t_creation, culture.culture_id))
-
+        # if we're simulating with the SQLite DB, we insert a register in the
+        # Cells table of the SQLite DB
+        if culture.conn is not None:
+            with culture.conn:
+                cursor = culture.conn.cursor()
+                cursor.execute(
+                    """
+                    INSERT INTO Cells (_position_index, parent_index, position_x, position_y, position_z, t_creation, culture_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?);
+                """,
+                    (
+                        self._position_index,
+                        int(self.parent_index),
+                        self.culture.cell_positions[self._position_index][0],
+                        self.culture.cell_positions[self._position_index][1],
+                        self.culture.cell_positions[self._position_index][2],
+                        creation_time,
+                        self.culture.culture_id,
+                    ),
+                )
+                cursor.execute(
+                    """
+                    INSERT INTO StemChanges (cell_id, t_change, is_stem)
+                    VALUES (?, ?, ?);
+                """,
+                (
+                    self._position_index,
+                    creation_time,
+                    self.is_stem,
+                ),
+                )

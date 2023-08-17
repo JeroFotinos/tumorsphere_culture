@@ -6,6 +6,7 @@ Classes:
     on the Simulation class.
 """
 import sqlite3
+from datetime import datetime
 from typing import Set
 
 import numpy as np
@@ -84,6 +85,7 @@ class Culture:
         self.swap_probability = swap_probability
 
         # we instantiate the culture's RNG with the entropy provided
+        self.rng_seed = rng_seed
         self.rng = np.random.default_rng(rng_seed)
 
         # state whether this is a csc-seeded culture
@@ -96,32 +98,21 @@ class Culture:
         self.cells = []
         self.active_cells = []
 
-        # we instantiate the first cell
-        first_cell_object = Cell(
-            position=np.array([0, 0, 0]),
-            culture=self,
-            is_stem=self.first_cell_is_stem,
-            parent_index=0,
-            available_space=True,
-        )
+        # time at wich the culture was created
+        self.simulation_start = self._get_simulation_time()
 
-        # connection to the SQLite database
-        self.conn = sqlite3.connect('tumorsphere_simulation.db')
-        
-        # we create the tables of the DB
-        self._create_tables()
-
-        # we insert the register corresponding to this culture
-        with self.conn:
-            cursor = self.conn.cursor()
-            cursor.execute("""
-                INSERT INTO Cultures (_position_index, parent_index, position_x, position_y, position_z, t_creation, culture)
-                VALUES (?, ?, ?, ?, ?, ?, ?);
-            """, (self._position_index, self.parent_index, position[0], position[1], position[2], t_creation, culture.culture_id))
+        # connection to the SQLite database (defined while simulating)
+        self.conn = None 
 
 
-    
     # ----------------database related behavior----------------
+
+    def _get_simulation_time(self):
+        # we get the current date and time
+        current_time = datetime.now()
+        # we format the string
+        time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
+        return time_string
 
     def _create_tables(self):
         with self.conn:
@@ -131,7 +122,8 @@ class Culture:
             cursor.execute("PRAGMA foreign_keys = ON;")
 
             # Creating the Culture table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS Cultures (
                     culture_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     prob_stem REAL NOT NULL,
@@ -141,33 +133,89 @@ class Culture:
                     adjacency_threshold REAL NOT NULL,
                     swap_probability REAL NOT NULL
                 );
-            """)
+            """
+            )
 
             # Creating the Cells table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS Cells (
-                    cell_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    _position_index INTEGER NOT NULL,
-                    parent_index INTEGER,
-                    position_x REAL NOT NULL,
-                    position_y REAL NOT NULL,
-                    position_z REAL NOT NULL,
-                    t_creation INTEGER NOT NULL,
-                    t_deactivation INTEGER,
-                    culture INTEGER,
-                    FOREIGN KEY(culture) REFERENCES Cultures(culture_id)
-                );
-            """)
+                _position_index INTEGER PRIMARY KEY,
+                parent_index INTEGER,
+                position_x REAL NOT NULL,
+                position_y REAL NOT NULL,
+                position_z REAL NOT NULL,
+                t_creation INTEGER NOT NULL,
+                t_deactivation INTEGER,
+                culture_id INTEGER,
+                FOREIGN KEY(culture_id) REFERENCES Cultures(culture_id)
+            );
+            """
+            )
 
             # Creating the StemChange table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS StemChange (
-                    change_id INTEGER,
-                    t_change INTEGER NOT NULL,
-                    is_stem BOOLEAN NOT NULL,
-                    FOREIGN KEY(cell) REFERENCES Cells(cell_id)
-                );
-            """)
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS StemChanges (
+                change_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cell_id INTEGER NOT NULL,
+                t_change INTEGER NOT NULL,
+                is_stem BOOLEAN NOT NULL,
+                FOREIGN KEY(cell_id) REFERENCES Cells(_position_index)
+            );
+            """
+            )
+
+    def _insert_culture_record_and_get_culture_id(self):
+        with self.conn:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO Cultures (prob_stem, prob_diff, culture_seed, simulation_start, adjacency_threshold, swap_probability)
+                VALUES (?, ?, ?, ?, ?, ?);
+            """,
+                (
+                    self.prob_stem,
+                    self.prob_diff,
+                    int(self.rng_seed),
+                    self.simulation_start,
+                    self.adjacency_threshold,
+                    self.swap_probability,
+                ),
+            )
+            culture_id = cursor.lastrowid
+            return culture_id
+    
+    def record_stemness(self, cell_index, tic):
+        with self.conn:
+            cursor = self.conn.cursor()
+            stemness = self.cells[cell_index].is_stem
+            cursor.execute(
+                """
+                INSERT INTO StemChanges (cell_id, t_change, is_stem)
+                VALUES (?, ?, ?);
+            """,
+            (
+                cell_index,
+                tic,
+                stemness,
+            ),
+            )
+
+    def record_deactivation(self, cell_index, tic):
+        with self.conn:
+            cursor = self.conn.cursor()
+
+            # Recording (updating) the t_deactivation value for the specified cell
+            cursor.execute(
+                """
+                UPDATE Cells
+                SET t_deactivation = ?
+                WHERE _position_index = ?;
+                """,
+                (tic, cell_index)
+            )
+
 
     # ------------------cell related behavior------------------
 
@@ -305,15 +353,20 @@ class Culture:
         new_position = cell_position + np.array([x, y, z])
         return new_position
 
-    def reproduce(self, cell_index: int) -> None:
+    def reproduce(self, cell_index: int, tic: int) -> None:
         """The given cell reproduces, generating a new child cell.
 
         Attempts to create a new cell in a random position, adjacent to the
         current cell, if the cell has available space. If the cell fails to
         find a position that doesn't overlap with existing cells, for the
         estabished maximum number of attempts, no new cell is created.
+
+        Notes
+        -----
+        The `if cell.available_space` might be redundant since we remove the
+        cells from the `active_cells` list when seting that to `False`, but
+        the statement is kept as a way of double checking.
         """
-        # assert len(cell.neighbors) <= len(self.cells)
 
         cell = self.cells[cell_index]
 
@@ -362,6 +415,7 @@ class Culture:
                             culture=self,
                             is_stem=True,
                             parent_index=cell_index,
+                            creation_time=tic,
                         )
                     else:
                         child_cell = Cell(
@@ -369,33 +423,29 @@ class Culture:
                             culture=self,
                             is_stem=False,
                             parent_index=cell_index,
+                            creation_time=tic,
                         )
                         if random_number <= (
                             self.prob_stem + self.prob_diff
                         ):  # pd
                             cell.is_stem = False
+                            self.record_stemness(cell._position_index, tic)
                         elif (
                             self.rng.random() <= self.swap_probability
                         ):  # pa = 1-ps-pd
                             cell.is_stem = False
+                            self.record_stemness(cell._position_index, tic)
                             child_cell.is_stem = True
+                            self.record_stemness(child_cell._position_index, tic)
                 else:
                     child_cell = Cell(
                         position=child_position,
                         culture=self,
                         is_stem=False,
                         parent_index=cell_index,
+                        creation_time=tic,
                     )
-                # # we add this cell to the culture's cells and active_cells lists
-                # self.cells.append(child_cell)
-                # self.active_cells.append(child_cell)
-                # # we add the parent as first neighbor (necessary for
-                # # the find_neighbors that are not from_entire_culture)
-                # # First, we calculate the index of the child
-                # child_index = len( # esto tiene pinta que ya se calculó en el init de Cell ########################################################
-                #     self.cells
-                # ) - 1  # cause the index of the cell *is* the length of the list minus 1
-                # # we add the parent as neighbor of the child
+                # we add the parent as neighbor of the child
                 child_cell.neighbors_indexes.add(cell_index)
                 # we find the child's neighbors
                 self.find_neighbors(child_cell._position_index)
@@ -409,7 +459,9 @@ class Culture:
             else:
                 cell.available_space = False
                 self.active_cells.remove(cell._position_index)
+                self.record_deactivation(cell_index, tic)
                 # if there was no available space, we turn off reproduction
+                # and record the change in the Cells table of the DataBase
         # else:
         #     pass
         # if the cell's neighbourhood is already full, we do nothing
@@ -417,7 +469,36 @@ class Culture:
 
     # ---------------------------------------------------------
 
-    def simulate_with_persistent_data(
+    def simulate(self, num_times: int, culture_name: str) -> None:
+        """Docstring."""
+
+        # connection to the SQLite database
+        self.conn = sqlite3.connect(f"data/{culture_name}.db")
+
+        # we create the tables of the DB
+        self._create_tables()
+
+        # we insert the register corresponding to this culture
+        self.culture_id = self._insert_culture_record_and_get_culture_id()
+
+        # we instantiate the first cell
+        first_cell_object = Cell(
+            position=np.array([0, 0, 0]),
+            culture=self,
+            is_stem=self.first_cell_is_stem,
+            parent_index=0,
+            available_space=True,
+        )
+
+        # we simulate for num_times time steps
+        for i in range(1, num_times):
+            # we get a permuted copy of the cells list
+            active_cell_indexes = self.rng.permutation(self.active_cells)
+            # and reproduce the cells in this random order
+            for index in active_cell_indexes:
+                self.reproduce(cell_index=index, tic=i)
+
+    def simulate_with_dat_files(
         self, num_times: int, culture_name: str
     ) -> None:
         """Simulate culture growth for a specified number of time steps and
@@ -439,6 +520,15 @@ class Culture:
             The name of the culture in the simulation, in the format
             culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}.dat
         """
+
+        # we instantiate the first cell
+        first_cell_object = Cell(
+            position=np.array([0, 0, 0]),
+            culture=self,
+            is_stem=self.first_cell_is_stem,
+            parent_index=0,
+            available_space=True,
+        )
 
         # we count the initial amount of CSCs
         if self.first_cell_is_stem:
@@ -494,6 +584,15 @@ class Culture:
             The name of the culture in the simulation, in the format
             culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}.dat
         """
+
+        # we instantiate the first cell
+        first_cell_object = Cell(
+            position=np.array([0, 0, 0]),
+            culture=self,
+            is_stem=self.first_cell_is_stem,
+            parent_index=0,
+            available_space=True,
+        )
 
         # we simulate for num_times time steps
         for i in range(1, num_times):

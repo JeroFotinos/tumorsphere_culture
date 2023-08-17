@@ -54,6 +54,14 @@ from tumorsphere.simulation import Simulation
     show_default=True,
     help="If True, it generates the data for plotting with Ovito instead of the usual data of the simulaiton.",
 )
+@click.option(
+    "--dat-files",
+    required=False,
+    type=bool,
+    default=False,
+    show_default=True,
+    help="If True, it only outputs population numbers in a `.dat` file instead of the standard `.db` file.",
+)
 def cli(
     prob_stem,
     prob_diff,
@@ -62,6 +70,7 @@ def cli(
     rng_seed,
     parallel_processes,
     ovito,
+    dat_files,
 ):
     """
     Command-line interface for running the tumorsphere simulation.
@@ -90,7 +99,7 @@ def cli(
     Examples
     --------
     >>> python3 -m tumorsphere.cli --help
-    >>> python3 -m tumorsphere.cli --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4 --ovito False
+    >>> python3 -m tumorsphere.cli --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4 --ovito False --dat-files False
     """
     prob_stem = [float(x) for x in prob_stem.split(",")]
     prob_diff = [float(x) for x in prob_diff.split(",")]
@@ -107,7 +116,7 @@ def cli(
         cell_max_repro_attempts=1000,
         # continuous_graph_generation=False, # for Simulation
     )
-    sim.simulate_parallel(ovito=ovito, number_of_processes=parallel_processes)
+    sim.simulate_parallel(ovito=ovito, dat_files=dat_files, number_of_processes=parallel_processes)
 
 
 if __name__ == "__main__":
