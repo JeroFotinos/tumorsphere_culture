@@ -102,8 +102,7 @@ class Culture:
         self.simulation_start = self._get_simulation_time()
 
         # connection to the SQLite database (defined while simulating)
-        self.conn = None 
-
+        self.conn = None
 
     # ----------------database related behavior----------------
 
@@ -185,7 +184,7 @@ class Culture:
             )
             culture_id = cursor.lastrowid
             return culture_id
-    
+
     def record_stemness(self, cell_index, tic):
         with self.conn:
             cursor = self.conn.cursor()
@@ -195,11 +194,11 @@ class Culture:
                 INSERT INTO StemChanges (cell_id, t_change, is_stem)
                 VALUES (?, ?, ?);
             """,
-            (
-                int(cell_index),
-                tic,
-                stemness,
-            ),
+                (
+                    int(cell_index),
+                    tic,
+                    stemness,
+                ),
             )
 
     def record_deactivation(self, cell_index, tic):
@@ -213,9 +212,8 @@ class Culture:
                 SET t_deactivation = ?
                 WHERE _index = ?;
                 """,
-                (tic, int(cell_index))
+                (tic, int(cell_index)),
             )
-
 
     # ------------------cell related behavior------------------
 
@@ -493,7 +491,9 @@ class Culture:
         # we simulate for num_times time steps
         for i in range(1, num_times):
             # we get a permuted copy of the cells list
-            active_cell_indexes = self.rng.permutation(self.active_cell_indexes)
+            active_cell_indexes = self.rng.permutation(
+                self.active_cell_indexes
+            )
             # and reproduce the cells in this random order
             for index in active_cell_indexes:
                 self.reproduce(cell_index=index, tic=i)
@@ -546,7 +546,9 @@ class Culture:
         # we simulate for num_times time steps
         for i in range(1, num_times):
             # we get a permuted copy of the cells list
-            active_cell_indexes = self.rng.permutation(self.active_cell_indexes)
+            active_cell_indexes = self.rng.permutation(
+                self.active_cell_indexes
+            )
             # I had to point to the cells in a copied list,
             # if not, strange things happened
             for index in active_cell_indexes:
@@ -597,7 +599,9 @@ class Culture:
         # we simulate for num_times time steps
         for i in range(1, num_times):
             # we get a permuted copy of the cells list
-            active_cell_indexes = self.rng.permutation(self.active_cell_indexes)
+            active_cell_indexes = self.rng.permutation(
+                self.active_cell_indexes
+            )
             # I had to point to the cells in a copied list,
             # if not, strange things happened
             for index in active_cell_indexes:

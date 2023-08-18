@@ -1,12 +1,14 @@
 """
-This module contains functions for loading data from the simulations and saving it to a
-pandas.DataFrame, which can in turn be saved to a CSV file. Functions in this module
-can be imported without further consequences, but direct execution of this file will
-trigger the file processing in the last block of code.
+This module generate a pandas `DataFrame` with population numbers and data of
+the culture they are from, using the `.db` database or the old `.dat` files.
+Functions in this module can be imported without further consequences, but
+direct execution of this file will trigger the file processing in the last
+block of code.
 
 Example
 -------
-To use this module, simply run it from the command line:
+First, make sure to set the `db_files` bool, specifying if the imput thata is
+a `.db` file. Then, to use this module simply run it from the command line:
 
     $ python3 dataframe_generation.py
 """
@@ -16,6 +18,7 @@ import os
 
 import pandas as pd
 
+# ------------------------ Functions for `.dat` files ------------------------
 
 def extract_params_from_filename(filename):
     """
@@ -143,11 +146,23 @@ def load_simulation_data(data_dir):
 
     return df
 
+# ------------------------ Functions for `.db` Data Base ---------------------
+
+
+# ------------------------ Instructions for Module Execution -----------------
+
 
 if __name__ == "__main__":
+    # set to `False` if you are trying to process the old `.dat` files, and
+    # leave it as `True` for processing the standard `.db` merged database.
+    db_files = True
+    
     data_dir = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/data/"
     save_path = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/df_simulations.csv"
 
-    df = load_simulation_data(data_dir)
-    print(df.head())
-    df.to_csv(save_path, index=False)
+    if db_files:
+        pass
+    else:
+        df = load_simulation_data(data_dir)
+        print(df.head())
+        df.to_csv(save_path, index=False)

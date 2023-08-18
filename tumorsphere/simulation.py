@@ -107,7 +107,10 @@ class Simulation:
         self.cell_radius = cell_radius
 
     def simulate_parallel(
-        self, ovito: bool = False, dat_files: bool = False, number_of_processes: int = None
+        self,
+        ovito: bool = False,
+        dat_files: bool = False,
+        number_of_processes: int = None,
     ) -> None:
         """Simulate culture growth `self.num_of_realizations` number of times
         for each combination of self-replication (elements of the
@@ -220,7 +223,9 @@ def simulate_single_culture(args: Tuple[int, int, int, Simulation]) -> None:
     )
 
 
-def simulate_single_culture_dat_files(args: Tuple[int, int, int, Simulation]) -> None:
+def simulate_single_culture_dat_files(
+    args: Tuple[int, int, int, Simulation]
+) -> None:
     """Copy of simulate_single_culture that outputs `.dat` files with
     population numbers only. A worker function for multiprocessing.
 
