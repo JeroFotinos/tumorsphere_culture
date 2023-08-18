@@ -130,9 +130,9 @@ class Cell:
                     INSERT INTO StemChanges (cell_id, t_change, is_stem)
                     VALUES (?, ?, ?);
                 """,
-                (
-                    self._index,
-                    creation_time,
-                    self.is_stem,
-                ),
+                    (
+                        self._index,
+                        creation_time,
+                        self.is_stem,
+                    ),
                 )

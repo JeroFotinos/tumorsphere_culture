@@ -116,7 +116,11 @@ def cli(
         cell_max_repro_attempts=1000,
         # continuous_graph_generation=False, # for Simulation
     )
-    sim.simulate_parallel(ovito=ovito, dat_files=dat_files, number_of_processes=parallel_processes)
+    sim.simulate_parallel(
+        ovito=ovito,
+        dat_files=dat_files,
+        number_of_processes=parallel_processes,
+    )
 
 
 if __name__ == "__main__":
