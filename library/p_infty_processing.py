@@ -495,22 +495,29 @@ def create_pc_heatmap(mean_df, output_path, time_step):
 
 
 if __name__ == "__main__":
-    csv_file = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/df_simulations.csv"
-    plot1_output_path = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/p_infty_vs_ps"
-    plot2_output_path = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/pc_vs_t"
-    output_path = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/"
+    # set to `False` if you are trying to process a `.csv` generated from the
+    # old `.dat` files. Leave it as `True` for processing `.csv` DataFrames
+    # generated from the standard `.db` merged database.
+    db_files = True
+
+    csv_file = "/home/nate/Devel/tumorsphere_culture/examples/playground/df_simulations.csv"
+    plot1_output_path = "/home/nate/Devel/tumorsphere_culture/examples/playground/post_processed/p_infty_vs_ps"
+    plot2_output_path = "/home/nate/Devel/tumorsphere_culture/examples/playground/post_processed/pc_vs_t"
+    output_path = "/home/nate/Devel/tumorsphere_culture/examples/playground/post_processed/"
 
     set_plot_style()
     df = read_data(csv_file)
-    df = add_zero_time_point(df)
+    if not db_files:
+        # db files don't have this need
+        df = add_zero_time_point(df)
     df = add_active_stem_cells_indicator(df)
     mean_df = average_over_realizations(df)
     plot_p_infty_vs_ps(
-        mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0.2]
+        mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0]
     )
     plot_p_infty_vs_ps_with_fit(
-        mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0.2]
+        mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0]
     )
-    plot_fitted_pc_vs_t(mean_df, plot2_output_path, pd_values=[0.2])
-    create_heatmap(mean_df, output_path, pd_values=[0.2])
+    plot_fitted_pc_vs_t(mean_df, plot2_output_path, pd_values=[0])
+    create_heatmap(mean_df, output_path, pd_values=[0])
     create_pc_heatmap(mean_df, output_path, time_step=10)

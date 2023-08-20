@@ -15,6 +15,7 @@ a `.db` file. Then, to use this module simply run it from the command line:
 
 import glob
 import os
+import sqlite3
 
 import pandas as pd
 
@@ -148,6 +149,144 @@ def load_simulation_data(data_dir):
 
 # ------------------------ Functions for `.db` Data Base ---------------------
 
+def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
+    """Generate a pandas DataFrame from the given SQLite database and save it
+    as a CSV file.
+
+    The DataFrame will contain a row for each simulation time per culture,
+    with the following columns:
+    - "culture_id": the culture_id value for the culture referred to by that row
+    - "pd": the value of prob_diff for that culture
+    - "ps": the value of prob_stem for that culture
+    - "rng_seed": the culture_seed value for that culture
+    - "time": the simulation time. For each culture, there will be a row for each integer value starting from 0, up to the greatest t_creation of the cells in that culture.
+    - "total_cells": the number of cells in that culture with t_creation less or equal than the 'time' value for that row.
+    - "active_cells": the number of cells in that culture with null t_deactivation, or t_deactivation greater than the 'time' value for that row.
+    - "stem_cells": the number of cells that are stem cells at that time in that culture.
+    - "active_stem_cells": similar to 'stem_cells', but only counting the cells that also have null t_deactivation, or t_deactivation greater than the 'time' value for that row.
+
+    Parameters
+    ----------
+    db_path : str
+        The path to the SQLite database containing the merged simulation data.
+    csv_path : str
+        The path where the resulting CSV file should be saved.
+
+    Returns
+    -------
+    None
+        The function saves the DataFrame to the specified CSV file and does not return any value.
+
+    Raises
+    ------
+    sqlite3.OperationalError
+        If there is any issue with the database connection or queries.
+    IOError
+        If there is any issue with saving the CSV file.
+
+    Examples
+    --------
+    >>> generate_dataframe("merged_database.sqlite", "output_dataframe.csv")
+    """
+    # Function implementation here...
+
+    # Connect to the SQLite database
+    with sqlite3.connect(db_path) as conn:
+        # Query to get the maximum simulation time per culture
+        max_time_query = """
+        SELECT culture_id, MAX(t_creation) as max_time
+        FROM Cells
+        GROUP BY culture_id
+        """
+
+        # Define the columns of the final dataframe
+        cols = [
+            "culture_id",
+            "pd",
+            "ps",
+            "rng_seed",
+            "time",
+            "total_cells",
+            "active_cells",
+            "stem_cells",
+            "active_stem_cells"
+            ]
+        
+        # Create a DataFrame to hold the final result
+        result_df = pd.DataFrame(columns=cols)
+        row_idx = 0 # Initialize a row index
+
+        # Iterate over each culture and its max simulation time
+        for culture_id, max_time in conn.execute(max_time_query).fetchall():
+            # Query to get the culture details
+            culture_query = f"""
+            SELECT prob_diff, prob_stem, culture_seed
+            FROM Cultures
+            WHERE culture_id = {culture_id}
+            """
+            prob_diff, prob_stem, rng_seed = conn.execute(culture_query).fetchone()
+
+            # Iterate over each simulation time for the current culture
+            for time in range(max_time + 1):
+                # Query to get total_cells and active_cells
+                cells_query = f"""
+                SELECT COUNT(*),
+                    COUNT(CASE WHEN t_deactivation IS NULL OR t_deactivation > {time} THEN 1 END)
+                FROM Cells
+                WHERE culture_id = {culture_id} AND t_creation <= {time}
+                """
+                total_cells, active_cells = conn.execute(cells_query).fetchone()
+
+                # Query to get stem_cells
+                stem_cells_query = f"""
+                SELECT COUNT(*)
+                FROM (
+                    SELECT cell_id, MAX(t_change) as latest_change
+                    FROM StemChanges
+                    WHERE t_change <= {time}
+                    GROUP BY cell_id
+                )
+                JOIN StemChanges USING (cell_id)
+                JOIN Cells USING (cell_id)
+                WHERE is_stem = 1 AND culture_id = {culture_id} AND t_creation <= {time}
+                """
+                stem_cells = conn.execute(stem_cells_query).fetchone()[0]
+
+                # Query to get active_stem_cells
+                active_stem_cells_query = f"""
+                SELECT COUNT(*)
+                FROM (
+                    SELECT cell_id, MAX(t_change) as latest_change
+                    FROM StemChanges
+                    WHERE t_change <= {time}
+                    GROUP BY cell_id
+                )
+                JOIN StemChanges USING (cell_id)
+                JOIN Cells USING (cell_id)
+                WHERE is_stem = 1 AND culture_id = {culture_id} AND t_creation <= {time} AND (t_deactivation IS NULL OR t_deactivation > {time})
+                """
+                active_stem_cells = conn.execute(active_stem_cells_query).fetchone()[0]
+
+                # Create a new row
+                new_row = {
+                    "culture_id": culture_id,
+                    "pd": prob_diff,
+                    "ps": prob_stem,
+                    "rng_seed": rng_seed,
+                    "time": time,
+                    "total_cells": total_cells,
+                    "active_cells": active_cells,
+                    "stem_cells": stem_cells,
+                    "active_stem_cells": active_stem_cells
+                }
+
+                # Add the new row to the result DataFrame using loc
+                result_df.loc[row_idx] = new_row
+                row_idx += 1 # Increment the row index
+
+        # Save the DataFrame as a CSV file
+        result_df.to_csv(csv_path_and_name, index=False)
+
 
 # ------------------------ Instructions for Module Execution -----------------
 
@@ -157,11 +296,20 @@ if __name__ == "__main__":
     # leave it as `True` for processing the standard `.db` merged database.
     db_files = True
     
+    # directories for `.dat` files
     data_dir = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/data/"
     save_path = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/df_simulations.csv"
 
+    # directories for `.db` Data Base
+    db_path = (
+        "/home/nate/Devel/tumorsphere_culture/examples/playground/merged.db"
+    )
+    csv_path_and_name = (
+        "/home/nate/Devel/tumorsphere_culture/examples/playground/df_simulations.csv"
+    )
+
     if db_files:
-        pass
+        generate_dataframe_from_db(db_path, csv_path_and_name)
     else:
         df = load_simulation_data(data_dir)
         print(df.head())
