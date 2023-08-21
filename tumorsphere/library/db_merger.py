@@ -241,12 +241,28 @@ def merge_db_files_in_dir_into_conn(
                     )
 
 
+def merge_single_culture_dbs(dbs_folder, merging_path):
+    """Merges single culture data bases into a single data base. If the
+    database does not exist, it creates it. If it exists, it appends the new
+    data to it.
+
+    Parameters
+    ----------
+        dbs_folder : str
+            Path to the data directory, containing the (unmerged) `.db` files.
+        merging_path : str
+            Path and name of the `.db` file to append the others to.
+
+    """
+    with sqlite3.connect(merging_path) as conn:
+        create_tables(conn)
+        merge_db_files_in_dir_into_conn(conn, dbs_folder)
+
+
 if __name__ == "__main__":
     data_dir = "/home/nate/Devel/tumorsphere_culture/examples/playground/data/"
     save_path = (
         "/home/nate/Devel/tumorsphere_culture/examples/playground/merged.db"
     )
 
-    with sqlite3.connect(save_path) as conn:
-        create_tables(conn)
-        merge_db_files_in_dir_into_conn(conn, data_dir)
+    merge_single_culture_dbs(dbs_folder=data_dir, merging_path=save_path)

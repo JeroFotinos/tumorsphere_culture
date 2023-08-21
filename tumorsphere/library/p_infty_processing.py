@@ -1,3 +1,16 @@
+"""Percolation-oriented post-processing of the simulation data.
+
+This script contains functions to process the output data from the simulations
+and create plots and heatmaps. Direct execution on this script will trigger
+this post-processing.
+
+There is a boolean variable `db_files` that should be set to `False` if you
+want to process the old `.dat` files, and `True` if you want to process the
+standard `.db` merged database. If `db_files=False`, an additional step is
+used to add the time zero points, because the `.dat` files do not have these.
+"""
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd

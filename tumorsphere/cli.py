@@ -3,6 +3,10 @@ from tumorsphere.core.simulation import Simulation
 from tumorsphere.library.time_step_counter import (
     count_time_steps_of_dbs_in_dir,
 )
+from tumorsphere.library.dataframe_generation import (
+    generate_dataframe_from_db,
+)
+from tumorsphere.library.db_merger import merge_single_culture_dbs
 
 
 @click.group()
@@ -11,7 +15,7 @@ def cli():
 
 
 @click.command(
-    help="Command-line interface for running the tumorsphere simulation."
+    help="Runs the tumorsphere simulation with the indicated parameters."
 )
 @click.option(
     "--prob-stem",
@@ -133,9 +137,7 @@ def simulate(
 cli.add_command(simulate)
 
 
-@click.command(
-    help="Returns the last simulated time step of each tumorsphere culture in target directory."
-)
+@click.command(help="Returns the latest simulated time step for each culture.")
 @click.option(
     "--data-dir", required=True, type=str, help="Path to the data directory"
 )
@@ -158,6 +160,82 @@ def status(data_dir):
 
 
 cli.add_command(status)
+
+
+@click.command(
+    help="Merges single culture data bases into a single data base."
+)
+@click.option(
+    "--dbs-folder",
+    required=True,
+    type=str,
+    help="Path to the directory containing the `.db` files to merge",
+)
+@click.option(
+    "--merging-path",
+    required=True,
+    type=str,
+    help="Path and name of the merged `.db` file to append to or create",
+)
+def mergedbs(dbs_folder, merging_path):
+    """Command-line interface that merges single culture data bases into a
+    single data base. If the database does not exist, it creates it. If it
+    exists, it appends the new data to it.
+
+    Parameters
+    ----------
+        dbs_folder : str
+            Path to the data directory, containing the (unmerged) `.db` files.
+        merging_path : str
+            Path and name of the `.db` file to append the others to.
+
+    Examples
+    --------
+    >>> tumorsphere mergedbs --help
+    >>> tumorsphere mergedbs --dbs-folder ./data --merging-path ./merged.db
+    """
+    merge_single_culture_dbs(dbs_folder, merging_path)
+
+
+cli.add_command(mergedbs)
+
+
+@click.command(
+    help="Makes the DataFrame of population numbers from data base."
+)
+@click.option(
+    "--db-path",
+    required=True,
+    type=str,
+    help="Path and name of the data base to read",
+)
+@click.option(
+    "--csv-path",
+    required=True,
+    type=str,
+    help="Path and name of the `.csv` file to save",
+)
+def makedf(db_path, csv_path):
+    """Command-line interface that makes the DataFrame of population numbers
+    for each simulated culture in a merged data base.
+
+    Parameters
+    ----------
+        db_path : str
+            Path to the data directory, containing the (merged) `.db` file.
+        csv_path : str
+            Path and name of the `.csv` file to be generated.
+
+    Examples
+    --------
+    >>> tumorsphere makedf --help
+    >>> tumorsphere makedf --db-path ./merged.db --csv-path ./population_numbers.csv
+    """
+    generate_dataframe_from_db(db_path, csv_path)
+
+
+cli.add_command(makedf)
+
 
 if __name__ == "__main__":
     cli()
