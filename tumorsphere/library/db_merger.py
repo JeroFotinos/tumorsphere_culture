@@ -242,9 +242,7 @@ def merge_db_files_in_dir_into_conn(
 
 
 if __name__ == "__main__":
-    data_dir = (
-        "/home/nate/Devel/tumorsphere_culture/examples/playground/data/"
-    )
+    data_dir = "/home/nate/Devel/tumorsphere_culture/examples/playground/data/"
     save_path = (
         "/home/nate/Devel/tumorsphere_culture/examples/playground/merged.db"
     )
