@@ -11,7 +11,7 @@ from typing import Set
 
 import numpy as np
 
-from tumorsphere.cells import Cell
+from tumorsphere.core.cells import Cell
 
 
 class Culture:

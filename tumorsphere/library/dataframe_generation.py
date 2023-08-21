@@ -21,6 +21,7 @@ import pandas as pd
 
 # ------------------------ Functions for `.dat` files ------------------------
 
+
 def extract_params_from_filename(filename):
     """
     Extract the parameters pd, ps and n from the filename.
@@ -147,7 +148,9 @@ def load_simulation_data(data_dir):
 
     return df
 
+
 # ------------------------ Functions for `.db` Data Base ---------------------
+
 
 def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
     """Generate a pandas DataFrame from the given SQLite database and save it
@@ -209,12 +212,12 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
             "total_cells",
             "active_cells",
             "stem_cells",
-            "active_stem_cells"
-            ]
-        
+            "active_stem_cells",
+        ]
+
         # Create a DataFrame to hold the final result
         result_df = pd.DataFrame(columns=cols)
-        row_idx = 0 # Initialize a row index
+        row_idx = 0  # Initialize a row index
 
         # Iterate over each culture and its max simulation time
         for culture_id, max_time in conn.execute(max_time_query).fetchall():
@@ -224,7 +227,9 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
             FROM Cultures
             WHERE culture_id = {culture_id}
             """
-            prob_diff, prob_stem, rng_seed = conn.execute(culture_query).fetchone()
+            prob_diff, prob_stem, rng_seed = conn.execute(
+                culture_query
+            ).fetchone()
 
             # Iterate over each simulation time for the current culture
             for time in range(max_time + 1):
@@ -235,7 +240,9 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
                 FROM Cells
                 WHERE culture_id = {culture_id} AND t_creation <= {time}
                 """
-                total_cells, active_cells = conn.execute(cells_query).fetchone()
+                total_cells, active_cells = conn.execute(
+                    cells_query
+                ).fetchone()
 
                 # Query to get stem_cells
                 stem_cells_query = f"""
@@ -265,7 +272,9 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
                 JOIN Cells USING (cell_id)
                 WHERE is_stem = 1 AND culture_id = {culture_id} AND t_creation <= {time} AND (t_deactivation IS NULL OR t_deactivation > {time})
                 """
-                active_stem_cells = conn.execute(active_stem_cells_query).fetchone()[0]
+                active_stem_cells = conn.execute(
+                    active_stem_cells_query
+                ).fetchone()[0]
 
                 # Create a new row
                 new_row = {
@@ -277,12 +286,12 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
                     "total_cells": total_cells,
                     "active_cells": active_cells,
                     "stem_cells": stem_cells,
-                    "active_stem_cells": active_stem_cells
+                    "active_stem_cells": active_stem_cells,
                 }
 
                 # Add the new row to the result DataFrame using loc
                 result_df.loc[row_idx] = new_row
-                row_idx += 1 # Increment the row index
+                row_idx += 1  # Increment the row index
 
         # Save the DataFrame as a CSV file
         result_df.to_csv(csv_path_and_name, index=False)
@@ -295,7 +304,7 @@ if __name__ == "__main__":
     # set to `False` if you are trying to process the old `.dat` files, and
     # leave it as `True` for processing the standard `.db` merged database.
     db_files = True
-    
+
     # directories for `.dat` files
     data_dir = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/data/"
     save_path = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/df_simulations.csv"
@@ -304,9 +313,7 @@ if __name__ == "__main__":
     db_path = (
         "/home/nate/Devel/tumorsphere_culture/examples/playground/merged.db"
     )
-    csv_path_and_name = (
-        "/home/nate/Devel/tumorsphere_culture/examples/playground/df_simulations.csv"
-    )
+    csv_path_and_name = "/home/nate/Devel/tumorsphere_culture/examples/playground/df_simulations.csv"
 
     if db_files:
         generate_dataframe_from_db(db_path, csv_path_and_name)

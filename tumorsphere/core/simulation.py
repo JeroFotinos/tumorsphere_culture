@@ -11,7 +11,7 @@ from typing import Tuple
 
 import numpy as np
 
-from tumorsphere.culture import Culture
+from tumorsphere.core.culture import Culture
 
 
 class Simulation:

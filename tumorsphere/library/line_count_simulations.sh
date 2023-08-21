@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # Commands to see the progress status of the simulations in the cluster.
+# Used for `.dat` files. For the new `.db` databases see
+# `time_step_count_simulations.sh`.
 
-# This script is intended to use by coping and pasting
+# Note that this script is intended to use by coping and pasting
 # the desired line in the terminal, not by running it directly.
 
 # -------------------------------------------------

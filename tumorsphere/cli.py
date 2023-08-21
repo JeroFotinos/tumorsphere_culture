@@ -1,6 +1,13 @@
 import click
+from tumorsphere.core.simulation import Simulation
+from tumorsphere.library.time_step_counter import (
+    count_time_steps_of_dbs_in_dir,
+)
 
-from tumorsphere.simulation import Simulation
+
+@click.group()
+def cli():
+    pass
 
 
 @click.command(
@@ -62,7 +69,7 @@ from tumorsphere.simulation import Simulation
     show_default=True,
     help="If True, it only outputs population numbers in a `.dat` file instead of the standard `.db` file.",
 )
-def cli(
+def simulate(
     prob_stem,
     prob_diff,
     realizations,
@@ -98,8 +105,8 @@ def cli(
 
     Examples
     --------
-    >>> python3 -m tumorsphere.cli --help
-    >>> python3 -m tumorsphere.cli --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4 --ovito False --dat-files False
+    >>> tumorsphere simulate --help
+    >>> tumorsphere simulate --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4 --ovito False --dat-files False
     """
     prob_stem = [float(x) for x in prob_stem.split(",")]
     prob_diff = [float(x) for x in prob_diff.split(",")]
@@ -122,6 +129,35 @@ def cli(
         number_of_processes=parallel_processes,
     )
 
+
+cli.add_command(simulate)
+
+
+@click.command(
+    help="Returns the last simulated time step of each tumorsphere culture in target directory."
+)
+@click.option(
+    "--data-dir", required=True, type=str, help="Path to the data directory"
+)
+def status(data_dir):
+    """Command-line interface that prints the simulation time step each
+    tumorsphere culture is in, indicating its parameters for identification
+    purposes.
+
+    Parameters
+    ----------
+        data_dir : str
+            Path to the data directory, containing the `.db` files.
+
+    Examples
+    --------
+    >>> tumorsphere status --help
+    >>> tumorsphere status --data-dir ./data
+    """
+    count_time_steps_of_dbs_in_dir(data_dir)
+
+
+cli.add_command(status)
 
 if __name__ == "__main__":
     cli()
