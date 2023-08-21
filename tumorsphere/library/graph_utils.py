@@ -1,3 +1,7 @@
+"""This module has functions for generating and plotting graphs from the
+cultures of the database.
+"""
+
 import sqlite3
 import os
 

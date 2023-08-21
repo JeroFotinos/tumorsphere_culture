@@ -30,6 +30,7 @@ dependencies = [
     "click",
     "matplotlib",
     "networkx",
+    "plotly",
     "numpy",
     "toml",
     "pandas",
