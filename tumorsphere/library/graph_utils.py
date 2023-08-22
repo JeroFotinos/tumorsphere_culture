@@ -17,6 +17,8 @@ from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
+from sklearn.manifold import MDS
+
 
 # ----------------- Graph generation functions -----------------
 
@@ -68,9 +70,9 @@ def generate_graph_at_fixed_time(
         cells_query = """
             SELECT cell_id, _index, parent_index, position_x, position_y, position_z, t_deactivation
             FROM Cells
-            WHERE culture_id = ?
+            WHERE culture_id = ? AND t_creation <= ?
         """
-        cursor.execute(cells_query, (culture_id,))
+        cursor.execute(cells_query, (culture_id, time))
 
         # Add nodes with 3D position attributes and directed edges to the graph
         for row in cursor.fetchall():
@@ -132,7 +134,6 @@ def generate_graph_at_fixed_time(
     print(f"Graph saved to {full_path}")
 
 
-# ======= NOT WORKING =======
 def generate_graph_evolution(
     db_path: str, culture_id: int, path_to_save: str
 ) -> None:
@@ -154,85 +155,12 @@ def generate_graph_evolution(
 
         # Iterate through time
         for time in range(max_time + 1):
-            # Create a directed graph for the current time
-            G_time = nx.DiGraph()
-
-            # Query to get the cells for the given culture_id at the given time
-            cells_query = """
-                SELECT cell_id, _index, parent_index, position_x, position_y, position_z, t_deactivation
-                FROM Cells
-                WHERE culture_id = ? AND t_creation <= ?
-            """
-            cursor.execute(cells_query, (culture_id, time))
-
-            # Add nodes and edges to the current graph based on current time
-            for row in cursor.fetchall():
-                (
-                    cell_id,
-                    _index,
-                    parent_index,
-                    position_x,
-                    position_y,
-                    position_z,
-                    t_deactivation,
-                ) = row
-
-                # Determine active status
-                active = (
-                    True
-                    if t_deactivation is None or t_deactivation > time
-                    else False
-                )
-
-                # Find stemness status from the StemChanges table
-                stem_query = """
-                    SELECT is_stem
-                    FROM StemChanges
-                    WHERE cell_id = ? AND t_change <= ?
-                    ORDER BY t_change DESC
-                    LIMIT 1
-                """
-                cursor.execute(stem_query, (cell_id, time))
-                stem_result = cursor.fetchone()
-                is_stem = stem_result[0] if stem_result else False
-
-                # Add or update the node with attributes
-                G_time.add_node(
-                    cell_id,
-                    _index=_index,
-                    position_x=position_x,
-                    position_y=position_y,
-                    position_z=position_z,
-                    active=active,
-                    stem=is_stem,
-                    time=time,  # Include time attribute here
-                )
-
-                if parent_index is not None:
-                    # Find the cell_id of the parent
-                    parent_query = """
-                        SELECT cell_id
-                        FROM Cells
-                        WHERE _index = ? AND culture_id = ?
-                    """
-                    cursor.execute(parent_query, (parent_index, culture_id))
-                    parent_cell_id = cursor.fetchone()[0]
-                    G_time.add_edge(parent_cell_id, cell_id, time=time)
-
-            # Add the graph to the list of snapshots
-            graphs.append(G_time)
-
-    # Combine snapshots into the final graph
-    G_final = nx.DiGraph()
-    for G_time in graphs:
-        G_final = nx.compose(G_final, G_time)
-
-    # Form the full path for saving the GEXF file
-    file_name = f"graph_evolution_culture_id={culture_id}.gexf"
-    full_path = os.path.join(path_to_save, file_name)
-
-    # Write to GEXF
-    nx.write_gexf(G_final, full_path)
+            generate_graph_at_fixed_time(
+                db_path=db_path,
+                culture_id=culture_id,
+                time=time,
+                path_to_save=path_to_save,
+            )
 
 
 # ----------------- Graph plotting functions -----------------
@@ -412,63 +340,92 @@ def plot_static_graph_3D(
 
 
 # ======= NOT WORKING =======
-def plot_graph_from_gexf(file_path: str) -> None:
-    # Read the graph from the GEXF file
-    G = nx.read_gexf(file_path)
 
-    # Determine the time range manually
-    min_time = 0
-    max_time = 5  # Please replace this with the correct value
 
-    # Function to convert 3D coordinates to 2D radial coordinates
-    def to_radial_coordinates(x, y, z):
-        rho = np.sqrt(x**2 + y**2 + z**2)
-        phi = np.arctan2(y, x)
-        return rho * np.cos(phi), rho * np.sin(phi)
+def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
+    # Function to convert 3D coordinates to 2D coordinates
+    def convert_3D_to_2D(x, y, z):
+        # # To radial coordinates
+        # rho = np.sqrt(x**2 + y**2 + z**2)
+        # phi = np.arctan2(y, x)
+        # x_new = rho * np.cos(phi)
+        # y_new = rho * np.sin(phi)
+        
+        # Orthographic_projection
+        x_new = x
+        y_new = y
+
+        return x_new, y_new
 
     # Create figure and axes
     fig, ax = plt.subplots()
     plt.subplots_adjust(bottom=0.25)
 
+    # Determine the time range by inspecting the available files
+    time_range = [
+        int(file.split("=")[-1].split(".")[0])
+        for file in os.listdir(path_to_files)
+        if f"graph_culture_id={culture_id}_time=" in file
+    ]
+    min_time, max_time = min(time_range), max(time_range)
+
+    # Determine the global limits for x and y axes
+    all_x = []
+    all_y = []
+    for time in time_range:
+        file_name = f"graph_culture_id={culture_id}_time={time}.graphml"
+        full_path = os.path.join(path_to_files, file_name)
+        G = nx.read_graphml(full_path)
+        for node, data in G.nodes(data=True):
+            x, y = convert_3D_to_2D(data['position_x'], data['position_y'], data['position_z'])
+            all_x.append(x)
+            all_y.append(y)
+
+    xlim = (min(all_x)-1, max(all_x)+1)
+    ylim = (min(all_y)-1, max(all_y)+1)
+
     # Function to plot the graph for a given time
     def plot_graph(time):
         # Clear current axes
         ax.clear()
+        # Read the graph from the GraphML file
+        file_name = f"graph_culture_id={culture_id}_time={time}.graphml"
+        full_path = os.path.join(path_to_files, file_name)
+        G = nx.read_graphml(full_path)
 
-        # Determine active nodes and edges
-        active_nodes = [
-            node for node, data in G.nodes(data=True) if data["time"] == time
-        ]
-        active_edges = [
-            (u, v) for u, v, d in G.edges(data=True) if d["time"] == time
-        ]
-
-        pos = {
-            node: to_radial_coordinates(
-                data["position_x"], data["position_y"], data["position_z"]
-            )
-            for node, data in G.nodes(data=True)
-            if node in active_nodes
-        }
-
-        nx.draw(
-            G.subgraph(active_nodes),
-            pos,
-            edgelist=active_edges,
-            node_size=20,
-            with_labels=False,
-            ax=ax,
-        )
+        pos = {}
+        edges = []
+        colors = []
+        for node, data in G.nodes(data=True):
+            x, y = convert_3D_to_2D(data['position_x'], data['position_y'], data['position_z'])
+            pos[node] = (x, y)
+            if bool(data['active']) is True:
+                if bool(data['stem']) is True:
+                    colors.append('red') # Active stem cells
+                else:
+                    colors.append('blue') # Active non-stem cells
+            else:
+                if bool(data['stem']) is True:
+                    colors.append('pink') # Inactive stem cells
+                else:
+                    colors.append('lightblue') # Inactive non-stem cells
+            for neighbor in G.neighbors(node):
+                edges.append((node, neighbor))
+        # Drawing the nodes and edges with more control over style
+        nx.draw_networkx_nodes(G, pos, node_size=50, node_color=colors, ax=ax)
+        nx.draw_networkx_edges(G, pos, edgelist=edges, width=1, alpha=0.5, ax=ax)
+        
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
         ax.set_title(f"Graph at Time {time}")
+        ax.axis('off')  # Removes the axis for better visualization
 
     # Initial plot
     plot_graph(min_time)
 
     # Add a slider for time control
     ax_slider = plt.axes([0.25, 0.01, 0.50, 0.03])
-    slider = Slider(
-        ax_slider, "Time", min_time, max_time, valinit=min_time, valstep=1
-    )
+    slider = Slider(ax_slider, 'Time', min_time, max_time, valinit=min_time, valstep=1)
 
     # Update the plot when the slider is changed
     def update(val):
@@ -489,25 +446,25 @@ if __name__ == "__main__":
     culture_id = 1
     time = 5
     path_to_save = "/home/nate/Devel/tumorsphere_culture/examples/playground/"
-    path_to_gexf = "/home/nate/Devel/tumorsphere_culture/examples/playground/graph_evolution_culture_id=1.gexf"
+    folder = "/home/nate/Devel/tumorsphere_culture/examples/playground/graph_evolution/"
 
     # # Generating the graph `.graphml` file
     # generate_graph_at_fixed_time(db_path, culture_id, time, path_to_save)
 
-    # Plotting the graph
-    # load the graph from the `.graphml` file
-    G = nx.read_graphml(
-        os.path.join(
-            path_to_save, f"graph_culture_id={culture_id}_time={time}.graphml"
-        )
-    )
-    # Plotting in 3D space according to coordinates
-    plot_static_graph_3D(
-        G, spheres=False, sphere_radius=1, sphere_opacity=0.15
-    )
+    # # Plotting the graph
+    # # load the graph from the `.graphml` file
+    # G = nx.read_graphml(
+    #     os.path.join(
+    #         path_to_save, f"graph_culture_id={culture_id}_time={time}.graphml"
+    #     )
+    # )
+    # # Plotting in 3D space according to coordinates
+    # plot_static_graph_3D(
+    #     G, spheres=False, sphere_radius=1, sphere_opacity=0.15
+    # )
 
     # ======= NOT WORKING =======
-    # # Generating the graph evolution `.gexf` file
-    # generate_graph_evolution(db_path, culture_id, path_to_save)
-    # # Plotting the graph evolution
-    # plot_graph_from_gexf(path_to_gexf)
+    # Generating the graph evolution `.gexf` file
+    generate_graph_evolution(db_path=db_path, culture_id=culture_id, path_to_save=folder)
+    # Plotting the graph evolution
+    plot_graph_evolution(path_to_files=folder, culture_id=culture_id)

@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d5" for="node" attr.name="stem" attr.type="long" />
+  <key id="d4" for="node" attr.name="active" attr.type="boolean" />
+  <key id="d3" for="node" attr.name="position_z" attr.type="double" />
+  <key id="d2" for="node" attr.name="position_y" attr.type="double" />
+  <key id="d1" for="node" attr.name="position_x" attr.type="double" />
+  <key id="d0" for="node" attr.name="_index" attr.type="long" />
+  <graph edgedefault="directed">
+    <node id="1">
+      <data key="d0">0</data>
+      <data key="d1">0.0</data>
+      <data key="d2">0.0</data>
+      <data key="d3">0.0</data>
+      <data key="d4">True</data>
+      <data key="d5">1</data>
+    </node>
+    <node id="2">
+      <data key="d0">1</data>
+      <data key="d1">-0.543848871004837</data>
+      <data key="d2">1.6384876224144749</data>
+      <data key="d3">1.0097458673851185</data>
+      <data key="d4">True</data>
+      <data key="d5">1</data>
+    </node>
+    <edge source="1" target="1" />
+    <edge source="1" target="2" />
+  </graph>
+</graphml>
