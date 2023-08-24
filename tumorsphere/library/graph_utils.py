@@ -102,7 +102,7 @@ def generate_graph_at_fixed_time(
             """
             cursor.execute(stem_query, (cell_id, time))
             stem_result = cursor.fetchone()
-            is_stem = stem_result[0] if stem_result else False
+            is_stem = stem_result[0] # if stem_result else False
 
             # Add the node with attributes
             G.add_node(
@@ -202,6 +202,18 @@ def plot_static_graph_3D(
         The opacity of the spheres centered on each node. The default value
         is 0.15, which is a relatively transparent appearance that allows for
         a clear sight of the edges.
+    
+    Raises
+    ------
+    ValueError
+        If a node is neither stem nor non-stem, or if a node is neither active
+        nor inactive.
+
+    Returns
+    -------
+    None
+        This function has no return value. It plots the graph and does not
+        return anything.
 
     Examples
     --------
@@ -230,9 +242,21 @@ def plot_static_graph_3D(
 
         # Determine the color based on active and stem status
         if data["active"]:
-            color = "red" if data["stem"] else "blue"
+            if data["stem"]:
+                color = "red"
+            elif not data["stem"]:
+                color = "blue"
+            else:
+                raise ValueError("Node is neither stem nor non-stem.")
+        elif not data["active"]:
+            if data["stem"]:
+                color = "pink"
+            elif not data["stem"]:
+                color = "lightblue"
+            else:
+                raise ValueError("Node is neither stem nor non-stem.")
         else:
-            color = "pink" if data["stem"] else "lightblue"
+            raise ValueError("Node is neither active nor inactive.")
         node_colors.append(color)
 
     # Create a scatter plot for nodes
@@ -315,9 +339,21 @@ def plot_static_graph_3D(
 
             # Determine the color based on active and stem status
             if data["active"]:
-                color = "red" if data["stem"] else "blue"
+                if data["stem"]:
+                    color = "red"
+                elif not data["stem"]:
+                    color = "blue"
+                else:
+                    raise ValueError("Node is neither stem nor non-stem.")
+            elif not data["active"]:
+                if data["stem"]:
+                    color = "pink"
+                elif not data["stem"]:
+                    color = "lightblue"
+                else:
+                    raise ValueError("Node is neither stem nor non-stem.")
             else:
-                color = "pink" if data["stem"] else "lightblue"
+                raise ValueError("Node is neither active nor inactive.")
 
             # Create a scatter plot for spheres
             sphere_trace = go.Mesh3d(
@@ -339,24 +375,8 @@ def plot_static_graph_3D(
     fig.show()
 
 
-# ======= NOT WORKING =======
-
-
+# ========== NOT WORKING ===========
 def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
-    # Function to convert 3D coordinates to 2D coordinates
-    def convert_3D_to_2D(x, y, z):
-        # # To radial coordinates
-        # rho = np.sqrt(x**2 + y**2 + z**2)
-        # phi = np.arctan2(y, x)
-        # x_new = rho * np.cos(phi)
-        # y_new = rho * np.sin(phi)
-        
-        # Orthographic_projection
-        x_new = x
-        y_new = y
-
-        return x_new, y_new
-
     # Create figure and axes
     fig, ax = plt.subplots()
     plt.subplots_adjust(bottom=0.25)
@@ -369,25 +389,28 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
     ]
     min_time, max_time = min(time_range), max(time_range)
 
-    # Determine the global limits for x and y axes
-    all_x = []
-    all_y = []
-    for time in time_range:
-        file_name = f"graph_culture_id={culture_id}_time={time}.graphml"
-        full_path = os.path.join(path_to_files, file_name)
-        G = nx.read_graphml(full_path)
-        for node, data in G.nodes(data=True):
-            x, y = convert_3D_to_2D(data['position_x'], data['position_y'], data['position_z'])
-            all_x.append(x)
-            all_y.append(y)
+    # Load the graph of the last time step
+    file_name = f"graph_culture_id={culture_id}_time={max_time}.graphml"
+    full_path = os.path.join(path_to_files, file_name)
+    G_last = nx.read_graphml(full_path)
 
-    xlim = (min(all_x)-1, max(all_x)+1)
-    ylim = (min(all_y)-1, max(all_y)+1)
+    # Extract the 3D coordinates from the last time step
+    coordinates_3d_last = [tuple((data['position_x'], data['position_y'], data['position_z'])) for _, data in G_last.nodes(data=True)]
+    coordinates_3d_last = np.array(coordinates_3d_last)
+
+    # Apply MDS to get the 2D coordinates
+    mds = MDS(n_components=2, random_state=42)
+    coordinates_2d_last = mds.fit_transform(coordinates_3d_last)
+
+    # Determine the global limits for x and y axes
+    xlim = (min(coordinates_2d_last[:, 0])-1, max(coordinates_2d_last[:, 0])+1)
+    ylim = (min(coordinates_2d_last[:, 1])-1, max(coordinates_2d_last[:, 1])+1)
 
     # Function to plot the graph for a given time
     def plot_graph(time):
         # Clear current axes
         ax.clear()
+
         # Read the graph from the GraphML file
         file_name = f"graph_culture_id={culture_id}_time={time}.graphml"
         full_path = os.path.join(path_to_files, file_name)
@@ -396,9 +419,8 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
         pos = {}
         edges = []
         colors = []
-        for node, data in G.nodes(data=True):
-            x, y = convert_3D_to_2D(data['position_x'], data['position_y'], data['position_z'])
-            pos[node] = (x, y)
+        for idx, (node, data) in enumerate(G.nodes(data=True)):
+            pos[node] = tuple(coordinates_2d_last[idx])
             if bool(data['active']) is True:
                 if bool(data['stem']) is True:
                     colors.append('red') # Active stem cells
@@ -411,14 +433,16 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
                     colors.append('lightblue') # Inactive non-stem cells
             for neighbor in G.neighbors(node):
                 edges.append((node, neighbor))
-        # Drawing the nodes and edges with more control over style
+
+
+        # Draw the nodes and edges
         nx.draw_networkx_nodes(G, pos, node_size=50, node_color=colors, ax=ax)
         nx.draw_networkx_edges(G, pos, edgelist=edges, width=1, alpha=0.5, ax=ax)
-        
+
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         ax.set_title(f"Graph at Time {time}")
-        ax.axis('off')  # Removes the axis for better visualization
+        ax.axis('off')
 
     # Initial plot
     plot_graph(min_time)
@@ -435,6 +459,7 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
 
     slider.on_changed(update)
     plt.show()
+
 
 
 # ----------------- Module execution -----------------
@@ -460,7 +485,7 @@ if __name__ == "__main__":
     # )
     # # Plotting in 3D space according to coordinates
     # plot_static_graph_3D(
-    #     G, spheres=False, sphere_radius=1, sphere_opacity=0.15
+    #     G, spheres=True, sphere_radius=1, sphere_opacity=0.15
     # )
 
     # ======= NOT WORKING =======
