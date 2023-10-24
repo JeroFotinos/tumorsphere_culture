@@ -351,7 +351,9 @@ class Culture:
         new_position = cell_position + np.array([x, y, z])
         return new_position
 
-    def reproduce(self, cell_index: int, tic: int) -> None:
+    def reproduce(
+        self, cell_index: int, tic: int, dat_files: bool = False
+    ) -> None:
         """The given cell reproduces, generating a new child cell.
 
         Attempts to create a new cell in a random position, adjacent to the
@@ -427,14 +429,17 @@ class Culture:
                             self.prob_stem + self.prob_diff
                         ):  # pd
                             cell.is_stem = False
-                            self.record_stemness(cell_index, tic)
+                            if not dat_files:
+                                self.record_stemness(cell_index, tic)
                         elif (
                             self.rng.random() <= self.swap_probability
                         ):  # pa = 1-ps-pd
                             cell.is_stem = False
-                            self.record_stemness(cell_index, tic)
+                            if not dat_files:
+                                self.record_stemness(cell_index, tic)
                             child_cell.is_stem = True
-                            self.record_stemness(child_cell._index, tic)
+                            if not dat_files:
+                                self.record_stemness(child_cell._index, tic)
                 else:
                     child_cell = Cell(
                         position=child_position,
@@ -468,7 +473,20 @@ class Culture:
     # ---------------------------------------------------------
 
     def simulate(self, num_times: int, culture_name: str) -> None:
-        """Docstring."""
+        """Simulate culture growth for a specified number of time steps.
+
+        At each time step, we randomly sort the list of active cells and then
+        we tell them to reproduce one by one. This version uses the SQL
+        database.
+
+        Parameters
+        ----------
+        num_times : int
+            The number of time steps to simulate the cellular automaton.
+        culture_name : str
+            The name of the culture in the simulation, in the format
+            culture_pd={sim.prob_diff[k]}_ps={sim.prob_stem[i]}_rng_seed={seed}.dat
+        """
 
         # connection to the SQLite database
         self.conn = sqlite3.connect(f"data/{culture_name}.db")
@@ -496,7 +514,7 @@ class Culture:
             )
             # and reproduce the cells in this random order
             for index in active_cell_indexes:
-                self.reproduce(cell_index=index, tic=i)
+                self.reproduce(cell_index=index, tic=i, dat_files=False)
 
     def simulate_with_dat_files(
         self, num_times: int, culture_name: str
@@ -552,7 +570,7 @@ class Culture:
             # I had to point to the cells in a copied list,
             # if not, strange things happened
             for index in active_cell_indexes:
-                self.reproduce(index)
+                self.reproduce(cell_index=index, tic=i, dat_files=True)
 
             # we count the number of CSCs in this time step
             total_stem_counter = 0

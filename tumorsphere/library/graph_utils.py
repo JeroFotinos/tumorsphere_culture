@@ -102,7 +102,7 @@ def generate_graph_at_fixed_time(
             """
             cursor.execute(stem_query, (cell_id, time))
             stem_result = cursor.fetchone()
-            is_stem = stem_result[0] # if stem_result else False
+            is_stem = stem_result[0]  # if stem_result else False
 
             # Add the node with attributes
             G.add_node(
@@ -202,7 +202,7 @@ def plot_static_graph_3D(
         The opacity of the spheres centered on each node. The default value
         is 0.15, which is a relatively transparent appearance that allows for
         a clear sight of the edges.
-    
+
     Raises
     ------
     ValueError
@@ -395,7 +395,10 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
     G_last = nx.read_graphml(full_path)
 
     # Extract the 3D coordinates from the last time step
-    coordinates_3d_last = [tuple((data['position_x'], data['position_y'], data['position_z'])) for _, data in G_last.nodes(data=True)]
+    coordinates_3d_last = [
+        tuple((data["position_x"], data["position_y"], data["position_z"]))
+        for _, data in G_last.nodes(data=True)
+    ]
     coordinates_3d_last = np.array(coordinates_3d_last)
 
     # Apply MDS to get the 2D coordinates
@@ -403,8 +406,14 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
     coordinates_2d_last = mds.fit_transform(coordinates_3d_last)
 
     # Determine the global limits for x and y axes
-    xlim = (min(coordinates_2d_last[:, 0])-1, max(coordinates_2d_last[:, 0])+1)
-    ylim = (min(coordinates_2d_last[:, 1])-1, max(coordinates_2d_last[:, 1])+1)
+    xlim = (
+        min(coordinates_2d_last[:, 0]) - 1,
+        max(coordinates_2d_last[:, 0]) + 1,
+    )
+    ylim = (
+        min(coordinates_2d_last[:, 1]) - 1,
+        max(coordinates_2d_last[:, 1]) + 1,
+    )
 
     # Function to plot the graph for a given time
     def plot_graph(time):
@@ -421,35 +430,38 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
         colors = []
         for idx, (node, data) in enumerate(G.nodes(data=True)):
             pos[node] = tuple(coordinates_2d_last[idx])
-            if bool(data['active']) is True:
-                if bool(data['stem']) is True:
-                    colors.append('red') # Active stem cells
+            if bool(data["active"]) is True:
+                if bool(data["stem"]) is True:
+                    colors.append("red")  # Active stem cells
                 else:
-                    colors.append('blue') # Active non-stem cells
+                    colors.append("blue")  # Active non-stem cells
             else:
-                if bool(data['stem']) is True:
-                    colors.append('pink') # Inactive stem cells
+                if bool(data["stem"]) is True:
+                    colors.append("pink")  # Inactive stem cells
                 else:
-                    colors.append('lightblue') # Inactive non-stem cells
+                    colors.append("lightblue")  # Inactive non-stem cells
             for neighbor in G.neighbors(node):
                 edges.append((node, neighbor))
 
-
         # Draw the nodes and edges
         nx.draw_networkx_nodes(G, pos, node_size=50, node_color=colors, ax=ax)
-        nx.draw_networkx_edges(G, pos, edgelist=edges, width=1, alpha=0.5, ax=ax)
+        nx.draw_networkx_edges(
+            G, pos, edgelist=edges, width=1, alpha=0.5, ax=ax
+        )
 
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         ax.set_title(f"Graph at Time {time}")
-        ax.axis('off')
+        ax.axis("off")
 
     # Initial plot
     plot_graph(min_time)
 
     # Add a slider for time control
     ax_slider = plt.axes([0.25, 0.01, 0.50, 0.03])
-    slider = Slider(ax_slider, 'Time', min_time, max_time, valinit=min_time, valstep=1)
+    slider = Slider(
+        ax_slider, "Time", min_time, max_time, valinit=min_time, valstep=1
+    )
 
     # Update the plot when the slider is changed
     def update(val):
@@ -459,7 +471,6 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
 
     slider.on_changed(update)
     plt.show()
-
 
 
 # ----------------- Module execution -----------------
@@ -490,6 +501,8 @@ if __name__ == "__main__":
 
     # ======= NOT WORKING =======
     # Generating the graph evolution `.gexf` file
-    generate_graph_evolution(db_path=db_path, culture_id=culture_id, path_to_save=folder)
+    generate_graph_evolution(
+        db_path=db_path, culture_id=culture_id, path_to_save=folder
+    )
     # Plotting the graph evolution
     plot_graph_evolution(path_to_files=folder, culture_id=culture_id)
