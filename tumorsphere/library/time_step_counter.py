@@ -4,7 +4,10 @@ import glob
 import os
 import sqlite3
 
-def count_time_steps_of_cultures_in_dir(data_dir: str, dat_files: bool = False) -> None:
+
+def count_time_steps_of_cultures_in_dir(
+    data_dir: str, dat_files: bool = False
+) -> None:
     """
     Count the number of time steps of each culture in the `data_dir`
     directory, and print the steps to the console, indicating the parameters
@@ -26,7 +29,7 @@ def count_time_steps_of_cultures_in_dir(data_dir: str, dat_files: bool = False) 
     if dat_files:
         # Handle .dat files
         for dat_file in glob.glob(os.path.join(data_dir, "*.dat")):
-            with open(dat_file, 'r') as f:
+            with open(dat_file, "r") as f:
                 line_count = sum(1 for line in f)
                 print(f"{os.path.basename(dat_file)}: {line_count-1} lines")
     else:
@@ -34,18 +37,18 @@ def count_time_steps_of_cultures_in_dir(data_dir: str, dat_files: bool = False) 
         for temp_db in glob.glob(os.path.join(data_dir, "*.db")):
             with sqlite3.connect(temp_db) as conn_temp:
                 cursor_temp = conn_temp.cursor()
-                
+
                 # Get the culture's parameters
-                cursor_temp.execute("SELECT prob_diff, prob_stem, culture_seed FROM Cultures")
+                cursor_temp.execute(
+                    "SELECT prob_diff, prob_stem, culture_seed FROM Cultures"
+                )
                 pd, ps, seed = cursor_temp.fetchall()[0]
-                
+
                 # Get the number of simulation time steps performed (tics)
                 cursor_temp.execute("SELECT max(t_creation) FROM Cells")
                 step = cursor_temp.fetchone()[0]
-                
+
                 print(f"Step {step} for culture pd={pd}, ps={ps}, seed={seed}")
-
-
 
 
 if __name__ == "__main__":
