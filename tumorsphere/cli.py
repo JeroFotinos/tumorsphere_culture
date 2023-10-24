@@ -1,7 +1,7 @@
 import click
 from tumorsphere.core.simulation import Simulation
 from tumorsphere.library.time_step_counter import (
-    count_time_steps_of_dbs_in_dir,
+    count_time_steps_of_cultures_in_dir,
 )
 from tumorsphere.library.dataframe_generation import (
     generate_dataframe_from_db,
@@ -141,7 +141,15 @@ cli.add_command(simulate)
 @click.option(
     "--data-dir", required=True, type=str, help="Path to the data directory"
 )
-def status(data_dir):
+@click.option(
+    "--dat-files",
+    required=False,
+    type=bool,
+    default=False,
+    show_default=True,
+    help="Use True for a directory with `.dat` files instead of the standard `.db` files.",
+)
+def status(data_dir, dat_files):
     """Command-line interface that prints the simulation time step each
     tumorsphere culture is in, indicating its parameters for identification
     purposes.
@@ -156,7 +164,7 @@ def status(data_dir):
     >>> tumorsphere status --help
     >>> tumorsphere status --data-dir ./data
     """
-    count_time_steps_of_dbs_in_dir(data_dir)
+    count_time_steps_of_cultures_in_dir(data_dir, dat_files)
 
 
 cli.add_command(status)
