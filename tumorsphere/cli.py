@@ -106,6 +106,9 @@ def simulate(
         ovito : bool, optional
             False by default. If True, it generates the data for plotting with
             Ovito instead of the usual data of the simulaiton.
+        dat_files : bool, optional
+            False by default. If True, it only outputs population numbers in a
+            `.dat` file instead of the standard `.db` file.
 
     Examples
     --------

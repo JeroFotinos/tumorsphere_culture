@@ -462,7 +462,8 @@ class Culture:
             else:
                 cell.available_space = False
                 self.active_cell_indexes.remove(cell_index)
-                self.record_deactivation(cell_index, tic)
+                if not dat_files:
+                    self.record_deactivation(cell_index, tic)
                 # if there was no available space, we turn off reproduction
                 # and record the change in the Cells table of the DataBase
         # else:
