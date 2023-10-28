@@ -9,7 +9,7 @@
 ### Configuración del trabajo
 
 ### Nombre de la tarea
-#SBATCH --job-name=tumorsphere_13_8
+#SBATCH --job-name=tumorsphere_1
 
 ### Cola a usar (gpu, mono, multi)
 #SBATCH --partition=multi
@@ -38,5 +38,5 @@
 # Lanzar el programa
 source ~/miniconda3/bin/activate
 conda activate
-srun tumorsphere simulate --prob-stem "0.72,.73" --prob-diff "0" --realizations 16 --steps-per-realization 60 --rng-seed 3104902187430912364 --parallel-processes 32 --ovito False --dat-files True
+srun tumorsphere simulate --prob-stem "0.65,0.66" --prob-diff "0" --realizations 16 --steps-per-realization 60 --rng-seed 3104902187430912364 --parallel-processes 32 --ovito False --dat-files True
 
