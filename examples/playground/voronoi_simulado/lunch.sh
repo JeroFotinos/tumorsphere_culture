@@ -1,0 +1,1 @@
+tumorsphere simulate --prob-stem "0.8" --prob-diff "0" --realizations 1 --steps-per-realization 12 --rng-seed 1292317634567 --parallel-processes 1 --ovito False --dat-files False
