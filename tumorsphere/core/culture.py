@@ -401,7 +401,7 @@ class Culture:
                 # every element of the array, we break the loop
                 if no_overlap:
                     break
-
+            
             # if there was no overlap, we create a child in that position
             # if not, we do nothing but specifying that there is no available
             # space
@@ -462,6 +462,13 @@ class Culture:
             else:
                 cell.available_space = False
                 self.active_cell_indexes.remove(cell_index)
+                # Opción 1: cambiar remove, que remueve la primera aparición
+                # del elemento, por discard, que remueve todas las apariciones.
+                # Opción 2: hacer un set de los active_cell_indexes, y
+                # remover el elemento del set, y luego convertir el set en
+                # lista.
+                # Opcción 3: poner un raise error si el index sigue estando
+                # en la lista de active_cell_indexes (mejor implementar un test).
                 if not dat_files:
                     self.record_deactivation(cell_index, tic)
                 # if there was no available space, we turn off reproduction
@@ -490,22 +497,35 @@ class Culture:
         """
 
         # connection to the SQLite database
-        self.conn = sqlite3.connect(f"data/{culture_name}.db")
+        # we connect into a 'data' directory, if not present, we warn
+        # and connect to a db in the current folder
+        # self.conn = sqlite3.connect(f"data/{culture_name}.db")
+        try:
+            self.conn = sqlite3.connect(f"data/{culture_name}.db")
+        except sqlite3.OperationalError:
+            print(
+                "The 'data' directory does not exist. The database will be "
+                "created in the current folder."
+            )
+            self.conn = sqlite3.connect(f"{culture_name}.db")
 
-        # we create the tables of the DB
-        self._create_tables()
+        # if the culture is brand-new, we create the tables of the DB and the
+        # first cell
+        if len(self.cells) == 0:
+            # we create the tables of the DB
+            self._create_tables()
 
-        # we insert the register corresponding to this culture
-        self.culture_id = self._insert_culture_record_and_get_culture_id()
+            # we insert the register corresponding to this culture
+            self.culture_id = self._insert_culture_record_and_get_culture_id()
 
-        # we instantiate the first cell
-        first_cell_object = Cell(
-            position=np.array([0, 0, 0]),
-            culture=self,
-            is_stem=self.first_cell_is_stem,
-            parent_index=0,
-            available_space=True,
-        )
+            # we instantiate the first cell
+            first_cell_object = Cell(
+                position=np.array([0, 0, 0]),
+                culture=self,
+                is_stem=self.first_cell_is_stem,
+                parent_index=0,
+                available_space=True,
+            )
 
         # we simulate for num_times time steps
         for i in range(1, num_times):
