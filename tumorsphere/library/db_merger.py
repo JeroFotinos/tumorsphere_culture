@@ -205,8 +205,8 @@ def merge_db_files_in_dir_into_conn(
                     # Insert into merged database and get the new cell_id
                     cursor_merged.execute(
                         """
-                        INSERT INTO Cells (_index, parent_index, position_x, position_y, position_z, t_creation, culture_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?);
+                        INSERT INTO Cells (_index, parent_index, position_x, position_y, position_z, t_creation, t_deactivation, culture_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?);
                     """,
                         (
                             int(cell[0]),
@@ -215,6 +215,7 @@ def merge_db_files_in_dir_into_conn(
                             float(cell[3]),
                             float(cell[4]),
                             int(cell[5]),
+                            cell[6], # we can't convert to int in case it's None
                             culture_id,
                         ),
                     )
