@@ -12,7 +12,7 @@ from typing import Tuple
 import numpy as np
 
 from tumorsphere.core.culture import Culture
-from tumorsphere.core.output import *
+from tumorsphere.core.output import create_output_demux
 
 
 class Simulation:
@@ -147,7 +147,9 @@ class Simulation:
             low=2**20, high=2**50, size=self.num_of_realizations
         )
 
-        outputs = ["sql"]
+        outputs = []
+        if sql:
+            outputs.append("sql")
         if dat_files:
             outputs.append("dat")
         if ovito:

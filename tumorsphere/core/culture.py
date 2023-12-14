@@ -5,7 +5,6 @@ Classes:
     - Culture: Class that represents a culture of cells. Usually dependent
     on the Simulation class.
 """
-import sqlite3
 from datetime import datetime
 from typing import Set
 
