@@ -107,32 +107,12 @@ class Cell:
 
         # if we're simulating with the SQLite DB, we insert a register in the
         # Cells table of the SQLite DB
-        if culture.conn is not None:
-            with culture.conn:
-                cursor = culture.conn.cursor()
-                cursor.execute(
-                    """
-                    INSERT INTO Cells (_index, parent_index, position_x, position_y, position_z, t_creation, culture_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?);
-                """,
-                    (
-                        self._index,
-                        int(self.parent_index),
-                        self.culture.cell_positions[self._index][0],
-                        self.culture.cell_positions[self._index][1],
-                        self.culture.cell_positions[self._index][2],
-                        creation_time,
-                        self.culture.culture_id,
-                    ),
-                )
-                cursor.execute(
-                    """
-                    INSERT INTO StemChanges (cell_id, t_change, is_stem)
-                    VALUES (?, ?, ?);
-                """,
-                    (
-                        self._index,
-                        creation_time,
-                        self.is_stem,
-                    ),
-                )
+        self.culture.output.record_cell(
+            self._index,
+            int(self.parent_index),
+            self.culture.cell_positions[self._index][0],
+            self.culture.cell_positions[self._index][1],
+            self.culture.cell_positions[self._index][2],
+            creation_time,
+            self.is_stem,
+        )
