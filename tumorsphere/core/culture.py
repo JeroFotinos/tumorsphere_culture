@@ -199,25 +199,29 @@ class Culture:
             neighbors_up_to_certain_degree = (
                 self.get_neighbors_up_to_second_degree(cell_index)
             )
+
         # now we check if there are cells to append
-        for index in neighbors_up_to_certain_degree:
-            a_cell = self.cells[index]
-            neither_self_nor_neighbor = (index != cell_index) and (
-                index not in cell.neighbors_indexes
+        candidate_set = neighbors_up_to_certain_degree - cell.neighbors_indexes
+        candidate_set.difference_update([cell_index])
+        candidate_indexes = list(candidate_set)
+
+        if len(candidate_indexes) > 0:
+            candidate_positions = self.cell_positions[candidate_indexes, :]
+            candidate_distances = np.linalg.norm(
+                self.cell_positions[cell_index] - candidate_positions, axis=1
             )
-            if neither_self_nor_neighbor:
-                # if the distance to this cell is within the threshold, we add it as a neighbor
-                # distance = np.linalg.norm(
-                #     cell.position - a_cell.position
-                # )
-                distance = np.linalg.norm(
-                    self.cell_positions[cell_index]
-                    - self.cell_positions[a_cell._index]
+
+            for candidate_index, candidate_distance in zip(
+                candidate_indexes, candidate_distances
+            ):
+                in_neighborhood = (
+                    candidate_distance <= self.adjacency_threshold
                 )
-                in_neighborhood = distance <= self.adjacency_threshold
                 if in_neighborhood:
-                    cell.neighbors_indexes.add(index)
-                    a_cell.neighbors_indexes.add(cell_index)
+                    cell.neighbors_indexes.add(candidate_index)
+                    self.cells[candidate_index].neighbors_indexes.add(
+                        cell_index
+                    )
 
     def generate_new_position(self, cell_index: int) -> np.ndarray:
         """Generate a proposed position for the child cell, adjacent to the
