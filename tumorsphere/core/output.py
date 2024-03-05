@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List
 
 import sqlite3
 import logging
@@ -44,9 +45,14 @@ class TumorsphereOutput(ABC):
 
 
 class OutputDemux(TumorsphereOutput):
-    def __init__(self, culture_name, result_list):
+    def __init__(
+        self,
+        culture_name: str,
+        result_list: List[TumorsphereOutput],
+    ):
         self.culture_name = culture_name
         self.result_list = result_list
+        # result_list's elements are other TumorsphereOutput objects
 
     def begin_culture(
         self,
