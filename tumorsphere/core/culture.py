@@ -370,19 +370,15 @@ class Culture:
                         child_cell._index
                     )
             else:
+                # The cell has no available space to reproduce
                 cell.available_space = False
-                # set_of_current_active_cells = set(self.active_cell_indexes).discard(cell_index)
-                # self.active_cell_indexes = list(set_of_current_active_cells)
-                self.active_cell_indexes.remove(cell_index)
-                # Opción 1: cambiar remove, que remueve la primera aparición
-                # del elemento, por discard, que remueve todas las
-                # apariciones. PROBLEMA: discard no es un método de list,
-                # sino de set.
-                # Opción 2: hacer un set de los active_cell_indexes, y
-                # remover el elemento del set, y luego convertir el set en
-                # lista. ESTA ES LA MEJOR OPCIÓN.
-                # Opcción 3: poner un raise error si el index sigue estando
-                # en la lista de active_cell_indexes (mejor implementar un test).
+                # We no longer consider it active, so we remove *all* of its
+                # instances from the list of active cell indexes
+                set_of_current_active_cells = set(
+                    self.active_cell_indexes
+                ).discard(cell_index)
+                self.active_cell_indexes = list(set_of_current_active_cells)
+                # We record the deactivation
                 self.output.record_deactivation(cell_index, tic)
                 # if there was no available space, we turn off reproduction
                 # and record the change in the Cells table of the DataBase
