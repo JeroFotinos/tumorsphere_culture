@@ -7,7 +7,7 @@ Classes:
     combination.
 """
 import multiprocessing as mp
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 
@@ -178,7 +178,7 @@ def realization_name(pd, ps, seed) -> str:
 
 
 def simulate_single_culture(
-    args: Tuple[int, int, int, Simulation, dict[str, bool]]
+    args: Tuple[int, int, int, Simulation, List[str]]
 ) -> None:
     """A worker function for multiprocessing.
 
