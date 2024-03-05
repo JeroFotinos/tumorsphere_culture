@@ -85,7 +85,7 @@ class Culture:
         self.prob_diff = prob_diff
         self.swap_probability = swap_probability
 
-        # we instantiate the culture's RNG with the entropy provided
+        # we instantiate the culture's RNG with the provided entropy
         self.rng_seed = rng_seed
         self.rng = np.random.default_rng(rng_seed)
 
@@ -183,7 +183,9 @@ class Culture:
         """
         Find the neighbors of a cell.
 
-        This method modifies the cell's neighbors attribute in-place.
+        This method updates the cell's list of indexes of neighbors in-place.
+        When a new neighbor is found, the cell is also added to the list of
+        neighbors of this newly found neighbor.
 
         Parameters
         ----------
@@ -229,19 +231,22 @@ class Culture:
 
         A new position for the child cell is randomly generated, at a distance
         equals to two times the radius of a cell (all cells are assumed to
-        have the same radius) by randomly choosing the angular spherical
-        coordinates from a uniform distribution. It uses the cell current
-        position and its radius.
+        have the same radius). This is done by randomly choosing the angular
+        spherical coordinates from a uniform distribution. It uses the cell
+        current position and its radius.
 
         Returns
         -------
         new_position : numpy.ndarray
             A 3D vector representing the new position of the cell.
+
+        Notes
+        -----
+        - All cells are assumed to have the same radius.
+        - To get a uniform distribution of points in the unit sphere, we have
+        to choose cos(theta) uniformly in [-1, 1] instead of theta uniformly
+        in [0, pi].
         """
-        # theta = np.random.uniform(low=0, high=2 * np.pi)
-        # phi = np.random.uniform(low=0, high=np.pi)
-        # theta = self.rng.uniform(low=0, high=2 * np.pi)
-        # , size=number_of_points
         cos_theta = self.rng.uniform(low=-1, high=1)
         theta = np.arccos(cos_theta)  # Convert cos(theta) to theta
         phi = self.rng.uniform(low=0, high=2 * np.pi)
@@ -258,8 +263,10 @@ class Culture:
 
         Attempts to create a new cell in a random position, adjacent to the
         current cell, if the cell has available space. If the cell fails to
-        find a position that doesn't overlap with existing cells, for the
-        estabished maximum number of attempts, no new cell is created.
+        find a position that doesn't overlap with existing cells, (for the
+        estabished maximum number of attempts), no new cell is created, and
+        the current one is deactivated. This means that we set its available
+        space to `False` and remove it from the list of active cells.
 
         Notes
         -----
@@ -364,12 +371,16 @@ class Culture:
                     )
             else:
                 cell.available_space = False
+                # set_of_current_active_cells = set(self.active_cell_indexes).discard(cell_index)
+                # self.active_cell_indexes = list(set_of_current_active_cells)
                 self.active_cell_indexes.remove(cell_index)
                 # Opción 1: cambiar remove, que remueve la primera aparición
-                # del elemento, por discard, que remueve todas las apariciones.
+                # del elemento, por discard, que remueve todas las
+                # apariciones. PROBLEMA: discard no es un método de list,
+                # sino de set.
                 # Opción 2: hacer un set de los active_cell_indexes, y
                 # remover el elemento del set, y luego convertir el set en
-                # lista.
+                # lista. ESTA ES LA MEJOR OPCIÓN.
                 # Opcción 3: poner un raise error si el index sigue estando
                 # en la lista de active_cell_indexes (mejor implementar un test).
                 self.output.record_deactivation(cell_index, tic)
