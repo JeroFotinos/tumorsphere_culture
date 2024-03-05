@@ -222,7 +222,7 @@ class Cell:
                             prob_stem=self.prob_stem,
                             continuous_graph_generation=self._continuous_graph_generation,
                             rng_seed=self.rng.integers(
-                                low=2**20, high=2**50
+                                low=2 ** 20, high=2 ** 50
                             ),
                         )
                     else:
@@ -236,7 +236,7 @@ class Cell:
                             prob_stem=self.prob_stem,
                             continuous_graph_generation=self._continuous_graph_generation,
                             rng_seed=self.rng.integers(
-                                low=2**20, high=2**50
+                                low=2 ** 20, high=2 ** 50
                             ),
                         )
                         if self.rng.random() <= self._swap_probability:
@@ -252,7 +252,7 @@ class Cell:
                         max_repro_attempts=self.max_repro_attempts,
                         prob_stem=self.prob_stem,
                         continuous_graph_generation=self._continuous_graph_generation,
-                        rng_seed=self.rng.integers(low=2**20, high=2**50),
+                        rng_seed=self.rng.integers(low=2 ** 20, high=2 ** 50),
                     )
                 # we add this cell to the culture's cells and active_cells lists
                 self.culture.cells.append(child_cell)
@@ -320,7 +320,7 @@ class Culture:
             max_repro_attempts=cell_max_repro_attempts,
             prob_stem=self.prob_stem,
             continuous_graph_generation=continuous_graph_generation,
-            rng_seed=self.rng.integers(low=2**20, high=2**50),
+            rng_seed=self.rng.integers(low=2 ** 20, high=2 ** 50),
         )
 
         # we initialize the lists and graphs with the first cell
@@ -575,7 +575,7 @@ class Simulation:
                     first_cell_is_stem=self.first_cell_is_stem,
                     prob_stem=self.prob_stem[i],
                     continuous_graph_generation=self.continuous_graph_generation,
-                    rng_seed=self.rng.integers(low=2**20, high=2**50),
+                    rng_seed=self.rng.integers(low=2 ** 20, high=2 ** 50),
                 )
                 # we simulate the culture's growth and retrive data in the
                 # self.data dictionary, with the same string as key

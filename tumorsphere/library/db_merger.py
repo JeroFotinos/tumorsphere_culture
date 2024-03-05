@@ -215,7 +215,9 @@ def merge_db_files_in_dir_into_conn(
                             float(cell[3]),
                             float(cell[4]),
                             int(cell[5]),
-                            cell[6], # we can't convert to int in case it's None
+                            cell[
+                                6
+                            ],  # we can't convert to int in case it's None
                             culture_id,
                         ),
                     )

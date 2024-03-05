@@ -21,8 +21,10 @@ def csc_seeded_culture():
             rng_seed=110293658491283598,
             swap_probability=0.5,
         )
-        dcc_culture.simulate(num_times=time_to_simulate, culture_name=culture_name_temp)
-        
+        dcc_culture.simulate(
+            num_times=time_to_simulate, culture_name=culture_name_temp
+        )
+
     finally:
         # Cleanup code
         db_files = [f"data/{culture_name_temp}.db", f"{culture_name_temp}.db"]
@@ -48,8 +50,10 @@ def dcc_seeded_culture():
             rng_seed=110293658491283598,
             swap_probability=0.5,
         )
-        dcc_culture.simulate(num_times=time_to_simulate, culture_name=culture_name_temp)
-        
+        dcc_culture.simulate(
+            num_times=time_to_simulate, culture_name=culture_name_temp
+        )
+
     finally:
         # Cleanup code
         db_files = [f"data/{culture_name_temp}.db", f"{culture_name_temp}.db"]
@@ -65,7 +69,7 @@ def culture_evolved_at_time_2():
     (time starts in 1)."""
     time_to_simulate = 2
     culture_name_temp = "culture_evolved_at_time_2"
-    
+
     try:
         csc_culture = Culture(
             adjacency_threshold=4,
@@ -77,10 +81,12 @@ def culture_evolved_at_time_2():
             rng_seed=110293658491283598,
             swap_probability=0.5,
         )
-        csc_culture.simulate(num_times=time_to_simulate, culture_name=culture_name_temp)
+        csc_culture.simulate(
+            num_times=time_to_simulate, culture_name=culture_name_temp
+        )
 
     finally:
-        # Cleanup code    
+        # Cleanup code
         db_files = [f"data/{culture_name_temp}.db", f"{culture_name_temp}.db"]
         for db_file in db_files:
             if os.path.exists(db_file):
@@ -105,8 +111,10 @@ def culture_evolved_at_time_3():
             rng_seed=110293658491283598,
             swap_probability=0.5,
         )
-        csc_culture.simulate(num_times=time_to_simulate, culture_name=culture_name_temp)
-        
+        csc_culture.simulate(
+            num_times=time_to_simulate, culture_name=culture_name_temp
+        )
+
     finally:
         # Cleanup code
         db_files = [f"data/{culture_name_temp}.db", f"{culture_name_temp}.db"]
@@ -114,4 +122,3 @@ def culture_evolved_at_time_3():
             if os.path.exists(db_file):
                 os.remove(db_file)
     return csc_culture
-
