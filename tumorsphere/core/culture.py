@@ -393,8 +393,7 @@ class Culture:
         """Simulate culture growth for a specified number of time steps.
 
         At each time step, we randomly sort the list of active cells and then
-        we tell them to reproduce one by one. This version uses the SQL
-        database.
+        we tell them to reproduce one by one.
 
         Parameters
         ----------
