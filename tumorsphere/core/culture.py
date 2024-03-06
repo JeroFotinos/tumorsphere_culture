@@ -423,18 +423,16 @@ class Culture:
                 available_space=True,
             )
 
-        # we count the initial amount of CSCs
-        if self.first_cell_is_stem:
-            initial_amount_of_csc = 1
-        else:
-            initial_amount_of_csc = 0
-
-        self.output.record_num_cells(
-            1, 1, initial_amount_of_csc, initial_amount_of_csc
-        )
-
+        # Save the data (for dat, ovito, and/or SQLite)
+        self.output.record_culture_state(
+            tic=i,
+            cells=self.cells,
+            cell_positions=self.cell_positions,
+            active_cell_indexes=self.active_cell_indexes,
+            )
+    
         # we simulate for num_times time steps
-        for i in range(1, num_times):
+        for i in range(1, num_times+1):
             # we get a permuted copy of the cells list
             active_cell_indexes = self.rng.permutation(
                 self.active_cell_indexes
@@ -443,25 +441,10 @@ class Culture:
             for index in active_cell_indexes:
                 self.reproduce(cell_index=index, tic=i)
 
-            # we save the data for ovito
-            self.output.dump_cell_positions(i, self.cells, self.cell_positions)
-
-            # we count the number of CSCs in this time step
-            total_stem_counter = 0
-            for cell in self.cells:
-                if cell.is_stem:
-                    total_stem_counter = total_stem_counter + 1
-
-            # we count the number of active CSCs in this time step
-            active_stem_counter = 0
-            for index in self.active_cell_indexes:
-                if self.cells[index].is_stem:
-                    active_stem_counter = active_stem_counter + 1
-
-            # we save the data to a file
-            self.output.record_num_cells(
-                len(self.cells),
-                len(self.active_cell_indexes),
-                total_stem_counter,
-                active_stem_counter,
-            )
+            # Save the data (for dat, ovito, and/or SQLite)
+            self.output.record_culture_state(
+                tic=i,
+                cells=self.cells,
+                cell_positions=self.cell_positions,
+                active_cell_indexes=self.active_cell_indexes,
+                )
