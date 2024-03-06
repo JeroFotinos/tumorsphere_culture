@@ -27,14 +27,9 @@ class TumorsphereOutput(ABC):
         pass
 
     @abstractmethod
-    def record_num_cells(
-        self, num_cells, num_active, num_stem, num_active_stem
+    def record_culture_state(
+        self, tic, cells, cell_positions, active_cell_indexes,
     ):
-        pass
-
-    # FIXME: These two are redundant
-    @abstractmethod
-    def dump_cell_positions(self, t, cells, cell_positions):
         pass
 
     @abstractmethod
@@ -81,17 +76,13 @@ class OutputDemux(TumorsphereOutput):
         for result in self.result_list:
             result.record_deactivation(cell_index, tic)
 
-    def record_num_cells(
-        self, num_cells, num_active, num_stem, num_active_stem
+    def record_culture_state(
+        self, tic, cells, cell_positions, active_cell_indexes,
     ):
         for result in self.result_list:
-            result.record_num_cells(
-                num_cells, num_active, num_stem, num_active_stem
+            result.record_culture_state(
+                tic, cells, cell_positions, active_cell_indexes,
             )
-
-    def dump_cell_positions(self, t, cells, cell_positions):
-        for result in self.result_list:
-            result.dump_cell_positions(t, cells, cell_positions)
 
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
@@ -173,7 +164,7 @@ class SQLOutput(TumorsphereOutput):
         simulation_start,
         adjacency_threshold,
         swap_probability,
-    ) -> int:
+    ) -> int: # Wired annotation, the method returns None
         with self.conn:
             cursor = self.conn.cursor()
             cursor.execute(
@@ -190,7 +181,8 @@ class SQLOutput(TumorsphereOutput):
                     swap_probability,
                 ),
             )
-            self.culture_id = cursor.lastrowid
+            self.culture_id = cursor.lastrowid # Perhaps it'd be better to
+            # initialize self.culture_id in the __init__ method
 
     def record_stemness(self, cell_index, tic, stemness):
         with self.conn:
@@ -220,13 +212,10 @@ class SQLOutput(TumorsphereOutput):
                 """,
                 (tic, int(cell_index)),
             )
-
-    def record_num_cells(
-        self, num_cells, num_active, num_stem, num_active_stem
+            
+    def record_culture_state(
+        self, tic, cells, cell_positions, active_cell_indexes,
     ):
-        pass
-
-    def dump_cell_positions(self, t, cells, cell_positions):
         pass
 
     def record_cell(
@@ -285,16 +274,32 @@ class DatOutput(TumorsphereOutput):
     def record_deactivation(self, cell_index, tic):
         pass
 
-    def record_num_cells(
-        self, num_cells, num_active, num_stem, num_active_stem
+    def record_culture_state(
+        self, tic, cells, cell_positions, active_cell_indexes,
     ):
         with open(self.filename, "a") as datfile:
-            datfile.write(
-                f"{num_cells}, {num_active}, {num_stem}, {num_active_stem} \n"
-            )
+            # we count the total number of cells and active cells
+            num_cells = len(cells)
+            num_active = len(active_cell_indexes)
 
-    def dump_cell_positions(self, t, cells, cell_positions):
-        pass
+            # we count the number of CSCs in this time step
+            total_stem_counter = 0
+            for cell in cells:
+                if cell.is_stem:
+                    total_stem_counter = total_stem_counter + 1
+
+            # we count the number of active CSCs in this time step
+            active_stem_counter = 0
+            for index in active_cell_indexes:
+                if cells[index].is_stem:
+                    active_stem_counter = active_stem_counter + 1            
+            
+            # we save the data to the file
+            datfile.write(
+                f"{num_cells}, {num_active}, {total_stem_counter}, {active_stem_counter} \n"
+            )
+        
+
 
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
@@ -323,16 +328,13 @@ class OvitoOutput(TumorsphereOutput):
     def record_deactivation(self, cell_index, tic):
         pass
 
-    def record_num_cells(
-        self, num_cells, num_active, num_stem, num_active_stem
+    def record_culture_state(
+        self, tic, cells, cell_positions, active_cell_indexes,
     ):
-        pass
-
-    def dump_cell_positions(self, t, cells, cell_positions):
         """Writes the data file in path for ovito, for time step t of self.
         Auxiliar function for simulate_with_ovito_data.
         """
-        path_to_write = f"data/ovito_data_{self.culture_name}.{t:03}"
+        path_to_write = f"data/ovito_data_{self.culture_name}.{tic:03}"
         with open(path_to_write, "w") as file_to_write:
             file_to_write.write(str(len(cells)) + "\n")
             file_to_write.write(
