@@ -15,7 +15,7 @@ def cli():
 
 
 @click.command(
-    help="Runs the tumorsphere simulation with the indicated parameters."
+    help="Simulates tumorsphere growth with the indicated parameters."
 )
 @click.option(
     "--prob-stem",
@@ -58,12 +58,12 @@ def cli():
     help="Number of simultaneous processes. Default is None, which uses all available cores.",
 )
 @click.option(
-    "--ovito",
+    "--sql",
     required=False,
     type=bool,
-    default=False,
+    default=True,
     show_default=True,
-    help="If True, it generates the data for plotting with Ovito instead of the usual data of the simulaiton.",
+    help="If True, it stores all simulation data in an SQL database.",
 )
 @click.option(
     "--dat-files",
@@ -73,6 +73,14 @@ def cli():
     show_default=True,
     help="If True, it only outputs population numbers in a `.dat` file instead of the standard `.db` file.",
 )
+@click.option(
+    "--ovito",
+    required=False,
+    type=bool,
+    default=False,
+    show_default=True,
+    help="If True, it generates the data for plotting with Ovito instead of the usual data of the simulaiton.",
+)
 def simulate(
     prob_stem,
     prob_diff,
@@ -80,8 +88,9 @@ def simulate(
     steps_per_realization,
     rng_seed,
     parallel_processes,
-    ovito,
+    sql,
     dat_files,
+    ovito,
 ):
     """
     Command-line interface for running the tumorsphere simulation.
@@ -89,9 +98,11 @@ def simulate(
     Parameters
     ----------
         prob_stem : str
-            Comma-separated string of probabilities that a stem cell will self-replicate.
+            Comma-separated string of probabilities that a stem cell will
+            self-replicate.
         prob_diff : str
-            Comma-separated string of probabilities that a stem cell will yield two differentiated cells.
+            Comma-separated string of probabilities that a stem cell will
+            yield two differentiated cells.
         realizations : int
             Number of `Culture` objects to simulate for each combination of
             `prob_stem` and `prob_diff`.
@@ -102,18 +113,22 @@ def simulate(
         parallel_processes : int, optional
             Number of simultaneous processes. If None (default), uses all
             available cores. When running in a cluster, it should match the
-            number of cores requested to the queueing system.
+            number of cores requested to the queuing system.
+        sql : bool, optional
+            True by default. If False, it does not store all simulation data
+            in an SQL database.
+        dat_files : bool, optional
+            False by default. If True, it outputs population numbers in a
+            `.dat` file.
         ovito : bool, optional
             False by default. If True, it generates the data for plotting with
-            Ovito instead of the usual data of the simulaiton.
-        dat_files : bool, optional
-            False by default. If True, it only outputs population numbers in a
-            `.dat` file instead of the standard `.db` file.
+            Ovito.
+        
 
     Examples
     --------
     >>> tumorsphere simulate --help
-    >>> tumorsphere simulate --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4 --ovito False --dat-files False
+    >>> tumorsphere simulate --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4 --sql False --dat-files True --ovito True
     """
     prob_stem = [float(x) for x in prob_stem.split(",")]
     prob_diff = [float(x) for x in prob_diff.split(",")]
@@ -128,11 +143,12 @@ def simulate(
         cell_radius=1,
         adjacency_threshold=4,
         cell_max_repro_attempts=1000,
-        # continuous_graph_generation=False, # for Simulation
+        # swap_probability=0.5,
     )
     sim.simulate_parallel(
-        ovito=ovito,
+        sql=sql,
         dat_files=dat_files,
+        ovito=ovito,
         number_of_processes=parallel_processes,
     )
 
