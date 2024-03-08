@@ -102,7 +102,7 @@ class Simulation:
         # dictionary storing the culture objects
         self.cultures = {}
 
-        # attributes to pass to the culture (and cells)
+        # attributes to pass to the culture (and to the cells)
         self.cell_max_repro_attempts = cell_max_repro_attempts
         self.adjacency_threshold = adjacency_threshold
         self.cell_radius = cell_radius
@@ -110,24 +110,19 @@ class Simulation:
     def simulate_parallel(
         self,
         sql: bool = True,
-        ovito: bool = False,
         dat_files: bool = False,
+        ovito: bool = False,
         number_of_processes: int = None,
     ) -> None:
         """Simulate culture growth `self.num_of_realizations` number of times
         for each combination of self-replication (elements of the
         `self.prob_stem` list) and differentiation probabilities (elements of
-        the `self.prob_diff` list), realizations and persists the data of each
-        culture to its own file. The simulations are parallelized using
-        multiprocessing.
+        the `self.prob_diff` list), persisting the data of each culture to its
+        own file. The simulations are parallelized using multiprocessing.
 
-        The data of the total number of cells, the number of active cells,
-        the number of stem cells, and the number of active stem cells, is
-        persisted to a file with a name specifying the parameters in the
-        format `f'culture_pd={pd}_ps={ps}_rng_seed={culture_seed}.dat'`. You
-        can specify the number of simultaneous processes to use in the
-        simulation with the `number_of_processes` parameter. If
-        `number_of_processes` is None (default), the number of processes is
+        Several different output types are simultaneously available, and the
+        data that is recorded is handled by the `TumorsphereOutput` classes.
+        If `number_of_processes` is None (default), the number of processes is
         equal to the number of cores in the machine. Limitting the number of
         processes is useful when running the simulation in a cluster, where
         the number of cores is limited, or when running with all the resources
@@ -185,14 +180,15 @@ def simulate_single_culture(
     This function is used by the multiprocessing.Pool instance in the
     simulate_parallel method to parallelize the simulation of different
     cultures. This simulates the growth of a single culture with the given
-    parameters and persist the data.
+    parameters and persists the data.
 
     Parameters
     ----------
     args : tuple
         A tuple containing the indices for the self-replication probability,
         differentiation probability, the seed to be used in the random number
-        generator of the culture, and the instance of the Simulation class.
+        generator of the culture, an instance of the Simulation class, and a
+        list of strings specifying the desired output types.
 
     Notes
     -----
