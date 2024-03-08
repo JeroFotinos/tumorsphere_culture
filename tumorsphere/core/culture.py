@@ -425,7 +425,7 @@ class Culture:
 
         # Save the data (for dat, ovito, and/or SQLite)
         self.output.record_culture_state(
-            tic=i,
+            tic=0,
             cells=self.cells,
             cell_positions=self.cell_positions,
             active_cell_indexes=self.active_cell_indexes,
