@@ -244,7 +244,7 @@ class SQLOutput(TumorsphereOutput):
                 VALUES (?, ?, ?);
             """,
                 (
-                    index,
+                    int(index),
                     creation_time,
                     is_stem,
                 ),
@@ -255,7 +255,7 @@ class DatOutput(TumorsphereOutput):
     def __init__(self, culture_name):
         self.filename = f"data/{culture_name}.dat"
         with open(self.filename, "w") as datfile:
-            datfile.write("total, active, total_stem, active_stem \n")
+            datfile.write("total_cells, active_cells, stem_cells, active_stem_cells \n")
 
     def begin_culture(
         self,
