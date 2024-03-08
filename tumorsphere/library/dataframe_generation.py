@@ -7,7 +7,7 @@ block of code.
 
 Example
 -------
-First, make sure to set the `db_files` bool, specifying if the imput thata is
+First, make sure to set the `db_files` bool, specifying if the input data is
 a `.db` file. Then, to use this module simply run it from the command line:
 
     $ python3 dataframe_generation.py
@@ -24,12 +24,13 @@ import pandas as pd
 
 def extract_params_from_filename(filename):
     """
-    Extract the parameters pd, ps and n from the filename.
+    Extract the parameters pd, ps and seed from the name of the `.dat` file.
 
-    The parameters that characterize a simulation are `ps` (self-replication probability
-    of the CSCs), `pd` (probability that a CSC will yield a DCC) and the realization
-    number `n`. The names of the files are supposed to be on the format
-    `culture_pd=<pd>_ps=<ps>_realization_<n>`, e.g. `culture_pd=0.2_ps=0.3_realization_0`.
+    The parameters that characterize a simulation are `ps` (self-replication
+    probability of the CSCs), `pd` (probability that a CSC will yield a DCC),
+    and the seed of the rng, `seed`. The names of the files are supposed to be
+    on the format `culture_pd={pd}_ps={ps}_rng_seed={seed}.dat`, e.g.
+    `culture_pd=0.0_ps=0.36_rng_seed=12341234.dat`.
 
     Parameters
     ----------
@@ -38,7 +39,7 @@ def extract_params_from_filename(filename):
 
     Returns
     -------
-    pd, ps, n : tuple of float, float, int
+    pd, ps, seed: tuple of float, float, int
         The extracted parameters.
 
     Notes
@@ -49,16 +50,16 @@ def extract_params_from_filename(filename):
 
     """
     # starting in 1 to remove the string "culture"
-    # "_" is a placeholder for the string "realization"
-    p_d, p_s, _, n = filename.replace(".dat", "").split("_")[1:]
-    p_d = p_d.replace("pd=", "")
-    p_s = p_s.replace("ps=", "")
-    n = n.replace("realization", "")
+    # "_" is a placeholder for the string "rng"
+    p_d, p_s, _, the_seed = filename.replace(".dat", "").split("_")[1:]
+    p_d = float(p_d.replace("pd=", ""))
+    p_s = float(p_s.replace("ps=", ""))
+    the_seed = int(the_seed.replace("seed=", ""))
 
-    return float(p_d), float(p_s), int(n)
+    return p_d, p_s, the_seed
 
 
-def load_simulation_data(data_dir):
+def generate_dataframe_from_dat(data_dir):
     """
     Load simulation data from a directory of .dat files into a pandas DataFrame.
 
@@ -84,14 +85,14 @@ def load_simulation_data(data_dir):
 
     Examples
     --------
-    >>> df = load_simulation_data("/path/to/data/dir")
+    >>> df = generate_dataframe_from_dat("/path/to/data/dir")
     >>> print(df.head())
     """
     # Define the columns of the final dataframe
     cols = [
         "pd",
         "ps",
-        "n",
+        "seed",
         "time",
         "total_cells",
         "active_cells",
@@ -106,7 +107,7 @@ def load_simulation_data(data_dir):
     for file_path in glob.glob(os.path.join(data_dir, "*.dat")):
         # Extract the values of pd, ps, and n from the file name
         try:
-            p_d, p_s, n = extract_params_from_filename(
+            p_d, p_s, seed = extract_params_from_filename(
                 os.path.basename(file_path)
             )
         except ValueError:
@@ -130,11 +131,11 @@ def load_simulation_data(data_dir):
             print(f"Skipping file {file_path} due to parsing error.")
             continue
 
-        # Add columns for pd, ps, n, and time to the temporary dataframe
+        # Add columns for pd, ps, seed, and time to the temporary dataframe
         temp_df["pd"] = p_d
         temp_df["ps"] = p_s
-        temp_df["n"] = n
-        temp_df["time"] = range(1, len(temp_df) + 1)
+        temp_df["seed"] = seed
+        temp_df["time"] = range(len(temp_df))
 
         # Reorder the columns of the temporary dataframe
         temp_df = temp_df[cols]
@@ -143,7 +144,7 @@ def load_simulation_data(data_dir):
         df = pd.concat([df, temp_df], ignore_index=True)
 
     # Convert the columns to the desired data types
-    df[["n", "time"]] = df[["n", "time"]].astype(int)
+    df[["seed", "time"]] = df[["seed", "time"]].astype(int)
     df[["ps", "pd"]] = df[["ps", "pd"]].astype(float)
 
     return df
@@ -191,7 +192,6 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
     --------
     >>> generate_dataframe("merged_database.sqlite", "output_dataframe.csv")
     """
-    # Function implementation here...
 
     # Connect to the SQLite database
     with sqlite3.connect(db_path) as conn:
@@ -306,18 +306,18 @@ if __name__ == "__main__":
     db_files = True
 
     # directories for `.dat` files
-    data_dir = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/data/"
-    save_path = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/df_simulations.csv"
+    dat_data_dir = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/data/"
+    dat_save_path = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/df_simulations.csv"
 
     # directories for `.db` Data Base
     db_path = (
         "/home/nate/Devel/tumorsphere_culture/examples/playground/merged.db"
     )
-    csv_path_and_name = "/home/nate/Devel/tumorsphere_culture/examples/playground/df_simulations.csv"
+    db_csv_path_and_name = "/home/nate/Devel/tumorsphere_culture/examples/playground/df_simulations.csv"
 
     if db_files:
-        generate_dataframe_from_db(db_path, csv_path_and_name)
+        generate_dataframe_from_db(db_path, db_csv_path_and_name)
     else:
-        df = load_simulation_data(data_dir)
+        df = generate_dataframe_from_dat(dat_data_dir)
         print(df.head())
-        df.to_csv(save_path, index=False)
+        df.to_csv(dat_save_path, index=False)
