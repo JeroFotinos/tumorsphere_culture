@@ -4,7 +4,7 @@ from tumorsphere.library.time_step_counter import (
     count_time_steps_of_cultures_in_dir,
 )
 from tumorsphere.library.dataframe_generation import (
-    generate_dataframe_from_db,
+    generate_dataframe_from_db, generate_dataframe_from_dat,
 )
 from tumorsphere.library.db_merger import merge_single_culture_dbs
 
@@ -228,7 +228,7 @@ cli.add_command(mergedbs)
 
 
 @click.command(
-    help="Makes the DataFrame of population numbers from data base."
+    help="Makes the DataFrame of population numbers from data base or set of dat files."
 )
 @click.option(
     "--db-path",
@@ -242,7 +242,15 @@ cli.add_command(mergedbs)
     type=str,
     help="Path and name of the `.csv` file to save",
 )
-def makedf(db_path, csv_path):
+@click.option(
+    "--dat-files",
+    required=False,
+    type=bool,
+    default=False,
+    show_default=True,
+    help="If True, it generates the CSV from the set of `.dat` files in --db-path.",
+)
+def makedf(db_path, csv_path, dat_files):
     """Command-line interface that makes the DataFrame of population numbers
     for each simulated culture in a merged data base.
 
@@ -258,7 +266,11 @@ def makedf(db_path, csv_path):
     >>> tumorsphere makedf --help
     >>> tumorsphere makedf --db-path ./merged.db --csv-path ./population_numbers.csv
     """
-    generate_dataframe_from_db(db_path, csv_path)
+    if not dat_files:
+        generate_dataframe_from_db(db_path, csv_path)
+    else:
+        df = generate_dataframe_from_dat(db_path, csv_path)
+        df.to_csv(csv_path, index=False)
 
 
 cli.add_command(makedf)
