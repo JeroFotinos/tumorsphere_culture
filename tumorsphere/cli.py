@@ -7,7 +7,7 @@ from tumorsphere.library.dataframe_generation import (
     generate_dataframe_from_db, generate_dataframe_from_dat,
 )
 from tumorsphere.library.db_merger import merge_single_culture_dbs
-
+from tumorsphere.library.db_file_comparer import compare_databases
 
 @click.group()
 def cli():
@@ -274,6 +274,43 @@ def makedf(db_path, csv_path, dat_files):
 
 
 cli.add_command(makedf)
+
+
+@click.command(
+    help="Compares two databases to check if they are equal."
+)
+@click.option(
+    "--db1",
+    required=True,
+    type=str,
+    help="Path and name of the first data base to compare",
+)
+@click.option(
+    "--db2",
+    required=True,
+    type=str,
+    help="Path and name of the second data base to compare",
+)
+def are_dbs_equal(db1, db2):
+    """Compares two databases to check if they are equal.
+
+    Parameters
+    ----------
+        db1 : str
+            Path to the first data base.
+        db2 : str
+            Path to the second data base.
+
+    Returns
+    -------
+        bool
+            True if the databases are equal, False otherwise.
+    """
+    
+    return compare_databases(db1, db2)
+
+
+cli.add_command(are_dbs_equal)
 
 
 if __name__ == "__main__":
