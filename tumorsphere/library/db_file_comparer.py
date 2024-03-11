@@ -33,8 +33,12 @@ def compare_databases(db_path1, db_path2):
 
         if rows1 != rows2:
             print(
-                f"Data in table {table_name} is different.\n{rows1}\n{rows2}"
+                f"Data in table {table_name} is different."
             )
+            # we print the differences
+            for i, (row1, row2) in enumerate(zip(rows1, rows2)):
+                if row1 != row2:
+                    print(f"Row {i} is different:\n\tFirst DB: {row1}\n\tSecond DB: {row2}")
             return False
 
     print("Databases are equal.")
