@@ -28,7 +28,11 @@ class TumorsphereOutput(ABC):
 
     @abstractmethod
     def record_culture_state(
-        self, tic, cells, cell_positions, active_cell_indexes,
+        self,
+        tic,
+        cells,
+        cell_positions,
+        active_cell_indexes,
     ):
         pass
 
@@ -77,11 +81,18 @@ class OutputDemux(TumorsphereOutput):
             result.record_deactivation(cell_index, tic)
 
     def record_culture_state(
-        self, tic, cells, cell_positions, active_cell_indexes,
+        self,
+        tic,
+        cells,
+        cell_positions,
+        active_cell_indexes,
     ):
         for result in self.result_list:
             result.record_culture_state(
-                tic, cells, cell_positions, active_cell_indexes,
+                tic,
+                cells,
+                cell_positions,
+                active_cell_indexes,
             )
 
     def record_cell(
@@ -164,7 +175,7 @@ class SQLOutput(TumorsphereOutput):
         simulation_start,
         adjacency_threshold,
         swap_probability,
-    ) -> int: # Wired annotation, the method returns None
+    ) -> int:  # Wired annotation, the method returns None
         with self.conn:
             cursor = self.conn.cursor()
             cursor.execute(
@@ -181,7 +192,7 @@ class SQLOutput(TumorsphereOutput):
                     swap_probability,
                 ),
             )
-            self.culture_id = cursor.lastrowid # Perhaps it'd be better to
+            self.culture_id = cursor.lastrowid  # Perhaps it'd be better to
             # initialize self.culture_id in the __init__ method
 
     def record_stemness(self, cell_index, tic, stemness):
@@ -212,9 +223,13 @@ class SQLOutput(TumorsphereOutput):
                 """,
                 (tic, int(cell_index)),
             )
-            
+
     def record_culture_state(
-        self, tic, cells, cell_positions, active_cell_indexes,
+        self,
+        tic,
+        cells,
+        cell_positions,
+        active_cell_indexes,
     ):
         pass
 
@@ -255,7 +270,9 @@ class DatOutput(TumorsphereOutput):
     def __init__(self, culture_name):
         self.filename = f"data/{culture_name}.dat"
         with open(self.filename, "w") as datfile:
-            datfile.write("total_cells, active_cells, stem_cells, active_stem_cells \n")
+            datfile.write(
+                "total_cells, active_cells, stem_cells, active_stem_cells \n"
+            )
 
     def begin_culture(
         self,
@@ -275,7 +292,11 @@ class DatOutput(TumorsphereOutput):
         pass
 
     def record_culture_state(
-        self, tic, cells, cell_positions, active_cell_indexes,
+        self,
+        tic,
+        cells,
+        cell_positions,
+        active_cell_indexes,
     ):
         with open(self.filename, "a") as datfile:
             # we count the total number of cells and active cells
@@ -292,14 +313,12 @@ class DatOutput(TumorsphereOutput):
             active_stem_counter = 0
             for index in active_cell_indexes:
                 if cells[index].is_stem:
-                    active_stem_counter = active_stem_counter + 1            
-            
+                    active_stem_counter = active_stem_counter + 1
+
             # we save the data to the file
             datfile.write(
                 f"{num_cells}, {num_active}, {total_stem_counter}, {active_stem_counter} \n"
             )
-        
-
 
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
@@ -329,7 +348,11 @@ class OvitoOutput(TumorsphereOutput):
         pass
 
     def record_culture_state(
-        self, tic, cells, cell_positions, active_cell_indexes,
+        self,
+        tic,
+        cells,
+        cell_positions,
+        active_cell_indexes,
     ):
         """Writes the data file in path for ovito, for time step t of self.
         Auxiliar function for simulate_with_ovito_data.

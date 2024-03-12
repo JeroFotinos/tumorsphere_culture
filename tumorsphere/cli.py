@@ -4,10 +4,12 @@ from tumorsphere.library.time_step_counter import (
     count_time_steps_of_cultures_in_dir,
 )
 from tumorsphere.library.dataframe_generation import (
-    generate_dataframe_from_db, generate_dataframe_from_dat,
+    generate_dataframe_from_db,
+    generate_dataframe_from_dat,
 )
 from tumorsphere.library.db_merger import merge_single_culture_dbs
 from tumorsphere.library.db_file_comparer import compare_databases
+
 
 @click.group()
 def cli():
@@ -123,7 +125,7 @@ def simulate(
         ovito : bool, optional
             False by default. If True, it generates the data for plotting with
             Ovito.
-        
+
 
     Examples
     --------
@@ -276,9 +278,7 @@ def makedf(db_path, csv_path, dat_files):
 cli.add_command(makedf)
 
 
-@click.command(
-    help="Compares two databases to check if they are equal."
-)
+@click.command(help="Compares two databases to check if they are equal.")
 @click.option(
     "--db1",
     required=True,
@@ -306,7 +306,7 @@ def are_dbs_equal(db1, db2):
         bool
             True if the databases are equal, False otherwise.
     """
-    
+
     return compare_databases(db1, db2)
 
 

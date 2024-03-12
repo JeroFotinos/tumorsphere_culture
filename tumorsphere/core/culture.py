@@ -5,6 +5,7 @@ Classes:
     - Culture: Class that represents a culture of cells. Usually dependent
     on the Simulation class.
 """
+
 from datetime import datetime
 from typing import Set
 
@@ -166,10 +167,10 @@ class Culture:
             neighbors_up_to_third_degree.update(new_neighbors)
             for index2 in new_neighbors:
                 cell2 = self.cells[index2]
-                new_neighbors_l2: Set[
-                    int
-                ] = cell2.neighbors_indexes.difference(
-                    neighbors_up_to_third_degree
+                new_neighbors_l2: Set[int] = (
+                    cell2.neighbors_indexes.difference(
+                        neighbors_up_to_third_degree
+                    )
                 )
                 neighbors_up_to_third_degree.update(new_neighbors_l2)
                 for index3 in new_neighbors_l2:
@@ -429,10 +430,10 @@ class Culture:
             cells=self.cells,
             cell_positions=self.cell_positions,
             active_cell_indexes=self.active_cell_indexes,
-            )
-    
+        )
+
         # we simulate for num_times time steps
-        for i in range(1, num_times+1):
+        for i in range(1, num_times + 1):
             # we get a permuted copy of the cells list
             active_cell_indexes = self.rng.permutation(
                 self.active_cell_indexes
@@ -447,4 +448,4 @@ class Culture:
                 cells=self.cells,
                 cell_positions=self.cell_positions,
                 active_cell_indexes=self.active_cell_indexes,
-                )
+            )

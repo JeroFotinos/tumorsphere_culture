@@ -10,7 +10,6 @@ standard `.db` merged database. If `db_files=False`, an additional step is
 used to add the time zero points, because the `.dat` files do not have these.
 """
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd

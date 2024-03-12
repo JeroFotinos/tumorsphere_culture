@@ -6,6 +6,7 @@ Classes:
     parameter combinations, for a given number of realizations per said
     combination.
 """
+
 import multiprocessing as mp
 from typing import Tuple, List
 
@@ -139,7 +140,7 @@ class Simulation:
 
         # Generate seeds for all realizations
         seeds = self.rng.integers(
-            low=2 ** 20, high=2 ** 50, size=self.num_of_realizations
+            low=2**20, high=2**50, size=self.num_of_realizations
         )
 
         outputs = []
