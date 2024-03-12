@@ -18,12 +18,14 @@ def count_time_steps_of_cultures_in_dir(
     data_dir : str
         The directory path where the .dat or .db files are located.
     dat_files : bool, optional
-        If True, the function will count lines in .dat files. If False, it will query .db files. Default is False.
+        If True, the function will count lines in .dat files. If False, it
+        will query .db files. Default is False.
 
     Returns
     -------
     None
-        This function prints to the console the number of time steps for each file.
+        This function prints to the console the number of time steps for each
+        file.
 
     """
     if dat_files:
