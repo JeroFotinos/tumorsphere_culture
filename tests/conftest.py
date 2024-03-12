@@ -145,7 +145,9 @@ def temp_db():
         return temp_db.name
     return _temp_db
 
-# -------- For testing the CLI of the `db_file_comparer.py` module --------
+
+# -------- For testing `tumorsphere tumorsphere are-dbs-equal` --------
+# --------    (the CLI of the `db_file_comparer.py` module)    --------
 
 @pytest.fixture(scope="session")
 def run_cli():
