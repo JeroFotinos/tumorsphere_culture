@@ -29,7 +29,7 @@ class Cell:
         max_repro_attempts=10000,
         prob_stem=0.36,  # Wang HARD substrate value
         continuous_graph_generation=False,
-        rng_seed=23978461273864
+        rng_seed=23978461273864,
         # THE CULTURE MUST PROVIDE A SEED
         # in spite of the fact that I set a default
         # (so the code doesn't break e.g. when testing)
@@ -221,9 +221,7 @@ class Cell:
                             max_repro_attempts=self.max_repro_attempts,
                             prob_stem=self.prob_stem,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=self.rng.integers(
-                                low=2 ** 20, high=2 ** 50
-                            ),
+                            rng_seed=self.rng.integers(low=2**20, high=2**50),
                         )
                     else:
                         child_cell = Cell(
@@ -235,9 +233,7 @@ class Cell:
                             max_repro_attempts=self.max_repro_attempts,
                             prob_stem=self.prob_stem,
                             continuous_graph_generation=self._continuous_graph_generation,
-                            rng_seed=self.rng.integers(
-                                low=2 ** 20, high=2 ** 50
-                            ),
+                            rng_seed=self.rng.integers(low=2**20, high=2**50),
                         )
                         if self.rng.random() <= self._swap_probability:
                             self.is_stem = False
@@ -252,7 +248,7 @@ class Cell:
                         max_repro_attempts=self.max_repro_attempts,
                         prob_stem=self.prob_stem,
                         continuous_graph_generation=self._continuous_graph_generation,
-                        rng_seed=self.rng.integers(low=2 ** 20, high=2 ** 50),
+                        rng_seed=self.rng.integers(low=2**20, high=2**50),
                     )
                 # we add this cell to the culture's cells and active_cells lists
                 self.culture.cells.append(child_cell)
@@ -293,7 +289,7 @@ class Culture:
         first_cell_is_stem=False,
         prob_stem=0.36,  # Wang HARD substrate value
         continuous_graph_generation=False,
-        rng_seed=110293658491283598
+        rng_seed=110293658491283598,
         # THE SIMULATION MUST PROVIDE A SEED
         # in spite of the fact that I set a default
         # (so the code doesn't break e.g. when testing)
@@ -320,7 +316,7 @@ class Culture:
             max_repro_attempts=cell_max_repro_attempts,
             prob_stem=self.prob_stem,
             continuous_graph_generation=continuous_graph_generation,
-            rng_seed=self.rng.integers(low=2 ** 20, high=2 ** 50),
+            rng_seed=self.rng.integers(low=2**20, high=2**50),
         )
 
         # we initialize the lists and graphs with the first cell
@@ -563,7 +559,7 @@ class Simulation:
                     first_cell_is_stem=self.first_cell_is_stem,
                     prob_stem=self.prob_stem[i],
                     continuous_graph_generation=self.continuous_graph_generation,
-                    rng_seed=self.rng.integers(low=2 ** 20, high=2 ** 50),
+                    rng_seed=self.rng.integers(low=2**20, high=2**50),
                 )
                 # we simulate the culture's growth and retrive data in the
                 # self.data dictionary, with the same string as key
