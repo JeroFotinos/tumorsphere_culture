@@ -57,7 +57,10 @@ def cli():
     type=int,
     default=None,
     show_default=True,
-    help="Number of simultaneous processes. Default is None, which uses all available cores.",
+    help=(
+        "Number of simultaneous processes. "
+        "Default is None, which uses all available cores."
+    ),
 )
 @click.option(
     "--sql",
@@ -73,7 +76,10 @@ def cli():
     type=bool,
     default=False,
     show_default=True,
-    help="If True, it only outputs population numbers in a `.dat` file instead of the standard `.db` file.",
+    help=(
+        "If True, it only outputs population numbers in a `.dat` file "
+        "instead of the standard `.db` file."
+    ),
 )
 @click.option(
     "--ovito",
@@ -81,7 +87,10 @@ def cli():
     type=bool,
     default=False,
     show_default=True,
-    help="If True, it generates the data for plotting with Ovito instead of the usual data of the simulaiton.",
+    help=(
+        "If True, it generates the data for plotting with Ovito instead "
+        "of the usual data of the simulaiton."
+    ),
 )
 def simulate(
     prob_stem,
@@ -168,7 +177,10 @@ cli.add_command(simulate)
     type=bool,
     default=False,
     show_default=True,
-    help="Use True for a directory with `.dat` files instead of the standard `.db` files.",
+    help=(
+        "Use True for a directory with `.dat` files instead of "
+        "the standard `.db` files."
+    ),
 )
 def status(data_dir, dat_files):
     """Command-line interface that prints the simulation time step each
@@ -230,7 +242,10 @@ cli.add_command(mergedbs)
 
 
 @click.command(
-    help="Makes the DataFrame of population numbers from data base or set of dat files."
+    help=(
+        "Makes the DataFrame of population numbers "
+        "from data base or set of dat files."
+    )
 )
 @click.option(
     "--db-path",
@@ -250,7 +265,10 @@ cli.add_command(mergedbs)
     type=bool,
     default=False,
     show_default=True,
-    help="If True, it generates the CSV from the set of `.dat` files in --db-path.",
+    help=(
+        "If True, it generates the CSV from the set of `.dat` "
+        "files in --db-path."
+    ),
 )
 def makedf(db_path, csv_path, dat_files):
     """Command-line interface that makes the DataFrame of population numbers
@@ -262,6 +280,9 @@ def makedf(db_path, csv_path, dat_files):
             Path to the data directory, containing the (merged) `.db` file.
         csv_path : str
             Path and name of the `.csv` file to be generated.
+        dat_files : bool, optional
+            False by default. If True, it generates the CSV from the set of
+            `.dat` files in --db-path.
 
     Examples
     --------

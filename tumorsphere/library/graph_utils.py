@@ -1,5 +1,7 @@
 """This module has functions for generating and plotting graphs from the
 cultures of the database.
+
+CURRENTLY NOT WORKING.
 """
 
 import sqlite3
@@ -8,7 +10,7 @@ import os
 import networkx as nx
 from networkx import Graph
 
-import plotly.express as px
+# import plotly.express as px
 import plotly.graph_objects as go
 
 import numpy as np
