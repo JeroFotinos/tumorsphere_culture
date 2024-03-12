@@ -375,9 +375,8 @@ class Culture:
                 cell.available_space = False
                 # We no longer consider it active, so we remove *all* of its
                 # instances from the list of active cell indexes
-                set_of_current_active_cells = set(
-                    self.active_cell_indexes
-                ).discard(cell_index)
+                set_of_current_active_cells = set(self.active_cell_indexes)
+                set_of_current_active_cells.discard(cell_index)
                 self.active_cell_indexes = list(set_of_current_active_cells)
                 # We record the deactivation
                 self.output.record_deactivation(cell_index, tic)
