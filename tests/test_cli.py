@@ -22,8 +22,9 @@ def test_cli_are_dbs_equal__case_databases_are_equal(run_cli):
     cwd = Path(__file__).parent.resolve()
     # we compare the `.db` files from the `tests/data` directory
     command = (
-        "tumorsphere are-dbs-equal --db1 data/merged.db --db2 "
-        "data/merged_identical_copy.db"
+        "tumorsphere are-dbs-equal "
+        "--db1 data/testing_are-dbs-equal_cli/merged.db "
+        "--db2 data/testing_are-dbs-equal_cli/merged_identical_copy.db"
     )
     stdout, stderr, returncode = run_cli(command, cwd=str(cwd))
 
@@ -39,8 +40,9 @@ def test_cli_databases_are_different(run_cli):
     cwd = Path(__file__).parent.resolve()
     # we compare the `.db` files from the `tests/data` directory
     command = (
-        "tumorsphere are-dbs-equal --db1 data/merged.db "
-        "--db2 data/merged_modified_"
+        "tumorsphere are-dbs-equal "
+        "--db1 data/testing_are-dbs-equal_cli/merged.db "
+        "--db2 data/testing_are-dbs-equal_cli/merged_modified_"
         "_last_cell_position_z_from_1.74092095578382_to_20.0.db"
     )
     stdout, stderr, returncode = run_cli(command, cwd=str(cwd))
