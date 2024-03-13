@@ -25,15 +25,20 @@ def count_time_steps_of_cultures_in_dir(
     -------
     None
         This function prints to the console the number of time steps for each
-        file.
-
+        file. Note that this has to be in accordance with the tumorsphere
+        simulate command, so time starts at 0 (with a single cell), and the
+        final time (number of steps) is `--steps-per-realization`.
     """
     if dat_files:
         # Handle .dat files
         for dat_file in glob.glob(os.path.join(data_dir, "*.dat")):
             with open(dat_file, "r") as f:
                 line_count = sum(1 for line in f)
-                print(f"{os.path.basename(dat_file)}: {line_count-1} lines")
+                print(f"{os.path.basename(dat_file)}: {line_count-2} steps.")
+                # we subtract 2 because the first line is the header, and the
+                # second line is the initial state of the culture (time 0)
+                # so the number of steps (final time, since we start at 0) is
+                # the number of lines minus 2
     else:
         # Handle .db files
         for temp_db in glob.glob(os.path.join(data_dir, "*.db")):
@@ -50,7 +55,9 @@ def count_time_steps_of_cultures_in_dir(
                 cursor_temp.execute("SELECT max(t_creation) FROM Cells")
                 step = cursor_temp.fetchone()[0]
 
-                print(f"Step {step} for culture pd={pd}, ps={ps}, seed={seed}")
+                print(f"{step} steps for culture pd={pd}, ps={ps}, seed={seed}")
+                # creation time starts at 0 in the database, so no
+                # modification is needed
 
 
 if __name__ == "__main__":
