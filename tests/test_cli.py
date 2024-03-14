@@ -1,10 +1,62 @@
 import os
 from pathlib import Path
+import filecmp
+import shutil
 
 import pandas as pd
+import pytest
 
 
 # ---------- tumorsphere simulate command ----------
+
+
+@pytest.mark.skip(reason="This test is not working properly yet.")
+def test_cli_simulate(run_cli):
+    """Test the tumorsphere simulate command with a particular set of
+    parameters, to check that it yields the expected outputs.
+    """
+    cwd = Path(__file__).parent.resolve() / "data/testing_simulate_cli"
+    output_dir = cwd / "data"  # This is where the command outputs its files
+    expected_dir = cwd / "expected_outputs"
+
+    # Ensure the output directory is clean before running the test
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # Run the simulate command
+        command = (
+            "tumorsphere simulate --prob-stem 0.4,0.8 --prob-diff 0 "
+            "--realizations 2 --steps-per-realization 7 --rng-seed 1234 "
+            "--sql True --dat-files True --ovito True"
+        )
+        stdout, stderr, returncode = run_cli(command, cwd=str(cwd))
+
+        assert returncode == 0, (
+            f"Simulation command failed with error: {stderr}"
+        )
+
+        # Compare the contents of the output and the expected directories
+        output_files = sorted(os.listdir(output_dir))
+        expected_files = sorted(os.listdir(expected_dir))
+
+        # Check if both directories have the same set of files
+        assert output_files == expected_files, (
+            "Output and expected directories "
+            "do not have the same set of files."
+        )
+        
+        # Compare the content of each file
+        for file_name in output_files:
+            assert filecmp.cmp(
+                output_dir / file_name,
+                expected_dir / file_name,
+                shallow=False,
+            ), f"File contents do not match: {file_name}"
+    finally:
+        # Cleanup: remove the output directory after the test
+        shutil.rmtree(output_dir)
 
 
 # ---------- tumorsphere status command ----------
