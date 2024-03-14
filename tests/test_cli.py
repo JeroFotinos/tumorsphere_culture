@@ -1,4 +1,7 @@
+import os
 from pathlib import Path
+
+import pandas as pd
 
 
 # ---------- tumorsphere simulate command ----------
@@ -7,7 +10,10 @@ from pathlib import Path
 # ---------- tumorsphere status command ----------
 
 
-def test_status_cli_with_db_files(run_cli):
+def test_cli_status__with_db_files(run_cli):
+    """Test the tumorsphere status command with a particular .db file,
+    to check that it yields the expected output.
+    """
     cwd = Path(__file__).parent.resolve()
     data_dir = "data/testing_status_cli"
 
@@ -26,7 +32,10 @@ def test_status_cli_with_db_files(run_cli):
     )
 
 
-def test_status_cli_with_dat_files(run_cli):
+def test_cli_status__with_dat_files(run_cli):
+    """Test the tumorsphere status command with a particular .dat file,
+    to check that it yields the expected output.
+    """
     cwd = Path(__file__).parent.resolve()
     data_dir = "data/testing_status_cli"
 
@@ -48,13 +57,93 @@ def test_status_cli_with_dat_files(run_cli):
 # ---------- tumorsphere mergedbs command ----------
 
 
+def test_cli_mergedbs(run_cli):
+    """We test the tumorsphere mergedbs command with a particular set of .db
+    files, and check that the merged .db file is equal to the correct one.
+    """
+    # Set the working directory relative to the test file
+    cwd = Path(__file__).parent.resolve()
+
+    # Paths for the test
+    dbs_folder = cwd / "data/testing_mergedbs_cli"
+    merging_path = cwd / "merged.db"
+    correct_merged_db = cwd / "data/testing_mergedbs_cli/expected_result/merged.db"
+
+    # Merge the databases
+    merge_command = f"tumorsphere mergedbs --dbs-folder {dbs_folder} --merging-path {merging_path}"
+    stdout, stderr, returncode = run_cli(merge_command, cwd=str(cwd))
+    assert returncode == 0, "Merging databases failed"
+
+    # Compare the newly merged database with the correct version
+    compare_command = f"tumorsphere are-dbs-equal --db1 {correct_merged_db} --db2 {merging_path}"
+    stdout, stderr, returncode = run_cli(compare_command, cwd=str(cwd))
+    assert returncode == 0, "Command failed with an error"
+    assert stdout == "Databases are equal.", "The merged databases are not equal"
+
+    # Remove the merged database file
+    if merging_path.exists():
+        merging_path.unlink()
+
+
 # ---------- tumorsphere makedf command ----------
+
+
+def test_cli_makedf__from_db(run_cli):
+    """Test the tumorsphere makedf command with a particular .db file,
+    to check that it yields the expected output.
+    """
+    cwd = Path(__file__).parent.resolve()
+    db_path = cwd / "data/testing_makedf_cli/merged.db"
+    csv_path = cwd / "merged.csv"
+    correct_csv_path = cwd / (
+        "data/testing_makedf_cli/expected_results/merged.csv"
+    )
+
+    # Generate the CSV from the DB file
+    command = f"tumorsphere makedf --db-path {db_path} --csv-path {csv_path}"
+    stdout, stderr, returncode = run_cli(command, cwd=str(cwd))
+    assert returncode == 0, "Command failed with an error"
+
+    # Compare the generated CSV with the correct CSV
+    generated_df = pd.read_csv(csv_path)
+    correct_df = pd.read_csv(correct_csv_path)
+    pd.testing.assert_frame_equal(generated_df, correct_df, check_dtype=False)
+
+    # Remove the generated CSV file
+    csv_path.unlink()
+
+def test_cli_makedf__from_dat(run_cli):
+    """Test the tumorsphere makedf command with a particular .dat file,
+    to check that it yields the expected output.
+    """
+    cwd = Path(__file__).parent.resolve()
+    data_dir = cwd / "data/testing_makedf_cli"
+    csv_path = cwd / "dat_culture.csv"
+    correct_csv_path = cwd / (
+        "data/testing_makedf_cli/expected_results/dat_culture.csv"
+    )
+
+    # Generate the CSV from the .dat files
+    command = f"tumorsphere makedf --db-path {data_dir} --csv-path {csv_path} --dat-files True"
+    stdout, stderr, returncode = run_cli(command, cwd=str(cwd))
+    assert returncode == 0, "Command failed with an error"
+
+    # Compare the generated CSV with the correct CSV
+    generated_df = pd.read_csv(csv_path)
+    correct_df = pd.read_csv(correct_csv_path)
+    pd.testing.assert_frame_equal(generated_df, correct_df, check_dtype=False)
+
+    # Remove the generated CSV file
+    csv_path.unlink()
 
 
 # ---------- tumorsphere are-dbs-equal command ----------
 
 
 def test_cli_are_dbs_equal__case_databases_are_equal(run_cli):
+    """Test the tumorsphere are-dbs-equal command with two identical databases,
+    to check that it yields the output: Databases are equal.
+    """
     # parent gives me the directory in which the file is located, in this case
     # the directory tests
     cwd = Path(__file__).parent.resolve()
@@ -73,6 +162,13 @@ def test_cli_are_dbs_equal__case_databases_are_equal(run_cli):
 
 
 def test_cli_are_dbs_equal__case_databases_are_different(run_cli):
+    """Test the tumorsphere are-dbs-equal command with two different databases,
+    to check that it yields the output: Data in table Cells is different.
+
+    I modified the z coordinate of the last cell's position in the second
+    database, which was originally a copy of the first one, so the databases
+    are different.
+    """
     # parent gives me the directory in which the file is located, in this case
     # the directory tests
     cwd = Path(__file__).parent.resolve()
@@ -81,7 +177,7 @@ def test_cli_are_dbs_equal__case_databases_are_different(run_cli):
         "tumorsphere are-dbs-equal "
         "--db1 data/testing_are-dbs-equal_cli/merged.db "
         "--db2 data/testing_are-dbs-equal_cli/merged_modified_"
-        "_last_cell_position_z_from_1.74092095578382_to_20.0.db"
+        "_last_cell_position_z_from_-8.312424324276_to_20.0.db"
     )
     stdout, stderr, returncode = run_cli(command, cwd=str(cwd))
 

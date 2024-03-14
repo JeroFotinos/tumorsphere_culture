@@ -292,7 +292,7 @@ def makedf(db_path, csv_path, dat_files):
     if not dat_files:
         generate_dataframe_from_db(db_path, csv_path)
     else:
-        df = generate_dataframe_from_dat(db_path, csv_path)
+        df = generate_dataframe_from_dat(db_path)
         df.to_csv(csv_path, index=False)
 
 
