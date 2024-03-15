@@ -8,6 +8,8 @@ max-line-length = 79
 
 [tool.pytest.ini_options]
 addopts = [
+    "--cov=tumorsphere",
+    "--cov-report=term-missing",
     "--import-mode=importlib",
 ]
 markers = [
