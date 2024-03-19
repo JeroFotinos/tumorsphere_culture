@@ -38,4 +38,4 @@
 # Lanzar el programa
 source ~/miniconda3/bin/activate
 conda activate
-srun tumorsphere simulate --prob-stem "0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7" --prob-diff "0" --realizations 8 --steps-per-realization 60 --rng-seed 1292317634567 --parallel-processes 64 --ovito False --dat-files False
+srun tumorsphere simulate --prob-stem "0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7" --prob-diff "0" --realizations 8 --steps-per-realization 60 --rng-seed 1292317634567 --parallel-processes 64 --sql True --dat-files True --ovito False --output-dir data

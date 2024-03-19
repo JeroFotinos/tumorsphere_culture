@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ### Correr con sbatch ./submit_simulation.sh
-### En el directorio donde se encuentre este archivo
-### tiene que haber otro directorio llamado 'data'.
+### Los template están pensados para ser usados por
+### generate_and_submit_jobs_slurm.sh
 
 #---------------------------------------------------
 
@@ -38,5 +38,4 @@
 # Lanzar el programa
 source ~/miniconda3/bin/activate
 conda activate
-srun tumorsphere simulate --prob-stem "0.65,0.66" --prob-diff "0" --realizations 16 --steps-per-realization 60 --rng-seed 3104902187430912364 --parallel-processes 32 --ovito False --dat-files True
-
+srun tumorsphere simulate --prob-stem "0.65,0.66" --prob-diff "0" --realizations 16 --steps-per-realization 60 --rng-seed 3104902187430912364 --parallel-processes 32 --sql True --dat-files True --ovito False --output-dir data_sim_13
