@@ -16,7 +16,7 @@
 # -----------------------------------------------------------------------------
 
 # Simulation number to identify the batch of simulations.
-SIMULATION_NUMBER=13
+SIMULATION_NUMBER=16
 
 # Initial and final values for the 'prob-stem' parameter between files.
 INITIAL_VAL=0.65
