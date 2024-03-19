@@ -114,6 +114,7 @@ class Simulation:
         dat_files: bool = False,
         ovito: bool = False,
         number_of_processes: int = None,
+        output_dir: str = ".",
     ) -> None:
         """Simulate culture growth `self.num_of_realizations` number of times
         for each combination of self-replication (elements of the
@@ -161,6 +162,7 @@ class Simulation:
                         seeds[j],
                         self,
                         outputs,
+                        output_dir,
                     )
                     for k in range(len(self.prob_diff))
                     for i in range(len(self.prob_stem))
@@ -174,7 +176,7 @@ def realization_name(pd, ps, seed) -> str:
 
 
 def simulate_single_culture(
-    args: Tuple[int, int, int, Simulation, List[str]]
+    args: Tuple[int, int, int, Simulation, List[str], str]
 ) -> None:
     """A worker function for multiprocessing.
 
@@ -199,12 +201,12 @@ def simulate_single_culture(
     methods can't be pickled. Therefore, the instance method worker had to be
     refactored to a standalone function (or a static method).
     """
-    k, i, seed, sim, outputs = args
+    k, i, seed, sim, outputs, output_dir = args
 
     current_realization_name = realization_name(
         sim.prob_diff[k], sim.prob_stem[i], seed
     )
-    output = create_output_demux(current_realization_name, outputs)
+    output = create_output_demux(current_realization_name, outputs, output_dir)
     sim.cultures[current_realization_name] = Culture(
         output,
         adjacency_threshold=sim.adjacency_threshold,

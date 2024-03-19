@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import click
 from tumorsphere.core.simulation import Simulation
 from tumorsphere.library.time_step_counter import (
@@ -92,6 +94,15 @@ def cli():
         "of the usual data of the simulaiton."
     ),
 )
+@click.option(
+    "--output-dir",
+    required=False,
+    type=click.Path(),
+    default=lambda: os.getcwd(),
+    show_default="current working directory",
+    help="Path to the output directory where simulation results will be saved. "
+    "Defaults to the current working directory.",
+)
 def simulate(
     prob_stem,
     prob_diff,
@@ -102,6 +113,7 @@ def simulate(
     sql,
     dat_files,
     ovito,
+    output_dir,
 ):
     """
     Command-line interface for running the tumorsphere simulation.
@@ -141,9 +153,18 @@ def simulate(
     >>> tumorsphere simulate --help
     >>> tumorsphere simulate --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4 --sql False --dat-files True --ovito True
     """
+    # Directory check and creation logic
+    if not os.path.exists(output_dir):
+        click.echo(
+            f"The specified output directory '{output_dir}' does not exist. Creating it..."
+        )
+        os.makedirs(output_dir, exist_ok=True)
+
+    # Parsing probabilities
     prob_stem = [float(x) for x in prob_stem.split(",")]
     prob_diff = [float(x) for x in prob_diff.split(",")]
 
+    # Creation of the simulation object
     sim = Simulation(
         first_cell_is_stem=True,
         prob_stem=prob_stem,
@@ -156,11 +177,14 @@ def simulate(
         cell_max_repro_attempts=1000,
         # swap_probability=0.5,
     )
+
+    # Running the simulation
     sim.simulate_parallel(
         sql=sql,
         dat_files=dat_files,
         ovito=ovito,
         number_of_processes=parallel_processes,
+        output_dir=output_dir,
     )
 
 

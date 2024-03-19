@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -105,19 +106,18 @@ class OutputDemux(TumorsphereOutput):
 
 
 class SQLOutput(TumorsphereOutput):
-    def __init__(self, culture_name):
-        # connection to the SQLite database
-        # we connect into a 'data' directory, if not present, we warn
-        # and connect to a db in the current folder
+    def __init__(
+        self, culture_name, output_dir="."
+    ):  # Add output_dir parameter
         self.conn = None
+        db_path = (
+            f"{output_dir}/{culture_name}.db"  # Use output_dir for db path
+        )
         try:
-            self.conn = sqlite3.connect(f"data/{culture_name}.db")
-        except sqlite3.OperationalError:
-            print(
-                "The 'data' directory does not exist. The database will be "
-                "created in the current folder."
-            )
-            self.conn = sqlite3.connect(f"{culture_name}.db")
+            self.conn = sqlite3.connect(db_path)
+        except sqlite3.OperationalError as e:
+            logging.error(f"Failed to connect to database at {db_path}: {e}")
+            raise
 
         cursor = self.conn.cursor()
 
@@ -267,11 +267,11 @@ class SQLOutput(TumorsphereOutput):
 
 
 class DatOutput(TumorsphereOutput):
-    def __init__(self, culture_name):
-        self.filename = f"data/{culture_name}.dat"
+    def __init__(self, culture_name, output_dir="."):
+        self.filename = f"{output_dir}/{culture_name}.dat"
         with open(self.filename, "w") as datfile:
             datfile.write(
-                "total_cells, active_cells, stem_cells, active_stem_cells \n"
+                "total_cells, active_cells, stem_cells, active_stem_cells\n"
             )
 
     def begin_culture(
@@ -327,7 +327,8 @@ class DatOutput(TumorsphereOutput):
 
 
 class OvitoOutput(TumorsphereOutput):
-    def __init__(self, culture_name):
+    def __init__(self, culture_name, output_dir="."):
+        self.output_dir = output_dir
         self.culture_name = culture_name
 
     def begin_culture(
@@ -357,7 +358,10 @@ class OvitoOutput(TumorsphereOutput):
         """Writes the data file in path for ovito, for time step t of self.
         Auxiliar function for simulate_with_ovito_data.
         """
-        path_to_write = f"data/ovito_data_{self.culture_name}.{tic:03}"
+        path_to_write = os.path.join(
+            self.output_dir, f"ovito_data_{self.culture_name}.{tic:03}"
+        )
+
         with open(path_to_write, "w") as file_to_write:
             file_to_write.write(str(len(cells)) + "\n")
             file_to_write.write(
@@ -434,6 +438,7 @@ class OvitoOutput(TumorsphereOutput):
 def create_output_demux(
     culture_name: str,
     requested_outputs: list[str],
+    output_dir: str = ".",
 ):
     output_types = {
         "sql": SQLOutput,
@@ -443,7 +448,7 @@ def create_output_demux(
     outputs = []
     for out in requested_outputs:
         if out in output_types:
-            outputs.append(output_types[out](culture_name))
+            outputs.append(output_types[out](culture_name, output_dir))
         else:
             logging.warning(f"Invalid output {out} requested")
     return OutputDemux(culture_name, outputs)
