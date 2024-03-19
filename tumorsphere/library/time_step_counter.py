@@ -55,7 +55,9 @@ def count_time_steps_of_cultures_in_dir(
                 cursor_temp.execute("SELECT max(t_creation) FROM Cells")
                 step = cursor_temp.fetchone()[0]
 
-                print(f"{step} steps for culture pd={pd}, ps={ps}, seed={seed}")
+                print(
+                    f"{step} steps for culture pd={pd}, ps={ps}, seed={seed}"
+                )
                 # creation time starts at 0 in the database, so no
                 # modification is needed
 

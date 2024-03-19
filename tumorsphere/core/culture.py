@@ -167,10 +167,10 @@ class Culture:
             neighbors_up_to_third_degree.update(new_neighbors)
             for index2 in new_neighbors:
                 cell2 = self.cells[index2]
-                new_neighbors_l2: Set[int] = (
-                    cell2.neighbors_indexes.difference(
-                        neighbors_up_to_third_degree
-                    )
+                new_neighbors_l2: Set[
+                    int
+                ] = cell2.neighbors_indexes.difference(
+                    neighbors_up_to_third_degree
                 )
                 neighbors_up_to_third_degree.update(new_neighbors_l2)
                 for index3 in new_neighbors_l2:
