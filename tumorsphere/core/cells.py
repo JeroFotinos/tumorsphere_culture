@@ -62,6 +62,7 @@ class Cell:
         position: np.ndarray,
         culture: "Culture",
         is_stem: bool,
+        velocity: np.ndarray = np.zeros(3),
         parent_index: Optional[int] = 0,
         available_space: bool = True,  # not to be set by user
         creation_time: int = 0,
@@ -75,6 +76,10 @@ class Cell:
             The position of the cell. This is used to update the
             cell_positions in the culture and set the _index
             attribute, but is not stored as an attribute in the object itself.
+        velocity : np.ndarray
+            The velocity of the cell. This is used to update the
+            cell_velocities in the culture, but is not stored as an
+            attribute in the object itself.
         culture : Culture
             The culture to which the cell belongs.
         is_stem : bool
@@ -103,8 +108,13 @@ class Cell:
         culture.cell_positions = np.append(
             culture.cell_positions, [position], axis=0
         )
+        # we add the cell velocity to de velocities matrix
+        culture.cell_velocities = np.append(
+            culture.cell_velocities, [velocity], axis=0
+        )
         self.culture.cells.append(self)
         self.culture.active_cell_indexes.append(self._index)
+
 
         # if we're simulating with the SQLite DB, we insert a register in the
         # Cells table of the SQLite DB

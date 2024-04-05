@@ -27,6 +27,10 @@ class Culture:
         prob_diff: float = 0,
         rng_seed: int = 110293658491283598,
         swap_probability: float = 0.5,
+        number_of_cells: int = 5,
+        side: int = 10,
+        reproduction: bool = False, 
+        movement: bool = True, 
     ):
         """
         Initialize a new culture of cells.
@@ -50,6 +54,14 @@ class Culture:
         rng_seed : int, optional
             Seed for the random number generator, by default
             110293658491283598.
+        number_of_cells : int, optional
+            The number of cells in the culture.
+        side : int, optional
+            The length of the side of the square where the cells move.
+        reproduction : bool
+            Whether the cells reproduce or not
+        movement : bool
+            Whether the cells move or not 
 
         Attributes
         ----------
@@ -66,6 +78,14 @@ class Culture:
             The probability that a cell differentiates.
         swap_probability : float
             The probability that a cell swaps its type with its offspring.
+        number_of_cells : int, optional
+            The number of cells in the culture.
+        side : int, optional
+            The length of the side of the square where the cells move.    
+        reproduction : bool
+            Whether the cells reproduce or not
+        movement : bool
+            Whether the cells move or not    
         rng : numpy.random.Generator
             Random number generator.
         first_cell_is_stem : bool
@@ -85,6 +105,10 @@ class Culture:
         self.prob_stem = prob_stem
         self.prob_diff = prob_diff
         self.swap_probability = swap_probability
+        self.number_of_cells = number_of_cells
+        self.side = side
+        self.reproduction = reproduction
+        self.movement = movement
 
         # we instantiate the culture's RNG with the provided entropy
         self.rng_seed = rng_seed
@@ -95,6 +119,9 @@ class Culture:
 
         # initialize the positions matrix
         self.cell_positions = np.empty((0, 3), float)
+
+        # initialize the velocities matrix
+        self.cell_velocities = np.empty((0, 3), float)
 
         # we initialize the lists of cells
         self.cells = []
@@ -388,7 +415,39 @@ class Culture:
         # (reproduction is turned off)
 
     # ---------------------------------------------------------
+    def move(self, cell_index: int, delta_t: float) -> None:
+        """The given cell moves with a given velocity.
 
+        Attempts to move one step with a particular velocity. If the cell
+        arrives to a border of the culture's square, it appear on the other
+        side. 
+
+        Notes
+        -----
+        """
+        #cell = self.cells[cell_index]
+        position = self.cell_positions[cell_index]
+        velocity = self.cell_velocities[cell_index]
+        l = self.side 
+
+        self.cell_positions[cell_index] = position + velocity*delta_t
+        position_after = self.cell_positions[cell_index]
+        # Border condition for x
+        if position_after[0]>=l and velocity[0]>0:
+             self.cell_positions[cell_index][0] = position_after[0]-l
+        elif position_after[0]<=0 and velocity[0]<0:
+             self.cell_positions[cell_index][0] = l+position_after[0]
+        else:
+             pass
+        # Border condition for y
+        if position_after[1]>=l and velocity[1]>0:
+             self.cell_positions[cell_index][1] = position_after[1]-l
+        elif position_after[1]<=0 and velocity[1]<0:
+             self.cell_positions[cell_index][1] = l+position_after[1]
+        else:
+             pass
+    # ---------------------------------------------------------
+    
     def simulate(self, num_times: int) -> None:
         """Simulate culture growth for a specified number of time steps.
 
@@ -415,14 +474,34 @@ class Culture:
             )
 
             # we instantiate the first cell
+            angle = 2*np.pi*np.random.random()
+            #v_0 = np.random.random()
+            v_0 = 1.0
             first_cell_object = Cell(
                 position=np.array([0, 0, 0]),
                 culture=self,
                 is_stem=self.first_cell_is_stem,
+                velocity=[v_0*np.cos(angle), v_0*np.sin(angle), 0],
                 parent_index=0,
                 available_space=True,
+    
             )
 
+            # We add the other cells
+            for i in range(1, self.number_of_cells):
+                l = self.side
+                # choose a random angle and amplitude for the velocity
+                angle = 2*np.pi*np.random.random()
+                #v_0 = np.random.random()
+                v_0 = 1.0
+                Cell(
+                    position=l*np.random.random(3), # random position in the square of the culture
+                    culture=self,
+                    is_stem=self.first_cell_is_stem,
+                    velocity=[v_0*np.cos(angle), v_0*np.sin(angle), 0],
+                    parent_index=0,
+                    available_space=True,
+                )
         # Save the data (for dat, ovito, and/or SQLite)
         self.output.record_culture_state(
             tic=0,
@@ -430,16 +509,21 @@ class Culture:
             cell_positions=self.cell_positions,
             active_cell_indexes=self.active_cell_indexes,
         )
-
         # we simulate for num_times time steps
         for i in range(1, num_times + 1):
             # we get a permuted copy of the cells list
             active_cell_indexes = self.rng.permutation(
                 self.active_cell_indexes
             )
-            # and reproduce the cells in this random order
+            reproduction = self.reproduction 
+            movement = self.movement 
+            # and reproduce or move the cells in this random order
             for index in active_cell_indexes:
-                self.reproduce(cell_index=index, tic=i)
+                if reproduction:
+                    self.reproduce(cell_index=index, tic=i)
+                if movement:
+                    self.move(cell_index=index, delta_t=0.5)
+
 
             # Save the data (for dat, ovito, and/or SQLite)
             self.output.record_culture_state(

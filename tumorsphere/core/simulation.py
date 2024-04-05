@@ -16,7 +16,7 @@ from tumorsphere.core.culture import Culture
 from tumorsphere.core.output import create_output_demux
 
 
-class Simulation:
+class Simulation: #falta documentar
     """Class for simulating multiple `Culture` objects with different
     parameters.
 
@@ -89,6 +89,10 @@ class Simulation:
         adjacency_threshold=4,
         cell_max_repro_attempts=1000,
         swap_probability=0.5,
+        number_of_cells=[5],
+        side=[10],
+        reproduction: bool = False, 
+        movement: bool = True, 
     ):
         # main simulation attributes
         self.first_cell_is_stem = first_cell_is_stem
@@ -97,6 +101,10 @@ class Simulation:
         self.num_of_realizations = num_of_realizations
         self.num_of_steps_per_realization = num_of_steps_per_realization
         self.swap_probability = swap_probability
+        self.number_of_cells = number_of_cells
+        self.reproduction = reproduction
+        self.movement = movement 
+        self.side = side
         self._rng_seed = rng_seed
         self.rng = np.random.default_rng(rng_seed)
 
@@ -159,6 +167,8 @@ class Simulation:
                     (
                         k,
                         i,
+                        f,
+                        g,
                         seeds[j],
                         self,
                         outputs,
@@ -166,17 +176,26 @@ class Simulation:
                     )
                     for k in range(len(self.prob_diff))
                     for i in range(len(self.prob_stem))
+                    for f in range(len(self.number_of_cells))
+                    for g in range(len(self.side))
                     for j in range(self.num_of_realizations)
                 ],
-            )
+            ) ##############################
 
 
-def realization_name(pd, ps, seed) -> str:
-    return f"culture_pd={pd}_ps={ps}_rng_seed={seed}"
+def realization_name(pd, ps, nc, l, seed, repro, moving) -> str:
+    if repro==True and moving==True:
+        return f"culture_pd={pd}_ps={ps}_nc={nc}_l={l}_rng_seed={seed}" 
+    elif repro==True and moving==False:
+        return f"culture_pd={pd}_ps={ps}_rng_seed={seed}" 
+    elif repro==False and moving==True:
+        return f"culture_nc={nc}_l={l}_rng_seed={seed}" 
+    else:
+        pass
 
 
 def simulate_single_culture(
-    args: Tuple[int, int, int, Simulation, List[str], str]
+    args: Tuple[int, int, int, int, int, Simulation, List[str], str]
 ) -> None:
     """A worker function for multiprocessing.
 
@@ -201,10 +220,10 @@ def simulate_single_culture(
     methods can't be pickled. Therefore, the instance method worker had to be
     refactored to a standalone function (or a static method).
     """
-    k, i, seed, sim, outputs, output_dir = args
+    k, i, f, g, seed, sim, outputs, output_dir = args
 
     current_realization_name = realization_name(
-        sim.prob_diff[k], sim.prob_stem[i], seed
+        sim.prob_diff[k], sim.prob_stem[i], sim.number_of_cells[f], sim.side[g], seed, sim.reproduction, sim.movement
     )
     output = create_output_demux(current_realization_name, outputs, output_dir)
     sim.cultures[current_realization_name] = Culture(
@@ -217,6 +236,10 @@ def simulate_single_culture(
         prob_diff=sim.prob_diff[k],
         rng_seed=seed,
         swap_probability=sim.swap_probability,
+        number_of_cells=sim.number_of_cells[f], #########
+        side=sim.side[g], #############
+        reproduction=sim.reproduction,
+        movement=sim.movement,
     )
     sim.cultures[current_realization_name].simulate(
         sim.num_of_steps_per_realization,
