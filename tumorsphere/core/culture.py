@@ -13,12 +13,14 @@ import numpy as np
 
 from tumorsphere.core.cells import Cell
 from tumorsphere.core.output import TumorsphereOutput
+from tumorsphere.core.spatial_hash_grid import SpatialHashGrid
 
 
 class Culture:
     def __init__(
         self,
         output: TumorsphereOutput,
+        grid: SpatialHashGrid,
         adjacency_threshold: float = 4,
         cell_radius: float = 1,
         cell_max_repro_attempts: int = 1000,
@@ -33,6 +35,10 @@ class Culture:
 
         Parameters
         ----------
+        output : TumorsphereOutput
+            The output object to record the simulation data.
+        grid : SpatialHashGrid
+            The spatial hash grid to be used in the simulation.
         adjacency_threshold : int, optional
             The maximum distance at which two cells can be considered
             neighbors, by default 4.
@@ -103,7 +109,12 @@ class Culture:
         # time at wich the culture was created
         self.simulation_start = self._get_simulation_time()
 
+        # Additional objects
         self.output = output
+        self.grid = grid
+
+        # we set the grid's culture to this one
+        self.grid.culture = self
 
     # ----------------database related behavior----------------
 
@@ -115,116 +126,6 @@ class Culture:
         return time_string
 
     # ------------------cell related behavior------------------
-
-    def get_neighbors_up_to_second_degree(self, cell_index: int) -> Set[int]:
-        """
-        Get the neighbors up to the second degree of a cell.
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-
-        Returns
-        -------
-        Set[int]
-            The set of indices of the cell's neighbors up to the second degree.
-        """
-        cell = self.cells[cell_index]
-        neighbors_up_to_second_degree: Set[int] = set(cell.neighbors_indexes)
-        for index1 in cell.neighbors_indexes:
-            cell1 = self.cells[index1]
-            new_neighbors: Set[int] = cell1.neighbors_indexes.difference(
-                neighbors_up_to_second_degree
-            )
-            neighbors_up_to_second_degree.update(new_neighbors)
-            for index2 in new_neighbors:
-                cell2 = self.cells[index2]
-                neighbors_up_to_second_degree.update(cell2.neighbors_indexes)
-        return neighbors_up_to_second_degree
-
-    def get_neighbors_up_to_third_degree(self, cell_index: int) -> Set[int]:
-        """
-        Get the neighbors up to the third degree of a cell.
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-
-        Returns
-        -------
-        Set[int]
-            The set of indices of the cell's neighbors up to the third degree.
-        """
-        cell = self.cells[cell_index]
-        neighbors_up_to_third_degree: Set[int] = set(cell.neighbors_indexes)
-        for index1 in cell.neighbors_indexes:
-            cell1 = self.cells[index1]
-            new_neighbors: Set[int] = cell1.neighbors_indexes.difference(
-                neighbors_up_to_third_degree
-            )
-            neighbors_up_to_third_degree.update(new_neighbors)
-            for index2 in new_neighbors:
-                cell2 = self.cells[index2]
-                new_neighbors_l2: Set[
-                    int
-                ] = cell2.neighbors_indexes.difference(
-                    neighbors_up_to_third_degree
-                )
-                neighbors_up_to_third_degree.update(new_neighbors_l2)
-                for index3 in new_neighbors_l2:
-                    cell3 = self.cells[index3]
-                    neighbors_up_to_third_degree.update(
-                        cell3.neighbors_indexes
-                    )
-        return neighbors_up_to_third_degree
-
-    def find_neighbors(self, cell_index: int) -> None:
-        """
-        Find the neighbors of a cell.
-
-        This method updates the cell's list of indexes of neighbors in-place.
-        When a new neighbor is found, the cell is also added to the list of
-        neighbors of this newly found neighbor.
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-        """
-        cell = self.cells[cell_index]
-        if len(cell.neighbors_indexes) < 12:
-            neighbors_up_to_certain_degree = (
-                self.get_neighbors_up_to_third_degree(cell_index)
-            )
-        else:
-            neighbors_up_to_certain_degree = (
-                self.get_neighbors_up_to_second_degree(cell_index)
-            )
-
-        # now we check if there are cells to append
-        candidate_set = neighbors_up_to_certain_degree - cell.neighbors_indexes
-        candidate_set.difference_update([cell_index])
-        candidate_indexes = list(candidate_set)
-
-        if len(candidate_indexes) > 0:
-            candidate_positions = self.cell_positions[candidate_indexes, :]
-            candidate_distances = np.linalg.norm(
-                self.cell_positions[cell_index] - candidate_positions, axis=1
-            )
-
-            for candidate_index, candidate_distance in zip(
-                candidate_indexes, candidate_distances
-            ):
-                in_neighborhood = (
-                    candidate_distance <= self.adjacency_threshold
-                )
-                if in_neighborhood:
-                    cell.neighbors_indexes.add(candidate_index)
-                    self.cells[candidate_index].neighbors_indexes.add(
-                        cell_index
-                    )
 
     def generate_new_position(self, cell_index: int) -> np.ndarray:
         """Generate a proposed position for the child cell, adjacent to the
@@ -283,16 +184,24 @@ class Culture:
                 # we generate a new proposed position for the child cell
                 child_position = self.generate_new_position(cell_index)
 
-                # we update and get the neighbors set
-                self.find_neighbors(cell_index)
-                neighbors_up_to_some_degree = cell.neighbors_indexes
+                # if the position is not within the bounds of the simulation
+                # we get the corresponding position
+                if not self.grid.is_position_in_bounds(child_position):
+                    child_position = self.grid.get_in_bounds_position(
+                        child_position
+                    )
 
                 # array with the indices of the neighbors
-                neighbor_indices = list(neighbors_up_to_some_degree)
+                neighbor_indices = list(
+                    self.grid.find_neighbors(
+                        cell_id=cell_index,
+                        position=self.cell_positions[cell_index],
+                    )
+                )
 
                 # array with the distances from the proposed child position to
                 # the other cells
-                if len(neighbors_up_to_some_degree) > 0:
+                if len(neighbor_indices) > 0:
                     neighbor_position_mat = self.cell_positions[
                         neighbor_indices, :
                     ]
@@ -358,17 +267,6 @@ class Culture:
                         is_stem=False,
                         parent_index=cell_index,
                         creation_time=tic,
-                    )
-                # we add the parent as neighbor of the child
-                child_cell.neighbors_indexes.add(cell_index)
-                # we find the child's neighbors
-                self.find_neighbors(child_cell._index)
-                # we add the child as a neighbor of its neighbors
-                for neighbor_index in self.cells[
-                    child_cell._index
-                ].neighbors_indexes:
-                    self.cells[neighbor_index].neighbors_indexes.add(
-                        child_cell._index
                     )
             else:
                 # The cell has no available space to reproduce
