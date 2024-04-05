@@ -25,9 +25,6 @@ class Cell:
     parent_index: Optional[int]
         The index of the parent cell in the culture's cell_positions array.
         Default is 0.
-    neighbors_indexes: Set[int]
-        A set of indexes corresponding to the neighboring cells in the
-        culture's cell_positions array. Default is an empty set.
     available_space: bool
         Whether the cell has available space around it or not. Default is True.
     _index: Optional[int]
@@ -37,7 +34,7 @@ class Cell:
     Methods
     -------
     __init__(
-        position, culture, is_stem, parent_index=0, neighbors_indexes=set(),
+        position, culture, is_stem, parent_index=0,
         available_space=True
         )
         Initializes the Cell object and sets the _index attribute
@@ -53,7 +50,6 @@ class Cell:
     culture: "Culture"
     is_stem: bool
     parent_index: Optional[int] = 0
-    neighbors_indexes: Set[int] = field(default_factory=set)
     available_space: bool = True
     _index: Optional[int] = field(default=False, init=False)
 
@@ -92,7 +88,6 @@ class Cell:
         self.culture = culture
         self.is_stem = is_stem
         self.parent_index = parent_index
-        self.neighbors_indexes = set()
         self.available_space = available_space
 
         # we FIRST get the cell's index
@@ -105,6 +100,12 @@ class Cell:
         )
         self.culture.cells.append(self)
         self.culture.active_cell_indexes.append(self._index)
+
+        # We also add the cell to the culture's spatial hash grid
+        self.culture.grid.add_cell_to_hash_table(
+            self._index,
+            position,
+        )
 
         # if we're simulating with the SQLite DB, we insert a register in the
         # Cells table of the SQLite DB

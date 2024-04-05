@@ -100,8 +100,44 @@ def cli():
     type=click.Path(),
     default=lambda: os.getcwd(),
     show_default="current working directory",
-    help="Path to the output directory where simulation results will be saved. "
-    "Defaults to the current working directory.",
+    help=(
+        "Path to the output directory where simulation results will be saved."
+        " Defaults to the current working directory."
+    ),
+)
+@click.option(
+    "--culture-bounds",
+    required=False,
+    type=float,
+    default=None,
+    show_default=True,
+    help=(
+        "The bounds of the grid. If None (default), the space is unbouded. "
+        "If provided, the space is bounded to the [0, bounds)^3 cube."
+    ),
+)
+@click.option(
+    "--grid-cube-size",
+    required=False,
+    type=float,
+    default=2,
+    show_default=True,
+    help=(
+        "The size of the cubes in the grid, by default 2. "
+        "This value comes from considering that cells have "
+        "usually radius 1. Enlarge if using larger cells."
+    ),
+)
+@click.option(
+    "--grid-torus",
+    required=False,
+    type=bool,
+    default=True,
+    show_default=True,
+    help=(
+        "Whether the cells are in a torus, only relevant when bounds are "
+        "provided, True by default."
+    ),
 )
 def simulate(
     prob_stem,
@@ -114,6 +150,9 @@ def simulate(
     dat_files,
     ovito,
     output_dir,
+    culture_bounds,
+    grid_cube_size,
+    grid_torus,
 ):
     """
     Command-line interface for running the tumorsphere simulation.
@@ -176,6 +215,9 @@ def simulate(
         adjacency_threshold=4,
         cell_max_repro_attempts=1000,
         # swap_probability=0.5,
+        culture_bounds=culture_bounds,
+        grid_cube_size=grid_cube_size,
+        grid_torus=grid_torus,
     )
 
     # Running the simulation

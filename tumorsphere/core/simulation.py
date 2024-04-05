@@ -14,6 +14,7 @@ import numpy as np
 
 from tumorsphere.core.culture import Culture
 from tumorsphere.core.output import create_output_demux
+from tumorsphere.core.spatial_hash_grid import SpatialHashGrid
 
 
 class Simulation:
@@ -58,6 +59,23 @@ class Simulation:
         Maximum number of attempts to create a new cell during the
         reproduction of an existing cell in a `Culture` object.
         Default is`1000`.
+    culture_bounds : int, optional
+        The bounds of the grid, by default None. If None, the space is
+        unbouded. If provided, the space is bounded to the
+        [0, culture_bounds)^3 cube.
+    grid_cube_size : int, optional
+        The size of the cubes in the grid, by default 2. This value comes
+        from considering that cells have usually radius 1, so a cube of
+        side $h=2r$ is enough to make sure that we only have to check
+        superpositions with cells on the same or first neighboring grid
+        cells. Enlarge if using larger cells.
+    grid_torus : bool, optional
+        Whether the grid is a torus or not, only relevant when bounds are
+        provided, True by default. If True, the grid is a torus, so the
+        cells that go out of the bounds appear on the other side of the
+        grid. If False, the grid is a bounded cube, so behavior should be
+        defined to manage what happens when cells go out of the bounds of
+        the simulation.
 
     Attributes
     ----------
@@ -79,16 +97,19 @@ class Simulation:
 
     def __init__(
         self,
-        first_cell_is_stem=True,
+        first_cell_is_stem: bool = True,
         prob_stem=[0.36],
         prob_diff=[0],
-        num_of_realizations=4,
-        num_of_steps_per_realization=10,
+        num_of_realizations: int = 4,
+        num_of_steps_per_realization: int = 10,
         rng_seed=0x87351080E25CB0FAD77A44A3BE03B491,
-        cell_radius=1,
-        adjacency_threshold=4,
-        cell_max_repro_attempts=1000,
-        swap_probability=0.5,
+        cell_radius: float = 1,
+        adjacency_threshold: float = 4,
+        cell_max_repro_attempts: int = 1000,
+        swap_probability: float = 0.5,
+        culture_bounds: float = None,
+        grid_cube_size: float = 2,
+        grid_torus: bool = True,
     ):
         # main simulation attributes
         self.first_cell_is_stem = first_cell_is_stem
@@ -107,6 +128,77 @@ class Simulation:
         self.cell_max_repro_attempts = cell_max_repro_attempts
         self.adjacency_threshold = adjacency_threshold
         self.cell_radius = cell_radius
+
+        # attributes for the spatial hash grid
+        self.culture_bounds = culture_bounds
+        self.grid_cube_size = grid_cube_size
+        self.grid_torus = grid_torus
+
+    def simulate_single_culture(
+        self,
+        sql: bool = True,
+        dat_files: bool = False,
+        ovito: bool = False,
+        output_dir: str = ".",
+        prob_stem_index: int = 0,
+        prob_diff_index: int = 0,
+    ):
+        """Like simulate_parallel but for a single culture.
+        
+        Mainly intended to be used when debugging or testing the simulation,
+        tasks with which the parallelization can interfere.
+
+        Notes
+        -----
+        As the RNG is already initialized, the use of this method can alter
+        reproducibility.
+        """
+        seed = self.rng.integers(
+            low=2**20, high=2**50, size=1
+        )
+
+        outputs = []
+        if sql:
+            outputs.append("sql")
+        if dat_files:
+            outputs.append("dat")
+        if ovito:
+            outputs.append("ovito")
+        
+        # We compute the name of the realization
+        current_realization_name = realization_name(
+            self.prob_diff[prob_diff_index],
+            self.prob_stem[prob_stem_index],
+            seed,
+        )
+
+        # We create the output object
+        output = create_output_demux(current_realization_name, outputs, output_dir)
+
+        # We create the spatial hash grid object
+        spatial_hash_grid = SpatialHashGrid(
+            culture=None,
+            bounds=self.culture_bounds,
+            cube_size=self.grid_cube_size,
+            torus=self.grid_torus,
+        )
+
+        # We create the culture object and simulate it
+        self.cultures[current_realization_name] = Culture(
+            output=output,
+            grid=spatial_hash_grid,
+            adjacency_threshold=self.adjacency_threshold,
+            cell_radius=self.cell_radius,
+            cell_max_repro_attempts=self.cell_max_repro_attempts,
+            first_cell_is_stem=self.first_cell_is_stem,
+            prob_stem=self.prob_stem[prob_stem_index],
+            prob_diff=self.prob_diff[prob_diff_index],
+            rng_seed=seed,
+            swap_probability=self.swap_probability,
+        )
+        self.cultures[current_realization_name].simulate(
+            self.num_of_steps_per_realization,
+        )
 
     def simulate_parallel(
         self,
@@ -163,6 +255,9 @@ class Simulation:
                         self,
                         outputs,
                         output_dir,
+                        self.culture_bounds,
+                        self.grid_cube_size,
+                        self.grid_torus,
                     )
                     for k in range(len(self.prob_diff))
                     for i in range(len(self.prob_stem))
@@ -201,14 +296,39 @@ def simulate_single_culture(
     methods can't be pickled. Therefore, the instance method worker had to be
     refactored to a standalone function (or a static method).
     """
-    k, i, seed, sim, outputs, output_dir = args
+    # We unpack the arguments
+    (
+        k,
+        i,
+        seed,
+        sim,
+        outputs,
+        output_dir,
+        culture_bounds,
+        grid_cube_size,
+        grid_torus,
+    ) = args
 
+    # We compute the name of the realization
     current_realization_name = realization_name(
         sim.prob_diff[k], sim.prob_stem[i], seed
     )
+
+    # We create the output object
     output = create_output_demux(current_realization_name, outputs, output_dir)
+
+    # We create the spatial hash grid object
+    spatial_hash_grid = SpatialHashGrid(
+        culture=None,
+        bounds=culture_bounds,
+        cube_size=grid_cube_size,
+        torus=grid_torus,
+    )
+
+    # We create the culture object and simulate it
     sim.cultures[current_realization_name] = Culture(
-        output,
+        output=output,
+        grid=spatial_hash_grid,
         adjacency_threshold=sim.adjacency_threshold,
         cell_radius=sim.cell_radius,
         cell_max_repro_attempts=sim.cell_max_repro_attempts,
