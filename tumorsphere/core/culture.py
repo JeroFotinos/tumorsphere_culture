@@ -425,23 +425,13 @@ class Culture:
         Notes
         -----
         """
-        cell = self.cells[cell_index]
         position = self.cell_positions[cell_index]
         velocity = self.cell_velocities[cell_index]
         l = self.side 
         r = self.cell_radius
 
-        # we update the neighbors set
-        #self.find_neighbors(cell_index)
-        #neighbors = cell.neighbors_indexes
-        #print(neighbors)
-        #neighbors_up_to_some_degree = cell.neighbors_indexes
-
         # array with the indices of the neighbors
-        #neighbor_indices = list(neighbors_up_to_some_degree)
         active_cells = self.active_cell_indexes
-        #print(cell_index)
-        #print(neighbors)
         neighbors = []
         for indice in active_cells:
             if indice != cell_index:
@@ -458,44 +448,26 @@ class Culture:
                 f = 0
             velocity = velocity + f
             velocity_neighbor = velocity_neighbor-f
-            self.cell_positions[neighbor_index] = position_neighbor + velocity_neighbor*delta_t
             self.cell_velocities[neighbor_index] = velocity_neighbor
 
-            self.cell_positions[cell_index] = position + velocity*delta_t
-            self.cell_velocities[cell_index] = velocity
+        self.cell_positions[cell_index] = position + velocity*delta_t
+        self.cell_velocities[cell_index] = velocity
 
-            position_after = self.cell_positions[cell_index]
-            # Border condition for x
-            if position_after[0]>=l and velocity[0]>0:
-                self.cell_positions[cell_index][0] = position_after[0]-l
-            elif position_after[0]<=0 and velocity[0]<0:
-                self.cell_positions[cell_index][0] = l+position_after[0]
-            else:
-                pass
-            # Border condition for y
-            if position_after[1]>=l and velocity[1]>0:
-                self.cell_positions[cell_index][1] = position_after[1]-l
-            elif position_after[1]<=0 and velocity[1]<0:
-                self.cell_positions[cell_index][1] = l+position_after[1]
-            else:
-                pass
-
-            position_after = self.cell_positions[neighbor_index]
-            # Border condition for x
-            if position_after[0]>=l and velocity[0]>0:
-                self.cell_positions[neighbor_index][0] = position_after[0]-l
-            elif position_after[0]<=0 and velocity[0]<0:
-                self.cell_positions[neighbor_index][0] = l+position_after[0]
-            else:
-                pass
-            # Border condition for y
-            if position_after[1]>=l and velocity[1]>0:
-                self.cell_positions[neighbor_index][1] = position_after[1]-l
-            elif position_after[1]<=0 and velocity[1]<0:
-                self.cell_positions[neighbor_index][1] = l+position_after[1]
-            else:
-                pass
-        #print(self.cell_velocities[1][0])
+        position_after = self.cell_positions[cell_index]
+        # Border condition for x
+        if position_after[0]>=l and velocity[0]>0:
+            self.cell_positions[cell_index][0] = position_after[0]-l
+        elif position_after[0]<=0 and velocity[0]<0:
+            self.cell_positions[cell_index][0] = l+position_after[0]
+        else:
+            pass
+        # Border condition for y
+        if position_after[1]>=l and velocity[1]>0:
+            self.cell_positions[cell_index][1] = position_after[1]-l
+        elif position_after[1]<=0 and velocity[1]<0:
+            self.cell_positions[cell_index][1] = l+position_after[1]
+        else:
+            pass
     # ---------------------------------------------------------
     
     def simulate(self, num_times: int) -> None:
@@ -572,7 +544,7 @@ class Culture:
                 if reproduction:
                     self.reproduce(cell_index=index, tic=i)
                 if movement:
-                    self.move(cell_index=index, delta_t=0.01)
+                    self.move(cell_index=index, delta_t=0.1)
 
 
             # Save the data (for dat, ovito, and/or SQLite)
