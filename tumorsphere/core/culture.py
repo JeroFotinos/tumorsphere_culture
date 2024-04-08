@@ -123,6 +123,9 @@ class Culture:
         # initialize the velocities matrix
         self.cell_velocities = np.empty((0, 3), float)
 
+        # initialize the forces matrix
+        self.cell_forces = np.empty((0, 3), float) 
+
         # we initialize the lists of cells
         self.cells = []
         self.active_cell_indexes = []
@@ -415,6 +418,56 @@ class Culture:
         # (reproduction is turned off)
 
     # ---------------------------------------------------------
+    def interaction(self, cell_index: int) -> None:
+        """The given cell interacts with another one if they are close enough.
+
+        It describes the interaction when two cells touch each other. It changes
+        the direction of the velocity and add a force to the system
+
+        Notes
+        -----
+        """
+        position = self.cell_positions[cell_index]
+        velocity_init = self.cell_velocities[cell_index] 
+        l = self.side 
+        r = self.cell_radius
+        k = 1
+        # array with the indexes of the neighbors
+        active_cells = self.active_cell_indexes
+        neighbors = []
+        for index in active_cells:
+            if index != cell_index:
+                neighbors.append(index)
+        f = np.zeros(3)
+        for neighbor_index in neighbors:
+            fx = 0
+            fy = 0
+            position_neighbor = self.cell_positions[neighbor_index]
+            relative_pos_x = position_neighbor[0]-position[0]
+            relative_pos_y = position_neighbor[1]-position[1]
+            abs_rx = abs(relative_pos_x)
+            abs_ry = abs(relative_pos_y)
+            if abs_rx>0.5*l:
+                relative_pos_x =np.sign(relative_pos_x)*(abs_rx-l)
+            if abs_ry>0.5*l:
+                relative_pos_y =np.sign(relative_pos_y)*(abs_ry-l)
+            
+            distance_sq = relative_pos_x**2 + relative_pos_y**2
+
+            if distance_sq<(2*r)**2:
+                fx = -k*relative_pos_x
+                fy = -k*relative_pos_y
+            f = f + [fx, fy, 0]
+
+        # we change the direction of the vellocity vector but not the abs value
+        direction = (velocity_init + f)/np.linalg.norm(velocity_init + f)
+        v_0 = np.linalg.norm(velocity_init)
+        velocity = direction*v_0
+        # and we add it to the matrix
+        self.cell_velocities[cell_index] = velocity
+        # we add the force to the matrix
+        self.cell_forces[cell_index] = f
+    # ---------------------------------------------------------
     def move(self, cell_index: int, delta_t: float) -> None:
         """The given cell moves with a given velocity.
 
@@ -428,30 +481,9 @@ class Culture:
         position = self.cell_positions[cell_index]
         velocity = self.cell_velocities[cell_index]
         l = self.side 
-        r = self.cell_radius
+        f = self.cell_forces[cell_index]
 
-        # array with the indices of the neighbors
-        active_cells = self.active_cell_indexes
-        neighbors = []
-        for indice in active_cells:
-            if indice != cell_index:
-                neighbors.append(indice)
-
-        for neighbor_index in neighbors:
-            position_neighbor = self.cell_positions[neighbor_index]
-            velocity_neighbor = self.cell_velocities[neighbor_index]
-            distance_sq = (position_neighbor[0]-position[0])**2+(position_neighbor[1]-position[1])**2
-            if distance_sq <= r**2:
-                k=0.5
-                f = -k*(position_neighbor-position)
-            else:
-                f = 0
-            velocity = velocity + f
-            velocity_neighbor = velocity_neighbor-f
-            self.cell_velocities[neighbor_index] = velocity_neighbor
-
-        self.cell_positions[cell_index] = position + velocity*delta_t
-        self.cell_velocities[cell_index] = velocity
+        self.cell_positions[cell_index] = position + (velocity+f)*delta_t
 
         position_after = self.cell_positions[cell_index]
         # Border condition for x
@@ -496,14 +528,13 @@ class Culture:
             )
 
             # we instantiate the first cell
-            angle = 2*np.pi*np.random.random()
-            #v_0 = np.random.random()
+            phi = self.rng.uniform(low=0, high=2 * np.pi)
             v_0 = 1.0
             first_cell_object = Cell(
                 position=np.array([0, 0, 0]),
                 culture=self,
                 is_stem=self.first_cell_is_stem,
-                velocity=[v_0*np.cos(angle), v_0*np.sin(angle), 0],
+                velocity=[v_0*np.cos(phi), v_0*np.sin(phi), 0],
                 parent_index=0,
                 available_space=True,
     
@@ -513,14 +544,13 @@ class Culture:
             for i in range(1, self.number_of_cells):
                 l = self.side
                 # choose a random angle and amplitude for the velocity
-                angle = 2*np.pi*np.random.random()
-                #v_0 = np.random.random()
+                phi = self.rng.uniform(low=0, high=2 * np.pi)
                 v_0 = 1.0
                 Cell(
                     position=l*np.random.random(3), # random position in the square of the culture
                     culture=self,
                     is_stem=self.first_cell_is_stem,
-                    velocity=[v_0*np.cos(angle), v_0*np.sin(angle), 0],
+                    velocity=[v_0*np.cos(phi), v_0*np.sin(phi), 0],
                     parent_index=0,
                     available_space=True,
                 )
@@ -540,11 +570,14 @@ class Culture:
             reproduction = self.reproduction 
             movement = self.movement 
             # and reproduce or move the cells in this random order
-            for index in active_cell_indexes:
-                if reproduction:
+            if reproduction:
+                for index in active_cell_indexes:
                     self.reproduce(cell_index=index, tic=i)
-                if movement:
-                    self.move(cell_index=index, delta_t=0.1)
+            if movement:
+                for index in active_cell_indexes:
+                    self.interaction(cell_index=index)
+                for index in active_cell_indexes:
+                    self.move(cell_index=index, delta_t=0.05)
 
 
             # Save the data (for dat, ovito, and/or SQLite)
