@@ -159,7 +159,18 @@ class SpatialHashGrid:
         # We use itertools.product to simplify the nested loops for checking
         # adjacent keys, equivalent to a 3D Moore neighborhood
         for offset in product(range(-1, 2), repeat=3):
-            adj_key = tuple(key[i] + offset[i] for i in range(3))
+            adj_key = np.array(key) + np.array(offset)
+
+            # If the grid is a torus, we need to wrap the keys around the
+            # bounds of the grid.
+            if self.bounds is not None and self.torus:
+                adj_key = np.mod(adj_key, self.bounds)
+            
+            # We convert it to a tuple for using it as a dictionary key
+            adj_key = tuple(adj_key)
+
+            # Check if the adjacent key is in the hash table, and if so, add
+            # the cell index to the neighbors set.
             if adj_key in self.hash_table:
                 neighbors.update(
                     adj_cell_id
