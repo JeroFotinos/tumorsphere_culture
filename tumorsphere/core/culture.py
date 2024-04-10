@@ -428,11 +428,10 @@ class Culture:
         -----
         """
         position = self.cell_positions[cell_index]
-        velocity_init = self.cell_velocities[cell_index] 
+        #velocity_init = self.cell_velocities[cell_index] 
         l = self.side 
         r = self.cell_radius
         k = 1
-        # array with the indexes of the neighbors
         active_cells = self.active_cell_indexes
         neighbors = []
         for index in active_cells:
@@ -459,13 +458,6 @@ class Culture:
                 fy = -k*relative_pos_y
             f = f + [fx, fy, 0]
 
-        # we change the direction of the vellocity vector but not the abs value
-        direction = (velocity_init + f)/np.linalg.norm(velocity_init + f)
-        v_0 = np.linalg.norm(velocity_init)
-        velocity = direction*v_0
-        # and we add it to the matrix
-        self.cell_velocities[cell_index] = velocity
-        # we add the force to the matrix
         self.cell_forces[cell_index] = f
     # ---------------------------------------------------------
     def move(self, cell_index: int, delta_t: float) -> None:
@@ -483,7 +475,13 @@ class Culture:
         l = self.side 
         f = self.cell_forces[cell_index]
 
+        # we update the cell's position
         self.cell_positions[cell_index] = position + (velocity+f)*delta_t
+
+        # we change the direction of the velocity
+        direction = (velocity + f)/np.linalg.norm(velocity + f)
+        v_0 = np.linalg.norm(velocity)
+        self.cell_velocities[cell_index] = direction*v_0
 
         position_after = self.cell_positions[cell_index]
         # Border condition for x
