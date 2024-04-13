@@ -22,6 +22,12 @@ class Cell:
         The culture to which the cell belongs.
     is_stem: bool
         Whether the cell is a stem cell or not.
+    speed: float
+        The speed at which the cell moves.
+    phi: float
+        The orientation of the cell. It's the angle in the xy plane.
+    force : np.ndarray
+        The forces exerted on the cell
     parent_index: Optional[int]
         The index of the parent cell in the culture's cell_positions array.
         Default is 0.
@@ -52,6 +58,9 @@ class Cell:
 
     culture: "Culture"
     is_stem: bool
+    speed: float = 1,
+    phi: float = 0,
+    force: np.ndarray = np.empty(2),
     parent_index: Optional[int] = 0
     neighbors_indexes: Set[int] = field(default_factory=set)
     available_space: bool = True
@@ -62,8 +71,9 @@ class Cell:
         position: np.ndarray,
         culture: "Culture",
         is_stem: bool,
-        velocity: np.ndarray = np.zeros(3),
-        force: np.ndarray = np.zeros(3),
+        speed: float = 1,
+        phi: float = 0,
+        force: np.ndarray = np.empty(2),
         parent_index: Optional[int] = 0,
         available_space: bool = True,  # not to be set by user
         creation_time: int = 0,
@@ -81,10 +91,10 @@ class Cell:
             The culture to which the cell belongs.
         is_stem : bool
             Whether the cell is a stem cell or not.
-        velocity : np.ndarray
-            The velocity of the cell. This is used to update the
-            cell_velocities in the culture, but is not stored as an
-            attribute in the object itself.
+        speed: float
+            The speed at which the cell moves.
+        phi: float
+            The orientation of the cell. It's the angle in the xy plane.
         force : np.ndarray
             The forces exerted on the cell
         parent_index : Optional[int], default=0
@@ -102,6 +112,9 @@ class Cell:
         self.parent_index = parent_index
         self.neighbors_indexes = set()
         self.available_space = available_space
+        self.speed = speed
+        self.phi = phi
+        self.force = force
 
         # we FIRST get the cell's index
         self._index = len(culture.cell_positions)
@@ -111,14 +124,7 @@ class Cell:
         culture.cell_positions = np.append(
             culture.cell_positions, [position], axis=0
         )
-        # we add the cell velocity to de velocities matrix
-        culture.cell_velocities = np.append(
-            culture.cell_velocities, [velocity], axis=0
-        )
 
-        culture.cell_forces = np.append(
-            culture.cell_forces, [force], axis=0
-        )
         self.culture.cells.append(self)
         self.culture.active_cell_indexes.append(self._index)
 

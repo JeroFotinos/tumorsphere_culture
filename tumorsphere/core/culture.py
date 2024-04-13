@@ -59,9 +59,9 @@ class Culture:
         side : int, optional
             The length of the side of the square where the cells move.
         reproduction : bool
-            Whether the cells reproduce or not
+            Whether the cells reproduces or not
         movement : bool
-            Whether the cells move or not 
+            Whether the cells moves or not 
 
         Attributes
         ----------
@@ -119,12 +119,6 @@ class Culture:
 
         # initialize the positions matrix
         self.cell_positions = np.empty((0, 3), float)
-
-        # initialize the velocities matrix
-        self.cell_velocities = np.empty((0, 3), float)
-
-        # initialize the forces matrix
-        self.cell_forces = np.empty((0, 3), float) 
 
         # we initialize the lists of cells
         self.cells = []
@@ -427,8 +421,10 @@ class Culture:
         Notes
         -----
         """
+        cell = self.cells[cell_index]
         position = self.cell_positions[cell_index]
-        #velocity_init = self.cell_velocities[cell_index] 
+        v_0 = cell.speed
+        phi = cell.phi
         l = self.side 
         r = self.cell_radius
         k = 1
@@ -457,8 +453,18 @@ class Culture:
                 fx = -k*relative_pos_x
                 fy = -k*relative_pos_y
             f = f + [fx, fy, 0]
-
-        self.cell_forces[cell_index] = f
+        
+        # we calculate how the angle phi changes because of the force
+        # the new direction is the direction of velocity + f 
+        velocity = [v_0*np.cos(phi), v_0*np.sin(phi), 0]
+        direction = np.dot(velocity + f,[1, 0, 0])/np.linalg.norm(velocity + f)
+        if velocity[1] + f[1] >= 0:
+            dphi = np.arccos(direction)-phi
+        else:
+            dphi = 2*np.pi-np.arccos(direction)-phi
+        
+        # we update the force excerted to the cell
+        self.cells[cell_index].force = [f, dphi]
     # ---------------------------------------------------------
     def move(self, cell_index: int, delta_t: float) -> None:
         """The given cell moves with a given velocity.
@@ -470,31 +476,34 @@ class Culture:
         Notes
         -----
         """
-        position = self.cell_positions[cell_index]
-        velocity = self.cell_velocities[cell_index]
         l = self.side 
-        f = self.cell_forces[cell_index]
+        position = self.cell_positions[cell_index]
+        cell = self.cells[cell_index]
+        f = cell.force[0]
+        dphi = cell.force[1]
+        v_0 = cell.speed
+        phi = cell.phi
+        
+        velocity = [v_0*np.cos(phi), v_0*np.sin(phi), 0]
 
         # we update the cell's position
         self.cell_positions[cell_index] = position + (velocity+f)*delta_t
+        # and the angle phi
+        self.cells[cell_index].phi = phi + dphi
 
-        # we change the direction of the velocity
-        direction = (velocity + f)/np.linalg.norm(velocity + f)
-        v_0 = np.linalg.norm(velocity)
-        self.cell_velocities[cell_index] = direction*v_0
-
-        position_after = self.cell_positions[cell_index]
+        position_after = self.cell_positions[cell_index] 
+        velocity_after = [v_0*np.cos(phi), v_0*np.sin(phi), 0]
         # Border condition for x
-        if position_after[0]>=l and velocity[0]>0:
+        if position_after[0]>=l and velocity_after[0]>0:
             self.cell_positions[cell_index][0] = position_after[0]-l
-        elif position_after[0]<=0 and velocity[0]<0:
+        elif position_after[0]<=0 and velocity_after[0]<0:
             self.cell_positions[cell_index][0] = l+position_after[0]
         else:
             pass
         # Border condition for y
-        if position_after[1]>=l and velocity[1]>0:
+        if position_after[1]>=l and velocity_after[1]>0:
             self.cell_positions[cell_index][1] = position_after[1]-l
-        elif position_after[1]<=0 and velocity[1]<0:
+        elif position_after[1]<=0 and velocity_after[1]<0:
             self.cell_positions[cell_index][1] = l+position_after[1]
         else:
             pass
@@ -526,13 +535,12 @@ class Culture:
             )
 
             # we instantiate the first cell
-            phi = self.rng.uniform(low=0, high=2 * np.pi)
-            v_0 = 1.0
             first_cell_object = Cell(
                 position=np.array([0, 0, 0]),
                 culture=self,
                 is_stem=self.first_cell_is_stem,
-                velocity=[v_0*np.cos(phi), v_0*np.sin(phi), 0],
+                speed = 1,
+                phi = self.rng.uniform(low=0, high=2 * np.pi),
                 parent_index=0,
                 available_space=True,
     
@@ -542,13 +550,12 @@ class Culture:
             for i in range(1, self.number_of_cells):
                 l = self.side
                 # choose a random angle and amplitude for the velocity
-                phi = self.rng.uniform(low=0, high=2 * np.pi)
-                v_0 = 1.0
                 Cell(
                     position=l*np.random.random(3), # random position in the square of the culture
                     culture=self,
                     is_stem=self.first_cell_is_stem,
-                    velocity=[v_0*np.cos(phi), v_0*np.sin(phi), 0],
+                    speed = 1,
+                    phi = self.rng.uniform(low=0, high=2 * np.pi),
                     parent_index=0,
                     available_space=True,
                 )

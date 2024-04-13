@@ -16,7 +16,7 @@ from tumorsphere.core.culture import Culture
 from tumorsphere.core.output import create_output_demux
 
 
-class Simulation: #falta documentar
+class Simulation:
     """Class for simulating multiple `Culture` objects with different
     parameters.
 
@@ -58,6 +58,14 @@ class Simulation: #falta documentar
         Maximum number of attempts to create a new cell during the
         reproduction of an existing cell in a `Culture` object.
         Default is`1000`.
+    number_of_cells : int, optional
+        The number of cells in the culture.
+    side : int, optional
+        The length of the side of the square where the cells move.
+    reproduction : bool
+        Whether the cells reproduces or not
+    movement : bool
+        Whether the cells moves or not 
 
     Attributes
     ----------
@@ -180,7 +188,7 @@ class Simulation: #falta documentar
                     for g in range(len(self.side))
                     for j in range(self.num_of_realizations)
                 ],
-            ) ##############################
+            )
 
 
 def realization_name(pd, ps, nc, l, seed, repro, moving) -> str:
@@ -236,8 +244,8 @@ def simulate_single_culture(
         prob_diff=sim.prob_diff[k],
         rng_seed=seed,
         swap_probability=sim.swap_probability,
-        number_of_cells=sim.number_of_cells[f], #########
-        side=sim.side[g], #############
+        number_of_cells=sim.number_of_cells[f], 
+        side=sim.side[g], 
         reproduction=sim.reproduction,
         movement=sim.movement,
     )
