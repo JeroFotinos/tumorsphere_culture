@@ -551,7 +551,7 @@ class Culture:
                 l = self.side
                 # choose a random angle and amplitude for the velocity
                 Cell(
-                    position=l*np.random.random(3), # random position in the square of the culture
+                    position= np.array([self.rng.uniform(low=0, high=l), self.rng.uniform(low=0, high=l), 0]),
                     culture=self,
                     is_stem=self.first_cell_is_stem,
                     speed = 1,
@@ -565,6 +565,9 @@ class Culture:
             cells=self.cells,
             cell_positions=self.cell_positions,
             active_cell_indexes=self.active_cell_indexes,
+            reproduction=self.reproduction,
+            movement=self.movement,
+            side = self.side,
         )
         # we simulate for num_times time steps
         for i in range(1, num_times + 1):
@@ -591,4 +594,7 @@ class Culture:
                 cells=self.cells,
                 cell_positions=self.cell_positions,
                 active_cell_indexes=self.active_cell_indexes,
+                reproduction=self.reproduction,
+                movement=self.movement,
+                side=self.side,
             )

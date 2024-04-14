@@ -4,6 +4,7 @@ from typing import List
 
 import sqlite3
 import logging
+import numpy as np
 
 
 class TumorsphereOutput(ABC):
@@ -34,6 +35,9 @@ class TumorsphereOutput(ABC):
         cells,
         cell_positions,
         active_cell_indexes,
+        reproduction,
+        movement,
+        side,
     ):
         pass
 
@@ -87,6 +91,9 @@ class OutputDemux(TumorsphereOutput):
         cells,
         cell_positions,
         active_cell_indexes,
+        reproduction,
+        movement,
+        side,
     ):
         for result in self.result_list:
             result.record_culture_state(
@@ -94,6 +101,9 @@ class OutputDemux(TumorsphereOutput):
                 cells,
                 cell_positions,
                 active_cell_indexes,
+                reproduction,
+                movement,
+                side,
             )
 
     def record_cell(
@@ -230,6 +240,9 @@ class SQLOutput(TumorsphereOutput):
         cells,
         cell_positions,
         active_cell_indexes,
+        reproduction,
+        movement,
+        side,
     ):
         pass
 
@@ -297,6 +310,9 @@ class DatOutput(TumorsphereOutput):
         cells,
         cell_positions,
         active_cell_indexes,
+        reproduction,
+        movement,
+        side,
     ):
         with open(self.filename, "a") as datfile:
             # we count the total number of cells and active cells
@@ -354,6 +370,9 @@ class OvitoOutput(TumorsphereOutput):
         cells,
         cell_positions,
         active_cell_indexes,
+        reproduction,
+        movement,
+        side,
     ):
         """Writes the data file in path for ovito, for time step t of self.
         Auxiliar function for simulate_with_ovito_data.
@@ -363,68 +382,104 @@ class OvitoOutput(TumorsphereOutput):
         )
 
         with open(path_to_write, "w") as file_to_write:
-            file_to_write.write(str(len(cells)) + "\n")
-            file_to_write.write(
-                ' Lattice="1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:Color:r:1'
-                + "\n"
-            )
+            if reproduction:
+                file_to_write.write(str(len(cells)) + "\n")
+                file_to_write.write(
+                    ' Lattice="1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:Color:r:1'
+                    + "\n"
+                )
 
-            for cell in cells:  # csc activas
-                if cell.is_stem and cell.available_space:
+                for cell in cells:  # csc activas
+                    if cell.is_stem and cell.available_space:
+                        line = (
+                            "active_stem "
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + "1"
+                            + "\n"
+                        )
+                        file_to_write.write(line)
+
+                for cell in cells:  # csc quiesc
+                    if cell.is_stem and (not cell.available_space):
+                        line = (
+                            "quiesc_stem "
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + "2"
+                            + "\n"
+                        )
+                        file_to_write.write(line)
+
+                for cell in cells:  # dcc activas
+                    if (not cell.is_stem) and cell.available_space:
+                        line = (
+                            "active_diff "
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + "3"
+                            + "\n"
+                        )
+                        file_to_write.write(line)
+
+                for cell in cells:  # dcc quiesc
+                    if not (cell.is_stem or cell.available_space):
+                        line = (
+                            "quiesc_diff "
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + "4"
+                            + "\n"
+                        )
+                        file_to_write.write(line)
+
+            elif movement:
+                file_to_write.write(str(len(cells)) + "\n")
+                file_to_write.write(
+                    ' Lattice="' + str(side) + ' 0.0 0.0 0.0 ' + str(side) + ' 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:aspherical_shape:R:3:orientation:R:4:Color:R:1'
+                    + "\n"
+                )
+                for cell in cells: 
+                    phi = cell.phi
                     line = (
-                        "active_stem "
+                        "cells "
                         + str(cell_positions[cell._index][0])
                         + " "
                         + str(cell_positions[cell._index][1])
                         + " "
                         + str(cell_positions[cell._index][2])
                         + " "
-                        + "1"
-                        + "\n"
-                    )
-                    file_to_write.write(line)
-
-            for cell in cells:  # csc quiesc
-                if cell.is_stem and (not cell.available_space):
-                    line = (
-                        "quiesc_stem "
-                        + str(cell_positions[cell._index][0])
+                        + "1.5" #"5.5" #aspherical shape x
                         + " "
-                        + str(cell_positions[cell._index][1])
+                        + "1" #"3" #aspherical shape y
                         + " "
-                        + str(cell_positions[cell._index][2])
+                        + "1" #"3" #aspherical shape z 
                         + " "
-                        + "2"
-                        + "\n"
-                    )
-                    file_to_write.write(line)
-
-            for cell in cells:  # dcc activas
-                if (not cell.is_stem) and cell.available_space:
-                    line = (
-                        "active_diff "
-                        + str(cell_positions[cell._index][0])
+                        + "0" # X orientation, str(0*np.sin((phi)/2)) 
                         + " "
-                        + str(cell_positions[cell._index][1])
+                        + "0" # Y orientation, str(0*np.sin((phi)/2))
                         + " "
-                        + str(cell_positions[cell._index][2])
+                        + str(np.sin(phi/2)) # Z orientation
                         + " "
-                        + "3"
-                        + "\n"
-                    )
-                    file_to_write.write(line)
-
-            for cell in cells:  # dcc quiesc
-                if not (cell.is_stem or cell.available_space):
-                    line = (
-                        "quiesc_diff "
-                        + str(cell_positions[cell._index][0])
+                        + str(np.cos(phi/2)) # W orientation
                         + " "
-                        + str(cell_positions[cell._index][1])
-                        + " "
-                        + str(cell_positions[cell._index][2])
-                        + " "
-                        + "4"
+                        + str(phi%(2*np.pi)) # color
                         + "\n"
                     )
                     file_to_write.write(line)
