@@ -60,7 +60,7 @@ class Cell:
     is_stem: bool
     speed: float = 1,
     phi: float = 0,
-    force: np.ndarray = np.empty(2),
+    aspect_ratio: float = 1.5,
     parent_index: Optional[int] = 0
     neighbors_indexes: Set[int] = field(default_factory=set)
     available_space: bool = True
@@ -73,7 +73,7 @@ class Cell:
         is_stem: bool,
         speed: float = 1,
         phi: float = 0,
-        force: np.ndarray = np.empty(2),
+        aspect_ratio: float = 1.5,
         parent_index: Optional[int] = 0,
         available_space: bool = True,  # not to be set by user
         creation_time: int = 0,
@@ -93,10 +93,10 @@ class Cell:
             Whether the cell is a stem cell or not.
         speed: float
             The speed at which the cell moves.
-        phi: float
+        phi : float
             The orientation of the cell. It's the angle in the xy plane.
-        force : np.ndarray
-            The forces exerted on the cell
+        aspect_ratio : float
+            The ratio of the cells width to its height.
         parent_index : Optional[int], default=0
             The index of the parent cell in the culture's cell_positions
             array.
@@ -114,7 +114,7 @@ class Cell:
         self.available_space = available_space
         self.speed = speed
         self.phi = phi
-        self.force = force
+        self.aspect_ratio = aspect_ratio
 
         # we FIRST get the cell's index
         self._index = len(culture.cell_positions)

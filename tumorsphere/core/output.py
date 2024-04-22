@@ -35,8 +35,6 @@ class TumorsphereOutput(ABC):
         cells,
         cell_positions,
         active_cell_indexes,
-        reproduction,
-        movement,
         side,
     ):
         pass
@@ -91,8 +89,6 @@ class OutputDemux(TumorsphereOutput):
         cells,
         cell_positions,
         active_cell_indexes,
-        reproduction,
-        movement,
         side,
     ):
         for result in self.result_list:
@@ -101,8 +97,6 @@ class OutputDemux(TumorsphereOutput):
                 cells,
                 cell_positions,
                 active_cell_indexes,
-                reproduction,
-                movement,
                 side,
             )
 
@@ -240,8 +234,6 @@ class SQLOutput(TumorsphereOutput):
         cells,
         cell_positions,
         active_cell_indexes,
-        reproduction,
-        movement,
         side,
     ):
         pass
@@ -310,8 +302,6 @@ class DatOutput(TumorsphereOutput):
         cells,
         cell_positions,
         active_cell_indexes,
-        reproduction,
-        movement,
         side,
     ):
         with open(self.filename, "a") as datfile:
@@ -370,8 +360,6 @@ class OvitoOutput(TumorsphereOutput):
         cells,
         cell_positions,
         active_cell_indexes,
-        reproduction,
-        movement,
         side,
     ):
         """Writes the data file in path for ovito, for time step t of self.
@@ -382,14 +370,13 @@ class OvitoOutput(TumorsphereOutput):
         )
 
         with open(path_to_write, "w") as file_to_write:
-            if reproduction:
                 file_to_write.write(str(len(cells)) + "\n")
                 file_to_write.write(
-                    ' Lattice="1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:Color:r:1'
+                    ' Lattice="' + str(side) + ' 0.0 0.0 0.0 ' + str(side) + ' 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:aspherical_shape:R:3:orientation:R:4:Color:R:1'
                     + "\n"
                 )
-
-                for cell in cells:  # csc activas
+                for cell in cells:
+                    phi = cell.phi
                     if cell.is_stem and cell.available_space:
                         line = (
                             "active_stem "
@@ -399,11 +386,25 @@ class OvitoOutput(TumorsphereOutput):
                             + " "
                             + str(cell_positions[cell._index][2])
                             + " "
-                            + "1"
+                            + str(cell.aspect_ratio) # aspherical shape x
+                            + " "
+                            + "1" # aspherical shape y
+                            + " "
+                            + "1" # aspherical shape z 
+                            + " "
+                            + "0" # X orientation, str(0*np.sin((phi)/2)) 
+                            + " "
+                            + "0" # Y orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + str(np.sin(phi/2)) # Z orientation
+                            + " "
+                            + str(np.cos(phi/2)) # W orientation
+                            + " "
+                            + str(phi%(2*np.pi)) # color
                             + "\n"
                         )
                         file_to_write.write(line)
-
+                    
                 for cell in cells:  # csc quiesc
                     if cell.is_stem and (not cell.available_space):
                         line = (
@@ -448,41 +449,6 @@ class OvitoOutput(TumorsphereOutput):
                             + "\n"
                         )
                         file_to_write.write(line)
-
-            elif movement:
-                file_to_write.write(str(len(cells)) + "\n")
-                file_to_write.write(
-                    ' Lattice="' + str(side) + ' 0.0 0.0 0.0 ' + str(side) + ' 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:aspherical_shape:R:3:orientation:R:4:Color:R:1'
-                    + "\n"
-                )
-                for cell in cells: 
-                    phi = cell.phi
-                    line = (
-                        "cells "
-                        + str(cell_positions[cell._index][0])
-                        + " "
-                        + str(cell_positions[cell._index][1])
-                        + " "
-                        + str(cell_positions[cell._index][2])
-                        + " "
-                        + "1.5" #"5.5" #aspherical shape x
-                        + " "
-                        + "1" #"3" #aspherical shape y
-                        + " "
-                        + "1" #"3" #aspherical shape z 
-                        + " "
-                        + "0" # X orientation, str(0*np.sin((phi)/2)) 
-                        + " "
-                        + "0" # Y orientation, str(0*np.sin((phi)/2))
-                        + " "
-                        + str(np.sin(phi/2)) # Z orientation
-                        + " "
-                        + str(np.cos(phi/2)) # W orientation
-                        + " "
-                        + str(phi%(2*np.pi)) # color
-                        + "\n"
-                    )
-                    file_to_write.write(line)
 
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem

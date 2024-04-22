@@ -412,7 +412,7 @@ class Culture:
         # (reproduction is turned off)
 
     # ---------------------------------------------------------
-    def interaction(self, cell_index: int) -> None:
+    def interaction(self, cell_index: int):
         """The given cell interacts with another one if they are close enough.
 
         It describes the interaction when two cells touch each other. It changes
@@ -423,10 +423,7 @@ class Culture:
         """
         cell = self.cells[cell_index]
         position = self.cell_positions[cell_index]
-        v_0 = cell.speed
-        phi = cell.phi
-        l = self.side 
-        r = self.cell_radius
+
         k = 1
         active_cells = self.active_cell_indexes
         neighbors = []
@@ -442,31 +439,32 @@ class Culture:
             relative_pos_y = position_neighbor[1]-position[1]
             abs_rx = abs(relative_pos_x)
             abs_ry = abs(relative_pos_y)
-            if abs_rx>0.5*l:
-                relative_pos_x =np.sign(relative_pos_x)*(abs_rx-l)
-            if abs_ry>0.5*l:
-                relative_pos_y =np.sign(relative_pos_y)*(abs_ry-l)
+            
+            if abs_rx>0.5*self.side:
+                relative_pos_x =np.sign(relative_pos_x)*(abs_rx-self.side)
+            if abs_ry>0.5*self.side:
+                relative_pos_y =np.sign(relative_pos_y)*(abs_ry-self.side)
             
             distance_sq = relative_pos_x**2 + relative_pos_y**2
 
-            if distance_sq<(2*r)**2:
+            if distance_sq<(2*self.cell_radius)**2:
                 fx = -k*relative_pos_x
                 fy = -k*relative_pos_y
-            f = f + [fx, fy, 0]
+            f = f + np.array([fx, fy, 0])
         
         # we calculate how the angle phi changes because of the force
         # the new direction is the direction of velocity + f 
-        velocity = [v_0*np.cos(phi), v_0*np.sin(phi), 0]
+        velocity = cell.speed*[np.cos(cell.phi), np.sin(cell.phi), 0]
         direction = np.dot(velocity + f,[1, 0, 0])/np.linalg.norm(velocity + f)
         if velocity[1] + f[1] >= 0:
-            dphi = np.arccos(direction)-phi
+            dphi = np.arccos(direction)-cell.phi
         else:
-            dphi = 2*np.pi-np.arccos(direction)-phi
+            dphi = 2*np.pi-np.arccos(direction)-cell.phi
         
         # we update the force excerted to the cell
-        self.cells[cell_index].force = [f, dphi]
+        return f, dphi
     # ---------------------------------------------------------
-    def move(self, cell_index: int, delta_t: float) -> None:
+    def move(self, cell_index: int, delta_t: float, force: np.ndarray) -> None:
         """The given cell moves with a given velocity.
 
         Attempts to move one step with a particular velocity. If the cell
@@ -476,35 +474,33 @@ class Culture:
         Notes
         -----
         """
-        l = self.side 
         position = self.cell_positions[cell_index]
         cell = self.cells[cell_index]
-        f = cell.force[0]
-        dphi = cell.force[1]
-        v_0 = cell.speed
-        phi = cell.phi
-        
-        velocity = [v_0*np.cos(phi), v_0*np.sin(phi), 0]
+        force_i = force[cell_index]
+        f = np.array([force_i[0], force_i[1], 0])
+        dphi = force_i[2]
+
+        velocity = np.array(cell.speed*[np.cos(cell.phi), np.sin(cell.phi), 0])
 
         # we update the cell's position
         self.cell_positions[cell_index] = position + (velocity+f)*delta_t
         # and the angle phi
-        self.cells[cell_index].phi = phi + dphi
+        cell.phi = cell.phi + dphi
 
         position_after = self.cell_positions[cell_index] 
-        velocity_after = [v_0*np.cos(phi), v_0*np.sin(phi), 0]
+        velocity_after = np.array(cell.speed*[np.cos(cell.phi), np.sin(cell.phi), 0])
         # Border condition for x
-        if position_after[0]>=l and velocity_after[0]>0:
-            self.cell_positions[cell_index][0] = position_after[0]-l
+        if position_after[0]>=self.side  and velocity_after[0]>0:
+            self.cell_positions[cell_index][0] = position_after[0]-self.side 
         elif position_after[0]<=0 and velocity_after[0]<0:
-            self.cell_positions[cell_index][0] = l+position_after[0]
+            self.cell_positions[cell_index][0] = self.side + position_after[0]
         else:
             pass
         # Border condition for y
-        if position_after[1]>=l and velocity_after[1]>0:
-            self.cell_positions[cell_index][1] = position_after[1]-l
+        if position_after[1]>=self.side  and velocity_after[1]>0:
+            self.cell_positions[cell_index][1] = position_after[1]-self.side 
         elif position_after[1]<=0 and velocity_after[1]<0:
-            self.cell_positions[cell_index][1] = l+position_after[1]
+            self.cell_positions[cell_index][1] = self.side + position_after[1]
         else:
             pass
     # ---------------------------------------------------------
@@ -543,7 +539,6 @@ class Culture:
                 phi = self.rng.uniform(low=0, high=2 * np.pi),
                 parent_index=0,
                 available_space=True,
-    
             )
 
             # We add the other cells
@@ -565,27 +560,31 @@ class Culture:
             cells=self.cells,
             cell_positions=self.cell_positions,
             active_cell_indexes=self.active_cell_indexes,
-            reproduction=self.reproduction,
-            movement=self.movement,
             side = self.side,
         )
         # we simulate for num_times time steps
+        reproduction = self.reproduction 
+        movement = self.movement 
         for i in range(1, num_times + 1):
-            # we get a permuted copy of the cells list
-            active_cell_indexes = self.rng.permutation(
-                self.active_cell_indexes
-            )
-            reproduction = self.reproduction 
-            movement = self.movement 
             # and reproduce or move the cells in this random order
             if reproduction:
+                # we get a permuted copy of the cells list
+                active_cell_indexes = self.rng.permutation(
+                    self.active_cell_indexes
+                )
                 for index in active_cell_indexes:
                     self.reproduce(cell_index=index, tic=i)
+            
             if movement:
+                active_cell_indexes = self.active_cell_indexes
+                force = np.empty((0, 3), float)
                 for index in active_cell_indexes:
-                    self.interaction(cell_index=index)
+                    f, dphi = self.interaction(cell_index=index)
+                    force = np.append(
+                        force, [np.array([f[0], f[1], dphi])], axis=0
+                    )
                 for index in active_cell_indexes:
-                    self.move(cell_index=index, delta_t=0.05)
+                    self.move(cell_index=index, delta_t=0.05, force = force)
 
 
             # Save the data (for dat, ovito, and/or SQLite)
@@ -594,7 +593,5 @@ class Culture:
                 cells=self.cells,
                 cell_positions=self.cell_positions,
                 active_cell_indexes=self.active_cell_indexes,
-                reproduction=self.reproduction,
-                movement=self.movement,
                 side=self.side,
             )
