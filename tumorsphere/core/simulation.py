@@ -65,7 +65,7 @@ class Simulation:
     reproduction : bool
         Whether the cells reproduces or not
     movement : bool
-        Whether the cells moves or not 
+        Whether the cells moves or not
 
     Attributes
     ----------
@@ -99,8 +99,8 @@ class Simulation:
         swap_probability=0.5,
         number_of_cells=[5],
         side=[10],
-        reproduction: bool = False, 
-        movement: bool = True, 
+        reproduction: bool = False,
+        movement: bool = True,
     ):
         # main simulation attributes
         self.first_cell_is_stem = first_cell_is_stem
@@ -111,7 +111,7 @@ class Simulation:
         self.swap_probability = swap_probability
         self.number_of_cells = number_of_cells
         self.reproduction = reproduction
-        self.movement = movement 
+        self.movement = movement
         self.side = side
         self._rng_seed = rng_seed
         self.rng = np.random.default_rng(rng_seed)
@@ -192,12 +192,12 @@ class Simulation:
 
 
 def realization_name(pd, ps, nc, l, seed, repro, moving) -> str:
-    if repro==True and moving==True:
-        return f"culture_pd={pd}_ps={ps}_nc={nc}_l={l}_rng_seed={seed}" 
-    elif repro==True and moving==False:
-        return f"culture_pd={pd}_ps={ps}_rng_seed={seed}" 
-    elif repro==False and moving==True:
-        return f"culture_nc={nc}_l={l}_rng_seed={seed}" 
+    if repro == True and moving == True:
+        return f"culture_pd={pd}_ps={ps}_nc={nc}_l={l}_rng_seed={seed}"
+    elif repro == True and moving == False:
+        return f"culture_pd={pd}_ps={ps}_rng_seed={seed}"
+    elif repro == False and moving == True:
+        return f"culture_nc={nc}_l={l}_rng_seed={seed}"
     else:
         pass
 
@@ -231,7 +231,13 @@ def simulate_single_culture(
     k, i, f, g, seed, sim, outputs, output_dir = args
 
     current_realization_name = realization_name(
-        sim.prob_diff[k], sim.prob_stem[i], sim.number_of_cells[f], sim.side[g], seed, sim.reproduction, sim.movement
+        sim.prob_diff[k],
+        sim.prob_stem[i],
+        sim.number_of_cells[f],
+        sim.side[g],
+        seed,
+        sim.reproduction,
+        sim.movement,
     )
     output = create_output_demux(current_realization_name, outputs, output_dir)
     sim.cultures[current_realization_name] = Culture(
@@ -244,8 +250,8 @@ def simulate_single_culture(
         prob_diff=sim.prob_diff[k],
         rng_seed=seed,
         swap_probability=sim.swap_probability,
-        number_of_cells=sim.number_of_cells[f], 
-        side=sim.side[g], 
+        number_of_cells=sim.number_of_cells[f],
+        side=sim.side[g],
         reproduction=sim.reproduction,
         movement=sim.movement,
     )

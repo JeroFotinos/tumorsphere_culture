@@ -22,12 +22,6 @@ class Cell:
         The culture to which the cell belongs.
     is_stem: bool
         Whether the cell is a stem cell or not.
-    speed: float
-        The speed at which the cell moves.
-    phi: float
-        The orientation of the cell. It's the angle in the xy plane.
-    force : np.ndarray
-        The forces exerted on the cell
     parent_index: Optional[int]
         The index of the parent cell in the culture's cell_positions array.
         Default is 0.
@@ -58,9 +52,7 @@ class Cell:
 
     culture: "Culture"
     is_stem: bool
-    speed: float = 1,
-    phi: float = 0,
-    aspect_ratio: float = 1.5,
+    aspect_ratio: float = 1.5
     parent_index: Optional[int] = 0
     neighbors_indexes: Set[int] = field(default_factory=set)
     available_space: bool = True
@@ -71,8 +63,7 @@ class Cell:
         position: np.ndarray,
         culture: "Culture",
         is_stem: bool,
-        speed: float = 1,
-        phi: float = 0,
+        velocity: np.ndarray = np.empty(3),
         aspect_ratio: float = 1.5,
         parent_index: Optional[int] = 0,
         available_space: bool = True,  # not to be set by user
@@ -87,14 +78,13 @@ class Cell:
             The position of the cell. This is used to update the
             cell_positions in the culture and set the _index
             attribute, but is not stored as an attribute in the object itself.
+        velocity : np.ndarray
+            The velocity of the cell. This is used to update the
+            cell_velocities in the culture
         culture : Culture
             The culture to which the cell belongs.
         is_stem : bool
             Whether the cell is a stem cell or not.
-        speed: float
-            The speed at which the cell moves.
-        phi : float
-            The orientation of the cell. It's the angle in the xy plane.
         aspect_ratio : float
             The ratio of the cells width to its height.
         parent_index : Optional[int], default=0
@@ -112,22 +102,23 @@ class Cell:
         self.parent_index = parent_index
         self.neighbors_indexes = set()
         self.available_space = available_space
-        self.speed = speed
-        self.phi = phi
         self.aspect_ratio = aspect_ratio
 
         # we FIRST get the cell's index
         self._index = len(culture.cell_positions)
 
-        # and THEN add the cell to the culture's position matrix and cell
-        # lists, in the previous index
+        # and THEN add the cell to the culture's position matrix,
+        # to the velocity matrix and cell lists, in the previous index
         culture.cell_positions = np.append(
             culture.cell_positions, [position], axis=0
         )
 
+        culture.cell_velocities = np.append(
+            culture.cell_velocities, [velocity], axis=0
+        )
+
         self.culture.cells.append(self)
         self.culture.active_cell_indexes.append(self._index)
-
 
         # if we're simulating with the SQLite DB, we insert a register in the
         # Cells table of the SQLite DB
@@ -139,4 +130,14 @@ class Cell:
             self.culture.cell_positions[self._index][2],
             creation_time,
             self.is_stem,
+        )
+
+    # ---------------------------------------------------------
+    def phi(self):
+        """
+        It returns the angle in the xy plane given a cell and its velocity vector
+        """
+        return np.arctan(
+            self.culture.cell_velocities[self._index][1]
+            / self.culture.cell_velocities[self._index][0]
         )
