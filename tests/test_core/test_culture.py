@@ -1,5 +1,6 @@
 from tumorsphere.core.simulation import Simulation
 
+
 def test_culture_instantiation_by_simulation():
     """Test that a Culture is correctly instantiated by a Simulation."""
     sim = Simulation(

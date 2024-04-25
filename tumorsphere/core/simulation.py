@@ -144,7 +144,7 @@ class Simulation:
         prob_diff_index: int = 0,
     ):
         """Like simulate_parallel but for a single culture.
-        
+
         Mainly intended to be used when debugging or testing the simulation,
         tasks with which the parallelization can interfere.
 
@@ -153,9 +153,7 @@ class Simulation:
         As the RNG is already initialized, the use of this method can alter
         reproducibility.
         """
-        seed = self.rng.integers(
-            low=2**20, high=2**50, size=1
-        )
+        seed = self.rng.integers(low=2**20, high=2**50, size=1)
 
         outputs = []
         if sql:
@@ -164,7 +162,7 @@ class Simulation:
             outputs.append("dat")
         if ovito:
             outputs.append("ovito")
-        
+
         # We compute the name of the realization
         current_realization_name = realization_name(
             self.prob_diff[prob_diff_index],
@@ -173,7 +171,9 @@ class Simulation:
         )
 
         # We create the output object
-        output = create_output_demux(current_realization_name, outputs, output_dir)
+        output = create_output_demux(
+            current_realization_name, outputs, output_dir
+        )
 
         # We create the spatial hash grid object
         spatial_hash_grid = SpatialHashGrid(

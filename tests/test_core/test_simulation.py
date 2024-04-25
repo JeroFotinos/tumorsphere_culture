@@ -2,6 +2,7 @@ from tumorsphere.core.simulation import Simulation
 
 import os
 from pathlib import Path
+
 # import filecmp
 import shutil
 
@@ -60,15 +61,19 @@ def test_no_overlap():
 
         # We set diagonal elements to a high enough value to ignore
         # self-comparisons
-        np.fill_diagonal(dist_matrix, 2*culture.cell_radius + 10)
-
-        # import ipdb; ipdb.set_trace()
+        np.fill_diagonal(dist_matrix, 2 * culture.cell_radius + 10)
 
         # Now we check that every element of the distance matrix is greater
-        # than 2 * culture.cell_radius
-        assert (dist_matrix >= (2 * culture.cell_radius)).all(), (
-            "Overlap between cells was detected."
-        )
+        # than 2 * culture.cell_radius, or that it's within the numerical
+        # precision of the machine
+        dist_aprox_two_radii = np.isclose(dist_matrix, 2 * culture.cell_radius)
+        dist_greater_than_two_radii = dist_matrix > 2 * culture.cell_radius
+
+        assert (
+            np.logical_or(dist_aprox_two_radii, dist_greater_than_two_radii)
+        ).all(), "Overlap between cells was detected."
+        # Note: I didn't use the pipe operator | here for compatibility across
+        # Python versions.
 
     finally:
         # Cleanup: remove the output directory after the test
