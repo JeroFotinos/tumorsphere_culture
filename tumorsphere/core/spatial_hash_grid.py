@@ -6,11 +6,10 @@ import numpy as np
 from typing import Tuple
 
 
-
 class SpatialHashGrid:
     def __init__(
         self,
-        culture = None, # type Culture, not declared to avoid circular imports
+        culture=None,  # type Culture, not declared to avoid circular imports
         bounds: float = None,
         cube_size: float = 2,
         torus: bool = True,
@@ -135,23 +134,26 @@ class SpatialHashGrid:
                 "Non-torus grid boundary behavior is not yet implemented."
             )
 
-    def find_neighbors(self, cell_id: int, position: np.ndarray) -> set:
-        """
-        Find the neighboring cells within a 3D Moore neighborhood of the cell.
+    def find_neighbors(self, position: np.ndarray) -> set:
+        """Returns the set of indexes of all existing cells within a 3D Moore
+        neighborhood of a given position.
 
-        This method considers cells in the same and adjacent cubes as neighbors.
+        This method considers cells in the same and adjacent cubes as
+        neighbors. With this, the set of neighbors is the set of indexes of
+        existing cells that would neighbor a new cell in the provided
+        position. Note that acording to this, a cell is always a neighbor of
+        itself.
 
         Parameters
         ----------
-        cell_id : int
-            The identifier for the target cell whose neighbors are to be found.
         position : np.ndarray
             The position of the target cell in the grid.
 
         Returns
         -------
         set
-            A set of cell identifiers that are considered neighbors of the target cell.
+            A set of cell identifiers that are considered neighbors of a new
+            cell in the provided position.
         """
         neighbors = set()
         key = self.get_hash_key(position)
@@ -165,17 +167,13 @@ class SpatialHashGrid:
             # bounds of the grid.
             if self.bounds is not None and self.torus:
                 adj_key = np.mod(adj_key, self.bounds)
-            
+
             # We convert it to a tuple for using it as a dictionary key
             adj_key = tuple(adj_key)
 
             # Check if the adjacent key is in the hash table, and if so, add
-            # the cell index to the neighbors set.
+            # the cell indexes to the neighbors set.
             if adj_key in self.hash_table:
-                neighbors.update(
-                    adj_cell_id
-                    for adj_cell_id in self.hash_table[adj_key]
-                    if adj_cell_id != cell_id
-                )
+                neighbors.update(self.hash_table[adj_key])
 
         return neighbors
