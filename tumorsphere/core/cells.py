@@ -137,7 +137,4 @@ class Cell:
         """
         It returns the angle in the xy plane given a cell and its velocity vector
         """
-        return np.arctan(
-            self.culture.cell_velocities[self._index][1]
-            / self.culture.cell_velocities[self._index][0]
-        )
+        return np.arctan2(self.culture.cell_velocities[self._index][1], self.culture.cell_velocities[self._index][0])

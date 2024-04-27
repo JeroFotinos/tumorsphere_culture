@@ -425,7 +425,50 @@ class Culture:
         # (reproduction is turned off)
 
     # ---------------------------------------------------------
-    def interaction(self, cell_index: int):
+    def shortest_distance(self, cell_index: int, neighbor_index: int):
+
+        relative_pos_x = (
+                self.cell_positions[neighbor_index][0]
+                - self.cell_positions[cell_index][0]
+            )
+        relative_pos_y = (
+                self.cell_positions[neighbor_index][1]
+                - self.cell_positions[cell_index][1]
+            )
+        abs_rx = abs(relative_pos_x)
+        abs_ry = abs(relative_pos_y)
+
+        # we choose the distance between two cells as the shortest distance taking into account the box
+        if abs_rx > 0.5 * self.side:
+            relative_pos_x = np.sign(relative_pos_x) * (abs_rx - self.side)
+        if abs_ry > 0.5 * self.side:
+            relative_pos_y = np.sign(relative_pos_y) * (abs_ry - self.side)
+
+        return relative_pos_x, relative_pos_y
+    
+    # ---------------------------------------------------------
+    def spring_force(self, cell_index: int, relative_pos_x: float, relative_pos_y: float):
+        fx = -self.k_spring_force * relative_pos_x
+        fy = -self.k_spring_force * relative_pos_y
+        dphi2 = np.arctan2((self.cell_velocities[cell_index][1]+fy),(self.cell_velocities[cell_index][0]+fx))-self.cells[cell_index].phi()
+        return np.array([fx, fy, 0]), dphi2
+    
+    # ---------------------------------------------------------
+    def vicsek(self, cell_index: int, neighbor_index: int):
+        fx = 0
+        fy = 0
+        dphi2 = np.mean([self.cells[cell_index].phi(), self.cells[neighbor_index].phi()])-self.cells[cell_index].phi()
+        return np.array([fx, fy, 0]), dphi2
+    
+    # ---------------------------------------------------------
+    def vicsek_and_spring(self, cell_index: int, neighbor_index: int, relative_pos_x: float, relative_pos_y: float):
+        fx = -self.k_spring_force * relative_pos_x
+        fy = -self.k_spring_force * relative_pos_y
+        dphi2 = np.mean([self.cells[cell_index].phi(), self.cells[neighbor_index].phi()])-self.cells[cell_index].phi()
+        return np.array([fx, fy, 0]), dphi2
+    
+    # ---------------------------------------------------------
+    def interaction(self, cell_index: int, delta_t: float):
         """The given cell interacts with another one if they are close enough.
 
         It describes the interaction when two cells touch each other. It changes
@@ -434,50 +477,39 @@ class Culture:
         Notes
         -----
         """
+        cell = self.cells[cell_index]
+
         neighbors = set(self.active_cell_indexes)
         neighbors.discard(cell_index)
 
+        dphi = 0
         force = np.zeros(3)
         for neighbor_index in neighbors:
-            relative_pos_x = (
-                self.cell_positions[neighbor_index][0]
-                - self.cell_positions[cell_index][0]
-            )
-            relative_pos_y = (
-                self.cell_positions[neighbor_index][1]
-                - self.cell_positions[cell_index][1]
-            )
-            abs_rx = abs(relative_pos_x)
-            abs_ry = abs(relative_pos_y)
-
-            if abs_rx > 0.5 * self.side:
-                relative_pos_x = np.sign(relative_pos_x) * (abs_rx - self.side)
-            if abs_ry > 0.5 * self.side:
-                relative_pos_y = np.sign(relative_pos_y) * (abs_ry - self.side)
-
+            relative_pos_x, relative_pos_y = self.shortest_distance(cell_index, neighbor_index) 
             distance_sq = relative_pos_x**2 + relative_pos_y**2
 
             if distance_sq < (2 * self.cell_radius) ** 2:
-                fx = -self.k_spring_force * relative_pos_x
-                fy = -self.k_spring_force * relative_pos_y
+                #force2, dphi2 = self.spring_force(cell_index, relative_pos_x, relative_pos_y)
+                #force2, dphi2 = self.vicsek(cell_index, neighbor_index)
+                force2, dphi2 = self.vicsek_and_spring(cell_index, neighbor_index, relative_pos_x, relative_pos_y)
             else:
-                fx = 0
-                fy = 0
-            force = force + np.array([fx, fy, 0])
+                force2 = np.zeros(3)
+                dphi2 = 0
+            force = force + force2
+            dphi = dphi + dphi2
 
-        # we calculate how the velocity changes its direction
-        new_velocity = (
-            np.linalg.norm(self.cell_velocities[cell_index])
-            * (self.cell_velocities[cell_index] + force)
-            / np.linalg.norm(self.cell_velocities[cell_index] + force)
-        )
+        # we calculate how the velocity in absence of forces changes its direction
+        new_velocity = np.linalg.norm(self.cell_velocities[cell_index])*np.array([np.cos(cell.phi()+dphi), np.sin(cell.phi()+dphi), 0])
 
-        # we return the force excerted to the cell and its new velocity
-        return force, new_velocity
+        # and calculate the change in the position of the cell
+        dif_position = (self.cell_velocities[cell_index] + force) * delta_t
+
+        # we return the change in the position of the cell and its new velocity
+        return dif_position, new_velocity
 
     # ---------------------------------------------------------
     def move(
-        self, delta_t: float, forces: np.ndarray, new_velocities: np.ndarray
+        self, dif_positions: np.ndarray, new_velocities: np.ndarray
     ) -> None:
         """The given cell moves with a given velocity.
 
@@ -488,9 +520,9 @@ class Culture:
         Notes
         -----
         """
-        # we update the cell's position
+        # Updating the cell's position
         self.cell_positions = (
-            self.cell_positions + (self.cell_velocities + forces) * delta_t
+            self.cell_positions + dif_positions
         )
 
         # and the velocity
@@ -591,17 +623,20 @@ class Culture:
 
             if movement:
                 active_cell_indexes = self.active_cell_indexes
-                forces = np.empty((0, 3), float)
+                #forces = np.empty((0, 3), float)
+                dif_positions = np.empty((0, 3), float)
                 new_velocities = np.empty((0, 3), float)
                 for index in active_cell_indexes:
-                    force, new_velocity = self.interaction(cell_index=index)
-                    forces = np.append(forces, [force], axis=0)
+                    #force, new_velocity = self.interaction(cell_index=index, delta_t=0.05)
+                    dif_position, new_velocity = self.interaction(cell_index=index, delta_t=0.05)
+                    #forces = np.append(forces, [force], axis=0)
+                    dif_positions = np.append(dif_positions, [dif_position], axis=0)
                     new_velocities = np.append(
                         new_velocities, [new_velocity], axis=0
                     )
                 # for index in active_cell_indexes:
                 self.move(
-                    delta_t=0.05, forces=forces, new_velocities=new_velocities
+                    dif_positions=dif_positions, new_velocities=new_velocities
                 )
 
             # Save the data (for dat, ovito, and/or SQLite)
