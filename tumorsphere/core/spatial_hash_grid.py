@@ -5,6 +5,7 @@ from itertools import product
 import numpy as np
 from typing import Tuple
 
+# from line_profiler import profile
 
 class SpatialHashGrid:
     def __init__(
@@ -134,6 +135,7 @@ class SpatialHashGrid:
                 "Non-torus grid boundary behavior is not yet implemented."
             )
 
+    # @profile
     def find_neighbors(self, position: np.ndarray) -> set:
         """Returns the set of indexes of all existing cells within a 3D Moore
         neighborhood of a given position.
@@ -156,23 +158,19 @@ class SpatialHashGrid:
             cell in the provided position.
         """
         neighbors = set()
-        key = self.get_hash_key(position)
+        # Convert key to array once
+        key = np.array(self.get_hash_key(position))
 
-        # We use itertools.product to simplify the nested loops for checking
-        # adjacent keys, equivalent to a 3D Moore neighborhood
-        for offset in product(range(-1, 2), repeat=3):
-            adj_key = np.array(key) + np.array(offset)
+        # We precompute all offsets and apply them at once
+        offsets = np.array(list(product(range(-1, 2), repeat=3)))
+        adj_keys = key + offsets  # Broadcasting addition
 
-            # If the grid is a torus, we need to wrap the keys around the
-            # bounds of the grid.
-            if self.bounds is not None and self.torus:
-                adj_key = np.mod(adj_key, self.bounds)
+        # Handle toroidal wrapping
+        if self.bounds is not None and self.torus:
+            adj_keys = np.mod(adj_keys, self.bounds)
 
-            # We convert it to a tuple for using it as a dictionary key
-            adj_key = tuple(adj_key)
-
-            # Check if the adjacent key is in the hash table, and if so, add
-            # the cell indexes to the neighbors set.
+        # Convert array of keys to tuples and filter valid keys
+        for adj_key in map(tuple, adj_keys):  # Convert once and iterate
             if adj_key in self.hash_table:
                 neighbors.update(self.hash_table[adj_key])
 
