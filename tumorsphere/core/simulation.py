@@ -167,7 +167,7 @@ class Simulation:
         current_realization_name = realization_name(
             self.prob_diff[prob_diff_index],
             self.prob_stem[prob_stem_index],
-            seed,
+            seed.item(),
         )
 
         # We create the output object
@@ -193,7 +193,7 @@ class Simulation:
             first_cell_is_stem=self.first_cell_is_stem,
             prob_stem=self.prob_stem[prob_stem_index],
             prob_diff=self.prob_diff[prob_diff_index],
-            rng_seed=seed,
+            rng_seed=seed.item(),
             swap_probability=self.swap_probability,
         )
         self.cultures[current_realization_name].simulate(
