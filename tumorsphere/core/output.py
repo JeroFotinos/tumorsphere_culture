@@ -381,37 +381,59 @@ class OvitoOutput(TumorsphereOutput):
             )
             for cell in cells:
                 if cell.is_stem and cell.available_space:
-                    line = (
-                        "active_stem " #if cell.phi() is None else "cell "
-                        + str(cell_positions[cell._index][0])
-                        + " "
-                        + str(cell_positions[cell._index][1])
-                        + " "
-                        + str(cell_positions[cell._index][2])
-                        + " "
-                        + str(cell.aspect_ratio)  # aspherical shape x
-                        + " "
-                        + "1"  # aspherical shape y
-                        + " "
-                        + "1"  # aspherical shape z
-                        + " "
-                        + "0"  # X orientation, str(0*np.sin((phi)/2))
-                        + " "
-                        + "0"  # Y orientation, str(0*np.sin((phi)/2))
-                        + " "
-                        + str(
-                            np.sin(cell.phi() / 2)
-                        )  # if cell.phi is not None else "0" # Z orientation
-                        + " "
-                        + str(
-                            np.cos(cell.phi() / 2)
-                        )  # if cell.phi is not None else "0" # W orientation
-                        + " "
-                        + str(
-                            cell.phi() % (2 * np.pi)
-                        )  # if cell.phi is not None else "1"  # color
-                        + "\n"
-                    )
+                    if cell.speed is None:
+                        line = (
+                            "active_stem "
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + "1"  # aspherical shape x
+                            + " "
+                            + "1"  # aspherical shape y
+                            + " "
+                            + "1"  # aspherical shape z
+                            + " "
+                            + "0"  # X orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Y orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Z orientation
+                            + " "
+                            + "0"  # W orientation
+                            + " "
+                            + "1"  # color
+                            + "\n"
+                        )
+                    else:
+                        phi = cell.culture.cell_phies[cell._index]
+                        line = (
+                            "cell "
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + str(cell.major_axis)  # aspherical shape x
+                            + " "
+                            + str(cell.minor_axis)  # aspherical shape y
+                            + " "
+                            + "1"  # aspherical shape z
+                            + " "
+                            + "0"  # X orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Y orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + str(np.sin(phi / 2))  # Z orientation
+                            + " "
+                            + str(np.cos(phi / 2))  # W orientation
+                            + " "
+                            + str(phi % (2 * np.pi))  # color
+                            + "\n"
+                        )
                     file_to_write.write(line)
 
             for cell in cells:  # csc quiesc
@@ -423,6 +445,20 @@ class OvitoOutput(TumorsphereOutput):
                         + str(cell_positions[cell._index][1])
                         + " "
                         + str(cell_positions[cell._index][2])
+                        + " "
+                        + "1"  # aspherical shape x
+                        + " "
+                        + "1"  # aspherical shape y
+                        + " "
+                        + "1"  # aspherical shape z
+                        + " "
+                        + "0"  # X orientation, str(0*np.sin((phi)/2))
+                        + " "
+                        + "0"  # Y orientation, str(0*np.sin((phi)/2))
+                        + " "
+                        + "0"  # Z orientation
+                        + " "
+                        + "0"  # W orientation
                         + " "
                         + "2"
                         + "\n"
@@ -439,6 +475,20 @@ class OvitoOutput(TumorsphereOutput):
                         + " "
                         + str(cell_positions[cell._index][2])
                         + " "
+                        + "1"  # aspherical shape x
+                        + " "
+                        + "1"  # aspherical shape y
+                        + " "
+                        + "1"  # aspherical shape z
+                        + " "
+                        + "0"  # X orientation, str(0*np.sin((phi)/2))
+                        + " "
+                        + "0"  # Y orientation, str(0*np.sin((phi)/2))
+                        + " "
+                        + "0"  # Z orientation
+                        + " "
+                        + "0"  # W orientation
+                        + " "
                         + "3"
                         + "\n"
                     )
@@ -453,6 +503,20 @@ class OvitoOutput(TumorsphereOutput):
                         + str(cell_positions[cell._index][1])
                         + " "
                         + str(cell_positions[cell._index][2])
+                        + " "
+                        + "1"  # aspherical shape x
+                        + " "
+                        + "1"  # aspherical shape y
+                        + " "
+                        + "1"  # aspherical shape z
+                        + " "
+                        + "0"  # X orientation, str(0*np.sin((phi)/2))
+                        + " "
+                        + "0"  # Y orientation, str(0*np.sin((phi)/2))
+                        + " "
+                        + "0"  # Z orientation
+                        + " "
+                        + "0"  # W orientation
                         + " "
                         + "4"
                         + "\n"

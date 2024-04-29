@@ -22,6 +22,12 @@ class Cell:
         The culture to which the cell belongs.
     is_stem: bool
         Whether the cell is a stem cell or not.
+    speed: float
+        The speed of the cell.
+    major_axis: float
+        the length of the major axis of the cell (ellipse)
+    minor_axis: float
+        the length of the minor axis of the cell (ellipse)
     parent_index: Optional[int]
         The index of the parent cell in the culture's cell_positions array.
         Default is 0.
@@ -37,8 +43,8 @@ class Cell:
     Methods
     -------
     __init__(
-        position, culture, is_stem, parent_index=0, neighbors_indexes=set(),
-        available_space=True
+        position, culture, is_stem, phi=None, speed=None, parent_index=0, major_axis=1.5,
+        minor_axis=1, parent_index=0, available_space=True
         )
         Initializes the Cell object and sets the _index attribute
         based on the position given.
@@ -52,7 +58,9 @@ class Cell:
 
     culture: "Culture"
     is_stem: bool
-    aspect_ratio: float = 1.5
+    speed: float = None
+    major_axis: float = 1.5
+    minor_axis: float = 1
     parent_index: Optional[int] = 0
     neighbors_indexes: Set[int] = field(default_factory=set)
     available_space: bool = True
@@ -63,8 +71,10 @@ class Cell:
         position: np.ndarray,
         culture: "Culture",
         is_stem: bool,
-        velocity: np.ndarray = np.empty(3),
-        aspect_ratio: float = 1.5,
+        phi: float = None,
+        speed: float = None,
+        major_axis: float = 1.5,
+        minor_axis: float = 1,
         parent_index: Optional[int] = 0,
         available_space: bool = True,  # not to be set by user
         creation_time: int = 0,
@@ -78,15 +88,19 @@ class Cell:
             The position of the cell. This is used to update the
             cell_positions in the culture and set the _index
             attribute, but is not stored as an attribute in the object itself.
-        velocity : np.ndarray
-            The velocity of the cell. This is used to update the
-            cell_velocities in the culture
         culture : Culture
             The culture to which the cell belongs.
         is_stem : bool
             Whether the cell is a stem cell or not.
-        aspect_ratio : float
-            The ratio of the cells width to its height.
+        phi : float
+            The angle in the x-y plane of the cell. This is used to update the
+            cell_phies in the culture.
+        speed : float
+            The speed of the cell.
+        major_axis : float
+            the length of the major axis of the cell (ellipse)
+        minor_axis : float
+            the length of the minor axis of the cell (ellipse)
         parent_index : Optional[int], default=0
             The index of the parent cell in the culture's cell_positions
             array.
@@ -102,20 +116,22 @@ class Cell:
         self.parent_index = parent_index
         self.neighbors_indexes = set()
         self.available_space = available_space
-        self.aspect_ratio = aspect_ratio
+        # self.aspect_ratio = aspect_ratio
+        self.major_axis = major_axis
+        self.minor_axis = minor_axis
+
+        self.speed = speed
 
         # we FIRST get the cell's index
         self._index = len(culture.cell_positions)
 
         # and THEN add the cell to the culture's position matrix,
-        # to the velocity matrix and cell lists, in the previous index
+        # to the angle matrix and cell lists, in the previous index
         culture.cell_positions = np.append(
             culture.cell_positions, [position], axis=0
         )
 
-        culture.cell_velocities = np.append(
-            culture.cell_velocities, [velocity], axis=0
-        )
+        culture.cell_phies = np.append(culture.cell_phies, phi)
 
         self.culture.cells.append(self)
         self.culture.active_cell_indexes.append(self._index)
@@ -133,8 +149,14 @@ class Cell:
         )
 
     # ---------------------------------------------------------
-    def phi(self):
+    def velocity(self):
         """
-        It returns the angle in the xy plane given a cell and its velocity vector
+        It returns the velocity vector of the given cell
         """
-        return np.arctan2(self.culture.cell_velocities[self._index][1], self.culture.cell_velocities[self._index][0])
+        return np.array(
+            [
+                np.cos(self.culture.cell_phies[self._index]),
+                np.sin(self.culture.cell_phies[self._index]),
+                0,
+            ]
+        )
