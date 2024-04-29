@@ -1,0 +1,17 @@
+ipython
+notebook
+jupyterlab
+flake8
+black
+isort
+pytest
+coverage
+pytest-cov
+ipdb
+tox
+tuna
+pyprof2calltree
+line_profiler[all]
+rich
+rich[jupyter]
+sphinx
