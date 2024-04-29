@@ -1,16 +1,18 @@
 import os
 from pathlib import Path
+
 import click
+
 from tumorsphere.core.simulation import Simulation
+from tumorsphere.library.dataframe_generation import (
+    generate_dataframe_from_dat,
+    generate_dataframe_from_db,
+)
+from tumorsphere.library.db_file_comparer import compare_databases
+from tumorsphere.library.db_merger import merge_single_culture_dbs
 from tumorsphere.library.time_step_counter import (
     count_time_steps_of_cultures_in_dir,
 )
-from tumorsphere.library.dataframe_generation import (
-    generate_dataframe_from_db,
-    generate_dataframe_from_dat,
-)
-from tumorsphere.library.db_merger import merge_single_culture_dbs
-from tumorsphere.library.db_file_comparer import compare_databases
 
 
 @click.group()

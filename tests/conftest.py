@@ -1,10 +1,9 @@
 import os
+import sqlite3
+import subprocess
+import tempfile
 
 import pytest
-import sqlite3
-import tempfile
-import subprocess
-
 
 # -------- For testing the `db_file_comparer.py` module --------
 

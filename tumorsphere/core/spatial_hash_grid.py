@@ -1,11 +1,12 @@
 """Module that defines the SpatialHashGrid class."""
 
 from itertools import product
-
-import numpy as np
 from typing import Tuple
 
+import numpy as np
+
 # from line_profiler import profile
+
 
 class SpatialHashGrid:
     def __init__(

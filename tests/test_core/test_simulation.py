@@ -1,13 +1,13 @@
-from tumorsphere.core.simulation import Simulation
-
 import os
-from pathlib import Path
 
 # import filecmp
 import shutil
+from pathlib import Path
 
 import numpy as np
 from scipy.spatial import distance_matrix
+
+from tumorsphere.core.simulation import Simulation
 
 
 def test_no_overlap():
