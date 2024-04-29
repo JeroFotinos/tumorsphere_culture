@@ -1,11 +1,10 @@
-import os
-from pathlib import Path
 import filecmp
+import os
 import shutil
+from pathlib import Path
 
 import pandas as pd
 import pytest
-
 
 # ---------- tumorsphere simulate command ----------
 

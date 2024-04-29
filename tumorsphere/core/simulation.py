@@ -8,7 +8,7 @@ Classes:
 """
 
 import multiprocessing as mp
-from typing import Tuple, List
+from typing import List, Tuple
 
 import numpy as np
 

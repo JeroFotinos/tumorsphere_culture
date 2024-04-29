@@ -4,23 +4,19 @@ cultures of the database.
 CURRENTLY NOT WORKING.
 """
 
-import sqlite3
 import os
+import sqlite3
 
+import matplotlib.pyplot as plt
 import networkx as nx
-from networkx import Graph
+import numpy as np
 
 # import plotly.express as px
 import plotly.graph_objects as go
-
-import numpy as np
-from scipy.spatial.transform import Rotation as R
-
-import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-
+from networkx import Graph
+from scipy.spatial.transform import Rotation as R
 from sklearn.manifold import MDS
-
 
 # ----------------- Graph generation functions -----------------
 

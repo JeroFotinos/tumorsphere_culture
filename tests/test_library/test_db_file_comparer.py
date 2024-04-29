@@ -1,5 +1,6 @@
-from tumorsphere.library.db_file_comparer import compare_databases
 from unittest.mock import patch
+
+from tumorsphere.library.db_file_comparer import compare_databases
 
 
 def test_compare_databases_equal(temp_db):
