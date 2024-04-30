@@ -52,6 +52,7 @@ class SpatialHashGrid:
         self.torus = torus
         self.bounds = bounds
         self.cube_size = cube_size
+        self.offsets = np.array(list(product(range(-1, 2), repeat=3)))
         self.hash_table = {}
 
     def get_hash_key(
@@ -162,9 +163,8 @@ class SpatialHashGrid:
         # Convert key to array once
         key = np.array(self.get_hash_key(position))
 
-        # We precompute all offsets and apply them at once
-        offsets = np.array(list(product(range(-1, 2), repeat=3)))
-        adj_keys = key + offsets  # Broadcasting addition
+        # Broadcasting addition to get adjacent keys
+        adj_keys = key + self.offsets
 
         # Handle toroidal wrapping
         if self.bounds is not None and self.torus:
