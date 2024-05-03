@@ -381,7 +381,7 @@ class OvitoOutput(TumorsphereOutput):
             )
             for cell in cells:
                 if cell.is_stem and cell.available_space:
-                    if cell.speed is None:
+                    if cell.culture.cell_phies[cell._index] is None:
                         line = (
                             "active_stem "
                             + str(cell_positions[cell._index][0])

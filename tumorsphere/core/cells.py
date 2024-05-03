@@ -58,7 +58,6 @@ class Cell:
 
     culture: "Culture"
     is_stem: bool
-    speed: float = None
     major_axis: float = 1.5
     minor_axis: float = 1
     parent_index: Optional[int] = 0
@@ -72,7 +71,6 @@ class Cell:
         culture: "Culture",
         is_stem: bool,
         phi: float = None,
-        speed: float = None,
         major_axis: float = 1.5,
         minor_axis: float = 1,
         parent_index: Optional[int] = 0,
@@ -95,8 +93,6 @@ class Cell:
         phi : float
             The angle in the x-y plane of the cell. This is used to update the
             cell_phies in the culture.
-        speed : float
-            The speed of the cell.
         major_axis : float
             the length of the major axis of the cell (ellipse)
         minor_axis : float
@@ -116,11 +112,8 @@ class Cell:
         self.parent_index = parent_index
         self.neighbors_indexes = set()
         self.available_space = available_space
-        # self.aspect_ratio = aspect_ratio
         self.major_axis = major_axis
         self.minor_axis = minor_axis
-
-        self.speed = speed
 
         # we FIRST get the cell's index
         self._index = len(culture.cell_positions)
@@ -149,9 +142,88 @@ class Cell:
         )
 
     # ---------------------------------------------------------
-    def velocity(self):
+    def derived_parameters(self, kProp, kRep, bExp):
         """
-        It returns the velocity vector of the given cell
+        It calculates some parameters that are derived from attributes of the cell and 
+        the culture, and are necessary for the interaction.
+
+        Parameters
+        ----------
+        kProp : float
+            Parameter related to the speed of the cell.
+        kRep : float
+            ?
+        kExp : float
+            ?
+
+        Returns
+        -------
+        #
+        """
+        # parámetros derivados
+        # anisotropy (global)
+        s_epsA = (self.major_axis**2 - self.minor_axis**2) / (
+            self.minor_axis**2 + self.major_axis**2
+        )
+        s_epsA2 = s_epsA * s_epsA
+        s_epsA05 = s_epsA / 2.0
+        # diagonal squared (global)
+        s_diag2 = self.major_axis**2 + self.minor_axis**2
+
+        # aspect ratio (global)
+        s_aRatio = self.major_axis / self.minor_axis
+        # longitudinal & transversal mobility
+        if self.major_axis != self.minor_axis:
+            mP = (
+                1
+                / self.major_axis
+                * (3 * s_aRatio / 4.0)
+                * (
+                    (s_aRatio) / (1 - s_aRatio * s_aRatio)
+                    + (2.0 * s_aRatio * s_aRatio - 1.0)
+                    / np.power(s_aRatio * s_aRatio - 1.0, 1.5)
+                    * np.log(s_aRatio + np.sqrt(s_aRatio * s_aRatio - 1.0))
+                )
+            )
+            mS = (
+                1
+                / self.major_axis
+                * (3 * s_aRatio / 8.0)
+                * (
+                    (s_aRatio) / (s_aRatio * s_aRatio - 1.0)
+                    + (2.0 * s_aRatio * s_aRatio - 3.0)
+                    / np.power(s_aRatio * s_aRatio - 1.0, 1.5)
+                    * np.log(s_aRatio + np.sqrt(s_aRatio * s_aRatio - 1.0))
+                )
+            )
+        else:
+            mP = 1 / self.major_axis
+            mS = 1 / self.major_axis
+
+        # rotational mobility
+        mR = 3.0 / (2.0 * (self.major_axis**2 + self.minor_axis**2)) * mP
+        # sum and difference of mobility tensor elements
+        s_SmPmS = (mP + mS) / 2.0
+        s_DmPmS = (mP - mS) / 2.0
+
+        # speed
+        s_v0 = kProp * mP
+
+        # repulsion & torque strength
+        s_Rep = kRep * bExp / (self.major_axis**2 + self.minor_axis**2)
+        s_Rot = mR * kRep * bExp / (self.major_axis**2 + self.minor_axis**2)
+        # return of all the parameters
+        return s_Rot, s_Rep, s_v0, s_DmPmS, s_SmPmS, s_epsA05, s_epsA2, s_diag2
+
+    # ---------------------------------------------------------
+    def direction(self):
+        """
+        It returns the direction of velocity vector of the given cell.
+
+        Returns
+        -------
+        np.ndarray
+            The direction of the velocity vector.
         """
         return np.array(
             [
