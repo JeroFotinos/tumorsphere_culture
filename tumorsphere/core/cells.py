@@ -22,12 +22,8 @@ class Cell:
         The culture to which the cell belongs.
     is_stem: bool
         Whether the cell is a stem cell or not.
-    speed: float
-        The speed of the cell.
-    major_axis: float
-        the length of the major axis of the cell (ellipse)
-    minor_axis: float
-        the length of the minor axis of the cell (ellipse)
+    aspect_ratio: float
+        The ratio of the cells width to its height.
     parent_index: Optional[int]
         The index of the parent cell in the culture's cell_positions array.
         Default is 0.
@@ -43,8 +39,8 @@ class Cell:
     Methods
     -------
     __init__(
-        position, culture, is_stem, phi=None, speed=None, parent_index=0, major_axis=1.5,
-        minor_axis=1, parent_index=0, available_space=True
+        position, culture, is_stem, phi=None, aspect_ratio=1, parent_index=0, 
+        parent_index=0, available_space=True
         )
         Initializes the Cell object and sets the _index attribute
         based on the position given.
@@ -58,8 +54,7 @@ class Cell:
 
     culture: "Culture"
     is_stem: bool
-    major_axis: float = 1.5
-    minor_axis: float = 1
+    aspect_ratio: float = 1
     parent_index: Optional[int] = 0
     neighbors_indexes: Set[int] = field(default_factory=set)
     available_space: bool = True
@@ -71,8 +66,7 @@ class Cell:
         culture: "Culture",
         is_stem: bool,
         phi: float = None,
-        major_axis: float = 1.5,
-        minor_axis: float = 1,
+        aspect_ratio: float = 1, 
         parent_index: Optional[int] = 0,
         available_space: bool = True,  # not to be set by user
         creation_time: int = 0,
@@ -93,10 +87,8 @@ class Cell:
         phi : float
             The angle in the x-y plane of the cell. This is used to update the
             cell_phies in the culture.
-        major_axis : float
-            the length of the major axis of the cell (ellipse)
-        minor_axis : float
-            the length of the minor axis of the cell (ellipse)
+        aspect_ratio: float
+            The ratio of the cells width to its height.
         parent_index : Optional[int], default=0
             The index of the parent cell in the culture's cell_positions
             array.
@@ -112,8 +104,7 @@ class Cell:
         self.parent_index = parent_index
         self.neighbors_indexes = set()
         self.available_space = available_space
-        self.major_axis = major_axis
-        self.minor_axis = minor_axis
+        self.aspect_ratio = aspect_ratio
 
         # we FIRST get the cell's index
         self._index = len(culture.cell_positions)
@@ -142,15 +133,37 @@ class Cell:
         )
 
     # ---------------------------------------------------------
-    def derived_parameters(self, kProp, kRep, bExp):
+    def semi_axis(self):
+        """
+        It calculates the semi-major and semi-minor axis given the area of the cell and
+        the aspect ratio.
+
+        Returns
+        -------
+        semi_minor_axis: float
+            The length of the semi-minor axis of the cell, the shortest radius.
+        semi_major_axis: float
+            The length of the semi-major axis of the cell, the longest radius.
+
+
+        Notes
+        -----
+        We use the fact that aspect_ratio = semi_major_axis/semi_minor_axis and 
+        cell_area = np.pi*semi_major_axis*semi_minor_axis to calculate them
+
+        """
+        semi_minor_axis = np.sqrt(self.culture.cell_area/(np.pi*self.aspect_ratio))
+        semi_major_axis = np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
+
+        return semi_minor_axis, semi_major_axis
+    # ---------------------------------------------------------
+    def derived_parameters(self, kRep, bExp, semi_minor_axis, semi_major_axis):
         """
         It calculates some parameters that are derived from attributes of the cell and 
         the culture, and are necessary for the interaction.
 
         Parameters
         ----------
-        kProp : float
-            Parameter related to the speed of the cell.
         kRep : float
             ?
         kExp : float
@@ -160,58 +173,58 @@ class Cell:
         -------
         #
         """
+
         # parámetros derivados
         # anisotropy (global)
-        s_epsA = (self.major_axis**2 - self.minor_axis**2) / (
-            self.minor_axis**2 + self.major_axis**2
+        s_epsA = (semi_major_axis**2 - semi_minor_axis**2) / (
+            semi_minor_axis**2 + semi_major_axis**2
         )
         s_epsA2 = s_epsA * s_epsA
         s_epsA05 = s_epsA / 2.0
         # diagonal squared (global)
-        s_diag2 = self.major_axis**2 + self.minor_axis**2
+        s_diag2 = semi_major_axis**2 + semi_minor_axis**2
 
-        # aspect ratio (global)
-        s_aRatio = self.major_axis / self.minor_axis
         # longitudinal & transversal mobility
-        if self.major_axis != self.minor_axis:
+        if semi_major_axis != semi_minor_axis:
             mP = (
                 1
-                / self.major_axis
-                * (3 * s_aRatio / 4.0)
+                / semi_major_axis
+                * (3 * self.aspect_ratio / 4.0)
                 * (
-                    (s_aRatio) / (1 - s_aRatio * s_aRatio)
-                    + (2.0 * s_aRatio * s_aRatio - 1.0)
-                    / np.power(s_aRatio * s_aRatio - 1.0, 1.5)
-                    * np.log(s_aRatio + np.sqrt(s_aRatio * s_aRatio - 1.0))
+                    (self.aspect_ratio) / (1 - self.aspect_ratio**2)
+                    + (2.0 * self.aspect_ratio**2 - 1.0)
+                    / np.power(self.aspect_ratio**2 - 1.0, 1.5)
+                    * np.log(self.aspect_ratio + np.sqrt(self.aspect_ratio**2 - 1.0))
                 )
             )
             mS = (
                 1
-                / self.major_axis
-                * (3 * s_aRatio / 8.0)
+                / semi_major_axis
+                * (3 * self.aspect_ratio / 8.0)
                 * (
-                    (s_aRatio) / (s_aRatio * s_aRatio - 1.0)
-                    + (2.0 * s_aRatio * s_aRatio - 3.0)
-                    / np.power(s_aRatio * s_aRatio - 1.0, 1.5)
-                    * np.log(s_aRatio + np.sqrt(s_aRatio * s_aRatio - 1.0))
+                    (self.aspect_ratio) / (self.aspect_ratio**2 - 1.0)
+                    + (2.0 * self.aspect_ratio**2 - 3.0)
+                    / np.power(self.aspect_ratio**2 - 1.0, 1.5)
+                    * np.log(self.aspect_ratio + np.sqrt(self.aspect_ratio**2 - 1.0))
                 )
             )
         else:
-            mP = 1 / self.major_axis
-            mS = 1 / self.major_axis
+            mP = 1 / semi_major_axis
+            mS = 1 / semi_major_axis
 
         # rotational mobility
-        mR = 3.0 / (2.0 * (self.major_axis**2 + self.minor_axis**2)) * mP
+        mR = 3.0 / (2.0 * (semi_major_axis**2 + semi_minor_axis**2)) * mP
         # sum and difference of mobility tensor elements
         s_SmPmS = (mP + mS) / 2.0
         s_DmPmS = (mP - mS) / 2.0
 
         # speed
+        kProp = s_epsA # we suppose kProp linear with s_epsA
         s_v0 = kProp * mP
 
         # repulsion & torque strength
-        s_Rep = kRep * bExp / (self.major_axis**2 + self.minor_axis**2)
-        s_Rot = mR * kRep * bExp / (self.major_axis**2 + self.minor_axis**2)
+        s_Rep = kRep * bExp / (semi_major_axis**2 + semi_minor_axis**2)
+        s_Rot = mR * kRep * bExp / (semi_major_axis**2 + semi_minor_axis**2)
         # return of all the parameters
         return s_Rot, s_Rep, s_v0, s_DmPmS, s_SmPmS, s_epsA05, s_epsA2, s_diag2
 

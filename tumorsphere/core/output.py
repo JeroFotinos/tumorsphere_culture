@@ -408,7 +408,7 @@ class OvitoOutput(TumorsphereOutput):
                             + "\n"
                         )
                     else:
-                        phi = cell.culture.cell_phies[cell._index]
+                        semi_minor_axis, semi_major_axis = cell.semi_axis()
                         line = (
                             "cell "
                             + str(cell_positions[cell._index][0])
@@ -417,9 +417,9 @@ class OvitoOutput(TumorsphereOutput):
                             + " "
                             + str(cell_positions[cell._index][2])
                             + " "
-                            + str(cell.major_axis)  # aspherical shape x
+                            + str(semi_major_axis) #cell.semi_axis()[1])  # aspherical shape x
                             + " "
-                            + str(cell.minor_axis)  # aspherical shape y
+                            + str(semi_minor_axis) #cell.semi_axis()[0])  # aspherical shape y
                             + " "
                             + "1"  # aspherical shape z
                             + " "
@@ -427,11 +427,11 @@ class OvitoOutput(TumorsphereOutput):
                             + " "
                             + "0"  # Y orientation, str(0*np.sin((phi)/2))
                             + " "
-                            + str(np.sin(phi / 2))  # Z orientation
+                            + str(np.sin(cell.culture.cell_phies[cell._index] / 2))  # Z orientation
                             + " "
-                            + str(np.cos(phi / 2))  # W orientation
+                            + str(np.cos(cell.culture.cell_phies[cell._index] / 2))  # W orientation
                             + " "
-                            + str(phi % (2 * np.pi))  # color
+                            + str(cell.culture.cell_phies[cell._index] % (2 * np.pi))  # color
                             + "\n"
                         )
                     file_to_write.write(line)

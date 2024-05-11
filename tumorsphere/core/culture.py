@@ -31,7 +31,7 @@ class Culture:
         side: int = 10,
         reproduction: bool = False,
         movement: bool = True,
-        kProp: float = 1,
+        cell_area: float = np.pi,
         kRep: float = 10,
         bExp: float = 3,
     ):
@@ -62,16 +62,16 @@ class Culture:
         side : int, optional
             The length of the side of the square where the cells move.
         reproduction : bool
-            Whether the cells reproduces or not
+            Whether the cells reproduces or not.
         movement : bool
-            Whether the cells moves or not
-        kProp : float
-            #
+            Whether the cells moves or not.
+        cell_area : float
+            the area of all cells in the culture.
         kRep : float
             #
         bExp : float
             #
-        
+
         Attributes
         ----------
         cell_max_repro_attempts : int
@@ -95,8 +95,8 @@ class Culture:
             Whether the cells reproduce or not
         movement : bool
             Whether the cells move or not
-        kProp : float
-            #
+        cell_area : float
+            the area of all cells in the culture.
         kRep : float
             #
         bExp : float
@@ -126,6 +126,7 @@ class Culture:
         self.side = side
         self.reproduction = reproduction
         self.movement = movement
+        self.cell_area = cell_area
 
         # we instantiate the culture's RNG with the provided entropy
         self.rng_seed = rng_seed
@@ -150,7 +151,6 @@ class Culture:
         self.output = output
 
         # interaction parameters
-        self.kProp = kProp
         self.kRep = kRep
         self.bExp = bExp
 
@@ -614,8 +614,10 @@ class Culture:
         sfy = 0
         sfphi = 0
         # calculation of some parameters of the cell that are necessary in the interaction
+        semi_minor_axis, semi_major_axis = cell.semi_axis()
+
         s_Rot, s_Rep, s_v0, s_DmPmS, s_SmPmS, s_epsA05, s_epsA2, s_diag2 = (
-            cell.derived_parameters(self.kProp, self.kRep, self.bExp)
+            cell.derived_parameters(self.kRep, self.bExp, semi_minor_axis, semi_major_axis)
         )
 
         for neighbor_index in neighbors:
@@ -626,7 +628,8 @@ class Culture:
             distance_sq = relative_pos_x**2 + relative_pos_y**2
             alpha = np.arctan2(relative_pos_y, relative_pos_x)
 
-            if distance_sq < (2 * cell.major_axis) ** 2:
+            #if distance_sq < (2*cell.semi_axis()[1]) ** 2:
+            if distance_sq < (2*semi_major_axis) ** 2:
                 sfx2, sfy2, sfphi2 = self.interaction_between_2_cells(
                     cell_index,
                     neighbor_index,
@@ -746,6 +749,8 @@ class Culture:
                         culture=self,
                         is_stem=self.first_cell_is_stem,
                         phi=self.rng.uniform(low=0, high=2 * np.pi),
+                        aspect_ratio=self.rng.uniform(low=1, high=2), #1+np.abs(1*self.rng.standard_normal()),
+                        #aspect_ratio=1.5,
                         parent_index=0,
                         available_space=True,
                     )
@@ -761,9 +766,9 @@ class Culture:
         reproduction = self.reproduction
         movement = self.movement
         # time parameters for movement and saving
-        t = 0 
+        t = 0
         delta_t = 0.1
-        save_t = 0.5
+        save_t = 2.0 #0.5
         tolerance_t = 1e-2
 
         for i in range(1, num_times + 1):
@@ -790,7 +795,7 @@ class Culture:
 
                 self.move(dif_positions=dif_positions, dphies=dphies)
                 t = t + delta_t
-            
+
             # Save the data (for dat, ovito, and/or SQLite)
             # we save it when the time step is a multiple of save_t using the tolerance
             if np.mod(t, save_t)<tolerance_t or np.mod(t, save_t)>save_t-tolerance_t:
