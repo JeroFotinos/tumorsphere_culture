@@ -437,6 +437,48 @@ class Culture:
         # (reproduction is turned off)
 
     # ---------------------------------------------------------
+    
+    def relative_pos(self, cell_position: float, neighbor_position: float):
+        """
+        It calculates the relative position in x and y of 2 cells taking into account
+        that they move in a box.
+
+        Parameters
+        ----------
+        cell_position : float
+            The position of the cell.
+        neighbor_position : int
+            The position of the neighbor.
+
+        Returns
+        -------
+        relative_pos_x : float
+            The x component of the relative position of the cells.
+        relative_pos_y : float
+            The y component of the relative position of the cells.
+        """
+
+        relative_pos_x = -(
+            neighbor_position[0]
+            - cell_position[0]
+        )
+        relative_pos_y = -(
+            neighbor_position[1]
+            - cell_position[1]
+        )
+        abs_rx = abs(relative_pos_x)
+        abs_ry = abs(relative_pos_y)
+
+        # we choose the distance between two cells as the shortest distance taking into account the box
+        if abs_rx > 0.5 * self.side:
+            relative_pos_x = np.sign(relative_pos_x) * (abs_rx - self.side)
+        if abs_ry > 0.5 * self.side:
+            relative_pos_y = np.sign(relative_pos_y) * (abs_ry - self.side)
+
+        return relative_pos_x, relative_pos_y
+
+    # ---------------------------------------------------------
+    
     def interaction_between_2_cells(
         self,
         cell_index: int,
@@ -669,54 +711,16 @@ class Culture:
             the angle of the vector that joins the cells.
         """
         phi = self.rng.uniform(low=0, high=2 * np.pi)
-        #radio = self.rng.uniform(low=0, high=1)*self.cells[cell_index].semi_axis()[1]
-        x = 2 * self.cells[cell_index].semi_axis()[1] * np.cos(phi)
-        #x = (self.cells[cell_index].semi_axis()[1] + radio)* np.cos(phi)
-        y = 2 * self.cells[cell_index].semi_axis()[1] * np.sin(phi)
-        #y = (self.cells[cell_index].semi_axis()[1] + radio)* np.sin(phi)
+        radio = self.rng.uniform(low=0, high=1)*self.cells[cell_index].semi_axis()[1]
+        #x = 2 * self.cells[cell_index].semi_axis()[1] * np.cos(phi)
+        x = (self.cells[cell_index].semi_axis()[1] + radio)* np.cos(phi)
+        #y = 2 * self.cells[cell_index].semi_axis()[1] * np.sin(phi)
+        y = (self.cells[cell_index].semi_axis()[1] + radio)* np.sin(phi)
         cell_position = self.cell_positions[cell_index]
         new_position = cell_position + np.array([x, y, 0])
         
-        return new_position, phi, #radio
-        # ---------------------------------------------------------
-    def relative_pos(self, cell_position: float, neighbor_position: float):
-        """
-        It calculates the relative position in x and y of 2 cells taking into account
-        that they move in a box.
+        return new_position, phi, radio
 
-        Parameters
-        ----------
-        cell_position : float
-            The position of the cell.
-        neighbor_position : int
-            The position of the neighbor.
-
-        Returns
-        -------
-        relative_pos_x : float
-            The x component of the relative position of the cells.
-        relative_pos_y : float
-            The y component of the relative position of the cells.
-        """
-
-        relative_pos_x = -(
-            neighbor_position[0]
-            - cell_position[0]
-        )
-        relative_pos_y = -(
-            neighbor_position[1]
-            - cell_position[1]
-        )
-        abs_rx = abs(relative_pos_x)
-        abs_ry = abs(relative_pos_y)
-
-        # we choose the distance between two cells as the shortest distance taking into account the box
-        if abs_rx > 0.5 * self.side:
-            relative_pos_x = np.sign(relative_pos_x) * (abs_rx - self.side)
-        if abs_ry > 0.5 * self.side:
-            relative_pos_y = np.sign(relative_pos_y) * (abs_ry - self.side)
-
-        return relative_pos_x, relative_pos_y
     # ---------------------------------------------------------
     def deformation(self, cell_index: int) -> None:
         """If the given cell is still, it deforms if there is space available.
@@ -728,14 +732,14 @@ class Culture:
         """
 
         cell = self.cells[cell_index]
-        new_aspect_ratio = 1.5
+        #new_aspect_ratio = 1.5
         neighbors = set(self.active_cell_indexes)
         neighbors.discard(cell_index)
 
         for attempt in range(10): #range(self.cell_max_repro_attempts):
             # we generate a new proposed position for the "child" cell
-            #new_position, new_phi, radio = self.generate_new_position2(cell_index)
-            new_position, new_phi = self.generate_new_position2(cell_index)
+            new_position, new_phi, radio = self.generate_new_position2(cell_index)
+            #new_position, new_phi = self.generate_new_position2(cell_index)
 
             no_overlap = True
             for neighbor_index in neighbors:
@@ -747,9 +751,9 @@ class Culture:
                 # distance relative to the square and angle necessary for the interaction
                 distance_sq = relative_pos_x**2 + relative_pos_y**2
 
-                #if distance_sq <= (radio+self.cells[neighbor_index].semi_axis()[1]) ** 2:
-                if distance_sq <= (self.cells[neighbor_index].semi_axis()[1]+ \
-                                   self.cells[neighbor_index].semi_axis()[1]) ** 2:
+                if distance_sq <= (radio+self.cells[neighbor_index].semi_axis()[1]) ** 2:
+                #if distance_sq <= (self.cells[neighbor_index].semi_axis()[1]+ \
+                #                   self.cells[neighbor_index].semi_axis()[1]) ** 2:
                     no_overlap = False
                     break
             if no_overlap:
@@ -757,14 +761,13 @@ class Culture:
     
         if no_overlap:
             # we deform the cell in that direction
-            cell.aspect_ratio = new_aspect_ratio
+            #cell.aspect_ratio = new_aspect_ratio
 
             # using this new aspect_ratio if radio=major_semi_axis*a then aspect_ratio=1+a
-            #cell.aspect_ratio = (radio/self.cells[cell_index].semi_axis()[1])+1
+            cell.aspect_ratio = (radio/self.cells[cell_index].semi_axis()[1])+1
             self.cell_phies[cell_index] = new_phi
 
     # ---------------------------------------------------------
-
 
     def simulate(self, num_times: int) -> None:
         """Simulate culture growth/movement for a specified number of time steps.
