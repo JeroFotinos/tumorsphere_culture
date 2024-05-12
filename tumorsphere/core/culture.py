@@ -437,46 +437,6 @@ class Culture:
         # (reproduction is turned off)
 
     # ---------------------------------------------------------
-    def relative_pos(self, cell_index: int, neighbor_index: int):
-        """
-        It calculates the relative position in x and y of 2 cells taking into account
-        that they move in a box.
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-        neighbor_index : int
-            The index of the neighbor.
-
-        Returns
-        -------
-        relative_pos_x : float
-            The x component of the relative position of the cells.
-        relative_pos_y : float
-            The y component of the relative position of the cells.
-        """
-
-        relative_pos_x = -(
-            self.cell_positions[neighbor_index][0]
-            - self.cell_positions[cell_index][0]
-        )
-        relative_pos_y = -(
-            self.cell_positions[neighbor_index][1]
-            - self.cell_positions[cell_index][1]
-        )
-        abs_rx = abs(relative_pos_x)
-        abs_ry = abs(relative_pos_y)
-
-        # we choose the distance between two cells as the shortest distance taking into account the box
-        if abs_rx > 0.5 * self.side:
-            relative_pos_x = np.sign(relative_pos_x) * (abs_rx - self.side)
-        if abs_ry > 0.5 * self.side:
-            relative_pos_y = np.sign(relative_pos_y) * (abs_ry - self.side)
-
-        return relative_pos_x, relative_pos_y
-
-    # ---------------------------------------------------------
     def interaction_between_2_cells(
         self,
         cell_index: int,
@@ -621,15 +581,18 @@ class Culture:
         )
 
         for neighbor_index in neighbors:
+            # relative_pos_x, relative_pos_y = self.relative_pos(
+            #     cell_index, neighbor_index
+            # )
             relative_pos_x, relative_pos_y = self.relative_pos(
-                cell_index, neighbor_index
+                self.cell_positions[cell_index], self.cell_positions[neighbor_index]
             )
             # distance relative to the square and angle necessary for the interaction
             distance_sq = relative_pos_x**2 + relative_pos_y**2
             alpha = np.arctan2(relative_pos_y, relative_pos_x)
 
             #if distance_sq < (2*cell.semi_axis()[1]) ** 2:
-            if distance_sq < (2*semi_major_axis) ** 2:
+            if distance_sq < (2*semi_major_axis) ** 2: # preguntar
                 sfx2, sfy2, sfphi2 = self.interaction_between_2_cells(
                     cell_index,
                     neighbor_index,
@@ -693,6 +656,115 @@ class Culture:
         self.cell_positions = np.mod(self.cell_positions, self.side)
 
     # ---------------------------------------------------------
+    def generate_new_position2(self, cell_index: int):
+        """Generate a proposed position for a new cell, adjacent to the given
+        one that help us to know if there is space available to deform the
+        cell.
+
+        Returns
+        -------
+        new_position : numpy.ndarray
+            A 3D vector representing the new position of the cell.
+        phi : float
+            the angle of the vector that joins the cells.
+        """
+        phi = self.rng.uniform(low=0, high=2 * np.pi)
+        #radio = self.rng.uniform(low=0, high=1)*self.cells[cell_index].semi_axis()[1]
+        x = 2 * self.cells[cell_index].semi_axis()[1] * np.cos(phi)
+        #x = (self.cells[cell_index].semi_axis()[1] + radio)* np.cos(phi)
+        y = 2 * self.cells[cell_index].semi_axis()[1] * np.sin(phi)
+        #y = (self.cells[cell_index].semi_axis()[1] + radio)* np.sin(phi)
+        cell_position = self.cell_positions[cell_index]
+        new_position = cell_position + np.array([x, y, 0])
+        
+        return new_position, phi, #radio
+        # ---------------------------------------------------------
+    def relative_pos(self, cell_position: float, neighbor_position: float):
+        """
+        It calculates the relative position in x and y of 2 cells taking into account
+        that they move in a box.
+
+        Parameters
+        ----------
+        cell_position : float
+            The position of the cell.
+        neighbor_position : int
+            The position of the neighbor.
+
+        Returns
+        -------
+        relative_pos_x : float
+            The x component of the relative position of the cells.
+        relative_pos_y : float
+            The y component of the relative position of the cells.
+        """
+
+        relative_pos_x = -(
+            neighbor_position[0]
+            - cell_position[0]
+        )
+        relative_pos_y = -(
+            neighbor_position[1]
+            - cell_position[1]
+        )
+        abs_rx = abs(relative_pos_x)
+        abs_ry = abs(relative_pos_y)
+
+        # we choose the distance between two cells as the shortest distance taking into account the box
+        if abs_rx > 0.5 * self.side:
+            relative_pos_x = np.sign(relative_pos_x) * (abs_rx - self.side)
+        if abs_ry > 0.5 * self.side:
+            relative_pos_y = np.sign(relative_pos_y) * (abs_ry - self.side)
+
+        return relative_pos_x, relative_pos_y
+    # ---------------------------------------------------------
+    def deformation(self, cell_index: int) -> None:
+        """If the given cell is still, it deforms if there is space available.
+
+        Parameters
+        ----------
+        cell_index : int
+            The index of the cell.
+        """
+
+        cell = self.cells[cell_index]
+        new_aspect_ratio = 1.5
+        neighbors = set(self.active_cell_indexes)
+        neighbors.discard(cell_index)
+
+        for attempt in range(10): #range(self.cell_max_repro_attempts):
+            # we generate a new proposed position for the "child" cell
+            #new_position, new_phi, radio = self.generate_new_position2(cell_index)
+            new_position, new_phi = self.generate_new_position2(cell_index)
+
+            no_overlap = True
+            for neighbor_index in neighbors:
+                
+                relative_pos_x, relative_pos_y = self.relative_pos(
+                new_position, self.cell_positions[neighbor_index]
+                )
+
+                # distance relative to the square and angle necessary for the interaction
+                distance_sq = relative_pos_x**2 + relative_pos_y**2
+
+                #if distance_sq <= (radio+self.cells[neighbor_index].semi_axis()[1]) ** 2:
+                if distance_sq <= (self.cells[neighbor_index].semi_axis()[1]+ \
+                                   self.cells[neighbor_index].semi_axis()[1]) ** 2:
+                    no_overlap = False
+                    break
+            if no_overlap:
+                break
+    
+        if no_overlap:
+            # we deform the cell in that direction
+            cell.aspect_ratio = new_aspect_ratio
+
+            # using this new aspect_ratio if radio=major_semi_axis*a then aspect_ratio=1+a
+            #cell.aspect_ratio = (radio/self.cells[cell_index].semi_axis()[1])+1
+            self.cell_phies[cell_index] = new_phi
+
+    # ---------------------------------------------------------
+
 
     def simulate(self, num_times: int) -> None:
         """Simulate culture growth/movement for a specified number of time steps.
@@ -736,21 +808,20 @@ class Culture:
             # We add all the cells in the case of movement
             if self.movement:
                 for i in range(0, self.number_of_cells):
-                    l = self.side
                     # choose a random position and angle in the xy plane (phi)
                     Cell(
                         position=np.array(
                             [
-                                self.rng.uniform(low=0, high=l),
-                                self.rng.uniform(low=0, high=l),
+                                self.rng.uniform(low=0, high=self.side),
+                                self.rng.uniform(low=0, high=self.side),
                                 0,
                             ]
                         ),
                         culture=self,
                         is_stem=self.first_cell_is_stem,
                         phi=self.rng.uniform(low=0, high=2 * np.pi),
-                        aspect_ratio=self.rng.uniform(low=1, high=2), #1+np.abs(1*self.rng.standard_normal()),
-                        #aspect_ratio=1.5,
+                        #aspect_ratio=self.rng.uniform(low=1, high=2), #1+np.abs(1*self.rng.standard_normal()),
+                        aspect_ratio=1,
                         parent_index=0,
                         available_space=True,
                     )
@@ -768,7 +839,7 @@ class Culture:
         # time parameters for movement and saving
         t = 0
         delta_t = 0.1
-        save_t = 2.0 #0.5
+        save_t = 0.1 #2.0 #0.5
         tolerance_t = 1e-2
 
         for i in range(1, num_times + 1):
@@ -784,6 +855,9 @@ class Culture:
             if movement:
                 dif_positions = np.empty((0, 3), float)
                 dphies = np.array([])
+                # for index in self.active_cell_indexes:
+                #     if self.cells[index].aspect_ratio == 1:  #################
+                #         self.deformation(cell_index= index)  #################
                 for index in self.active_cell_indexes:
                     dif_position, dphi = self.interaction(
                         cell_index=index, delta_t=delta_t
@@ -792,6 +866,9 @@ class Culture:
                         dif_positions, [dif_position], axis=0
                     )
                     dphies = np.append(dphies, dphi)
+
+                    if self.cells[index].aspect_ratio == 1:  #################
+                        self.deformation(cell_index= index)  #################
 
                 self.move(dif_positions=dif_positions, dphies=dphies)
                 t = t + delta_t
