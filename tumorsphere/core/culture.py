@@ -22,6 +22,7 @@ class Culture:
         adjacency_threshold: float = 4,
         cell_radius: float = 1,
         cell_max_repro_attempts: int = 1000,
+        cell_max_def_attempts: int = 10,
         first_cell_is_stem: bool = True,
         prob_stem: float = 0,
         prob_diff: float = 0,
@@ -48,6 +49,9 @@ class Culture:
         cell_max_repro_attempts : int, optional
             The maximum number of reproduction attempts a cell can make,
             by default 1000.
+        cell_max_def_attempts : int, optional
+            The maximum number of deformation attempts a cell can make,
+            by default 10.
         first_cell_is_stem : bool, optional
             Whether the first cell is a stem cell or not, by default False.
         prob_stem : float, optional
@@ -76,6 +80,8 @@ class Culture:
         ----------
         cell_max_repro_attempts : int
             Maximum number of reproduction attempts a cell can make.
+        cell_max_def_attempts : int
+            Maximum number of deformation attempts a cell can make.
         adjacency_threshold : int
             The maximum distance at which two cells can be considered
             neighbors.
@@ -117,6 +123,7 @@ class Culture:
 
         # cell attributes
         self.cell_max_repro_attempts = cell_max_repro_attempts
+        self.cell_max_def_attempts = cell_max_def_attempts
         self.adjacency_threshold = adjacency_threshold
         self.cell_radius = cell_radius
         self.prob_stem = prob_stem
@@ -634,7 +641,8 @@ class Culture:
             alpha = np.arctan2(relative_pos_y, relative_pos_x)
 
             #if distance_sq < (2*cell.semi_axis()[1]) ** 2:
-            if distance_sq < (2*semi_major_axis) ** 2: # preguntar
+            #if distance_sq < (2*semi_major_axis) ** 2: # preguntar (semi_major_axis_cell+semi_major_axis_neigh?)
+            if distance_sq < (semi_major_axis+self.cells[neighbor_index].semi_axis()[1]) ** 2:
                 sfx2, sfy2, sfphi2 = self.interaction_between_2_cells(
                     cell_index,
                     neighbor_index,
@@ -711,7 +719,8 @@ class Culture:
             the angle of the vector that joins the cells.
         """
         phi = self.rng.uniform(low=0, high=2 * np.pi)
-        radio = self.rng.uniform(low=0, high=1)*self.cells[cell_index].semi_axis()[1]
+        radio = self.rng.uniform(low=0.25, high=1)*self.cells[cell_index].semi_axis()[1] #LOW=?
+        #radio = self.rng.uniform(low=0.1, high=np.sqrt(2)-1)*self.cells[cell_index].semi_axis()[1]
         #x = 2 * self.cells[cell_index].semi_axis()[1] * np.cos(phi)
         x = (self.cells[cell_index].semi_axis()[1] + radio)* np.cos(phi)
         #y = 2 * self.cells[cell_index].semi_axis()[1] * np.sin(phi)
@@ -723,7 +732,7 @@ class Culture:
 
     # ---------------------------------------------------------
     def deformation(self, cell_index: int) -> None:
-        """If the given cell is still, it deforms if there is space available.
+        """If the given cell doesn't move, it deforms if there is available space.
 
         Parameters
         ----------
@@ -736,7 +745,7 @@ class Culture:
         neighbors = set(self.active_cell_indexes)
         neighbors.discard(cell_index)
 
-        for attempt in range(10): #range(self.cell_max_repro_attempts):
+        for attempt in range(self.cell_max_def_attempts):
             # we generate a new proposed position for the "child" cell
             new_position, new_phi, radio = self.generate_new_position2(cell_index)
             #new_position, new_phi = self.generate_new_position2(cell_index)
@@ -752,7 +761,7 @@ class Culture:
                 distance_sq = relative_pos_x**2 + relative_pos_y**2
 
                 if distance_sq <= (radio+self.cells[neighbor_index].semi_axis()[1]) ** 2:
-                #if distance_sq <= (self.cells[neighbor_index].semi_axis()[1]+ \
+                #if distance_sq <= (self.cells[cell_index].semi_axis()[1]+ \
                 #                   self.cells[neighbor_index].semi_axis()[1]) ** 2:
                     no_overlap = False
                     break
@@ -765,7 +774,12 @@ class Culture:
 
             # using this new aspect_ratio if radio=major_semi_axis*a then aspect_ratio=1+a
             cell.aspect_ratio = (radio/self.cells[cell_index].semi_axis()[1])+1
+            # using this new aspect_ratio, the new major_semi_axis is radio+major_semi_axis 
+            #cell.aspect_ratio = (np.pi/self.cell_area)*(radio+self.cells[cell_index].semi_axis()[1])**2
             self.cell_phies[cell_index] = new_phi
+        #else:
+        #    print(cell_index)
+        #    print(" ")
 
     # ---------------------------------------------------------
 
@@ -842,10 +856,12 @@ class Culture:
         # time parameters for movement and saving
         t = 0
         delta_t = 0.1
-        save_t = 0.1 #2.0 #0.5
+        save_t = 0.5 #2.0 #0.1
         tolerance_t = 1e-2
 
         for i in range(1, num_times + 1):
+            #print("step = ", i)
+            #print("----------")
             # and reproduce or move the cells in this random order
             if reproduction:
                 # we get a permuted copy of the cells list
@@ -858,9 +874,7 @@ class Culture:
             if movement:
                 dif_positions = np.empty((0, 3), float)
                 dphies = np.array([])
-                # for index in self.active_cell_indexes:
-                #     if self.cells[index].aspect_ratio == 1:  #################
-                #         self.deformation(cell_index= index)  #################
+
                 for index in self.active_cell_indexes:
                     dif_position, dphi = self.interaction(
                         cell_index=index, delta_t=delta_t
@@ -870,8 +884,10 @@ class Culture:
                     )
                     dphies = np.append(dphies, dphi)
 
-                    if self.cells[index].aspect_ratio == 1:  #################
-                        self.deformation(cell_index= index)  #################
+                    # we wait for the system to stabilize to deform the cells
+                    if i>80:
+                        if self.cells[index].aspect_ratio == 1:
+                            self.deformation(cell_index= index)
 
                 self.move(dif_positions=dif_positions, dphies=dphies)
                 t = t + delta_t
