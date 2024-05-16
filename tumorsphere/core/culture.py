@@ -13,12 +13,14 @@ import numpy as np
 
 from tumorsphere.core.cells import Cell
 from tumorsphere.core.output import TumorsphereOutput
+from tumorsphere.core.forces import Forces
 
 
 class Culture:
     def __init__(
         self,
         output: TumorsphereOutput,
+        type_force: Forces,
         adjacency_threshold: float = 4,
         cell_radius: float = 1,
         cell_max_repro_attempts: int = 1000,
@@ -33,8 +35,7 @@ class Culture:
         reproduction: bool = False,
         movement: bool = True,
         cell_area: float = np.pi,
-        kRep: float = 10,
-        bExp: float = 3,
+        stabilization_time: int = 100,
     ):
         """
         Initialize a new culture of cells.
@@ -71,10 +72,6 @@ class Culture:
             Whether the cells moves or not.
         cell_area : float
             the area of all cells in the culture.
-        kRep : float
-            #
-        bExp : float
-            #
 
         Attributes
         ----------
@@ -157,9 +154,10 @@ class Culture:
 
         self.output = output
 
-        # interaction parameters
-        self.kRep = kRep
-        self.bExp = bExp
+        self.type_force = type_force
+
+        # time that passes until the system stabilizes from the initial condition
+        self.stabilization_time = stabilization_time
 
     # ----------------database related behavior----------------
 
@@ -483,113 +481,7 @@ class Culture:
             relative_pos_y = np.sign(relative_pos_y) * (abs_ry - self.side)
 
         return relative_pos_x, relative_pos_y
-
-    # ---------------------------------------------------------
     
-    def interaction_between_2_cells(
-        self,
-        cell_index: int,
-        neighbor_index: int,
-        alpha: float,
-        distance_sq: float,
-        s_epsA05: float,
-        s_epsA2: float,
-        s_diag2: float,
-    ):
-        """
-        It describes the interaction between 2 elongated cells using the model developed
-        in [Grossman2020].
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-        neighbor_index : int
-            The index of the neighbor.
-        alpha : float
-            The angle of the relative vector position with the x axis.
-        distance_sq : float
-            The square of the relative distance between the cells.
-        s_epsA05 : float
-            The half of the anisotropy of the cell.
-        s_epsA2 : float
-            The square of the anisotropy of the cell.
-        s_diag2 : float
-            The square of the diagonal of the cell.
-
-        Returns
-        -------
-        sfx : float
-            The x component of the force onto the cell from its neighbor.
-        sfy : float
-            The y component of the force onto the cell from its neighbor.
-        sfphi : float
-            The torque onto the cell from its neighbor.
-        """
-        # relative distance
-        distance = np.sqrt(distance_sq)
-
-        # angular relation
-        dP = self.cell_phies[cell_index] - self.cell_phies[neighbor_index]
-        c2dP = np.cos(dP) * np.cos(dP)
-
-        # abbreviate some symmetric factors
-        g_Lij = 1.0 / (1.0 - s_epsA2 * c2dP)
-        g_Sij = (
-            0.5
-            * g_Lij
-            * (distance_sq / s_diag2)
-            * (
-                1.0
-                - s_epsA05
-                * (
-                    np.cos(2.0 * (self.cell_phies[cell_index] - alpha))
-                    + np.cos(2.0 * (self.cell_phies[neighbor_index] - alpha))
-                )
-            )
-        )
-        g_Kij = g_Lij * np.exp(-self.bExp * g_Sij)
-
-        # force onto i from j
-        sfx2 = (
-            g_Kij
-            * distance
-            * (
-                np.cos(alpha)
-                - s_epsA05
-                * (
-                    np.cos(2.0 * self.cell_phies[cell_index] - alpha)
-                    + np.cos(2.0 * self.cell_phies[neighbor_index] - alpha)
-                )
-            )
-        )
-        sfy2 = (
-            g_Kij
-            * distance
-            * (
-                np.sin(alpha)
-                - s_epsA05
-                * (
-                    np.sin(2.0 * self.cell_phies[cell_index] - alpha)
-                    + np.sin(2.0 * self.cell_phies[neighbor_index] - alpha)
-                )
-            )
-        )
-
-        # torque onto i from j
-        sfphi2 = (
-            g_Kij
-            * s_epsA05
-            * distance_sq
-            * np.sin(2.0 * (self.cell_phies[cell_index] - alpha))
-        )
-        sfphi2 = sfphi2 + g_Kij * s_epsA2 * s_diag2 * g_Sij * np.sin(
-            2.0
-            * (self.cell_phies[neighbor_index] - self.cell_phies[cell_index])
-        )
-
-        return sfx2, sfy2, sfphi2
-
     # ---------------------------------------------------------
     def interaction(self, cell_index: int, delta_t: float):
         """The given cell interacts with others if they are close enough.
@@ -619,59 +511,31 @@ class Culture:
         neighbors.discard(cell_index)
 
         # initialization of the forces of interaction
-        sfx = 0
-        sfy = 0
-        sfphi = 0
-        # calculation of some parameters of the cell that are necessary in the interaction
-        semi_minor_axis, semi_major_axis = cell.semi_axis()
-
-        s_Rot, s_Rep, s_v0, s_DmPmS, s_SmPmS, s_epsA05, s_epsA2, s_diag2 = (
-            cell.derived_parameters(self.kRep, self.bExp, semi_minor_axis, semi_major_axis)
-        )
+        dphi=0
+        force = np.zeros(3)
 
         for neighbor_index in neighbors:
-            # relative_pos_x, relative_pos_y = self.relative_pos(
-            #     cell_index, neighbor_index
-            # )
             relative_pos_x, relative_pos_y = self.relative_pos(
                 self.cell_positions[cell_index], self.cell_positions[neighbor_index]
             )
             # distance relative to the square and angle necessary for the interaction
             distance_sq = relative_pos_x**2 + relative_pos_y**2
-            alpha = np.arctan2(relative_pos_y, relative_pos_x)
 
-            #if distance_sq < (2*cell.semi_axis()[1]) ** 2:
-            #if distance_sq < (2*semi_major_axis) ** 2: # preguntar (semi_major_axis_cell+semi_major_axis_neigh?)
-            if distance_sq < (semi_major_axis+self.cells[neighbor_index].semi_axis()[1]) ** 2:
-                sfx2, sfy2, sfphi2 = self.interaction_between_2_cells(
+            if distance_sq < (self.cells[cell_index].semi_axis()[1]+self.cells[neighbor_index].semi_axis()[1]) ** 2:
+                force2, dphi2 = self.type_force.calculate_force(
+                    self.cells,
+                    self.cell_phies,
                     cell_index,
                     neighbor_index,
-                    alpha,
-                    distance_sq,
-                    s_epsA05,
-                    s_epsA2,
-                    s_diag2,
+                    relative_pos_x,
+                    relative_pos_y,
+                    delta_t,
                 )
-                sfx = sfx + sfx2
-                sfy = sfy + sfy2
-                sfphi = sfphi + sfphi2
+                force = force+force2
+                dphi = dphi+dphi2
+                
 
-        # forces excerted to the cell given by Grossman
-        fx = s_Rep * (
-            (s_SmPmS + s_DmPmS * np.cos(2 * self.cell_phies[cell_index])) * sfx
-            + s_DmPmS * np.sin(2 * self.cell_phies[cell_index]) * sfy
-        )
-        fy = s_Rep * (
-            (s_SmPmS - s_DmPmS * np.cos(2 * self.cell_phies[cell_index])) * sfy
-            + s_DmPmS * np.sin(2 * self.cell_phies[cell_index]) * sfx
-        )
-        force = np.array([fx, fy, 0])
-
-        # we calculate the change in the angle of orientation of the cell
-        dphi = delta_t * s_Rot * sfphi
-
-        # and in its position
-        dif_position = (s_v0 * cell.direction() + force) * delta_t
+        dif_position = (cell.velocity() + force) * delta_t
 
         # we return the change in the position and in the phi angle of the cell
         return dif_position, dphi
@@ -706,7 +570,7 @@ class Culture:
         self.cell_positions = np.mod(self.cell_positions, self.side)
 
     # ---------------------------------------------------------
-    def generate_new_position2(self, cell_index: int):
+    def generate_new_position_2D(self, cell_index: int):
         """Generate a proposed position for a new cell, adjacent to the given
         one that help us to know if there is space available to deform the
         cell.
@@ -718,6 +582,7 @@ class Culture:
         phi : float
             the angle of the vector that joins the cells.
         """
+        #  OJO AGREGAR LO DE LA CAJA/PACMAN
         phi = self.rng.uniform(low=0, high=2 * np.pi)
         radio = self.rng.uniform(low=0.25, high=1)*self.cells[cell_index].semi_axis()[1] #LOW=?
         #radio = self.rng.uniform(low=0.1, high=np.sqrt(2)-1)*self.cells[cell_index].semi_axis()[1]
@@ -747,7 +612,7 @@ class Culture:
 
         for attempt in range(self.cell_max_def_attempts):
             # we generate a new proposed position for the "child" cell
-            new_position, new_phi, radio = self.generate_new_position2(cell_index)
+            new_position, new_phi, radio = self.generate_new_position_2D(cell_index)
             #new_position, new_phi = self.generate_new_position2(cell_index)
 
             no_overlap = True
@@ -838,7 +703,7 @@ class Culture:
                         is_stem=self.first_cell_is_stem,
                         phi=self.rng.uniform(low=0, high=2 * np.pi),
                         #aspect_ratio=self.rng.uniform(low=1, high=2), #1+np.abs(1*self.rng.standard_normal()),
-                        aspect_ratio=1,
+                        aspect_ratio=1, 
                         parent_index=0,
                         available_space=True,
                     )
@@ -860,6 +725,7 @@ class Culture:
         tolerance_t = 1e-2
 
         for i in range(1, num_times + 1):
+            #print(" ")
             #print("step = ", i)
             #print("----------")
             # and reproduce or move the cells in this random order
@@ -883,9 +749,10 @@ class Culture:
                         dif_positions, [dif_position], axis=0
                     )
                     dphies = np.append(dphies, dphi)
-
+                
+                for index in self.active_cell_indexes:
                     # we wait for the system to stabilize to deform the cells
-                    if i>80:
+                    if i>self.stabilization_time:
                         if self.cells[index].aspect_ratio == 1:
                             self.deformation(cell_index= index)
 

@@ -14,6 +14,7 @@ import numpy as np
 
 from tumorsphere.core.culture import Culture
 from tumorsphere.core.output import create_output_demux
+from tumorsphere.core.forces import choose_force
 
 
 class Simulation:
@@ -131,6 +132,7 @@ class Simulation:
         ovito: bool = False,
         number_of_processes: int = None,
         output_dir: str = ".",
+        name_force: str = "No_Forces", 
     ) -> None:
         """Simulate culture growth `self.num_of_realizations` number of times
         for each combination of self-replication (elements of the
@@ -180,7 +182,8 @@ class Simulation:
                         seeds[j],
                         self,
                         outputs,
-                        output_dir,
+                        name_force,
+                        output_dir,                    
                     )
                     for k in range(len(self.prob_diff))
                     for i in range(len(self.prob_stem))
@@ -203,7 +206,7 @@ def realization_name(pd, ps, nc, l, seed, repro, moving) -> str:
 
 
 def simulate_single_culture(
-    args: Tuple[int, int, int, int, int, Simulation, List[str], str]
+    args: Tuple[int, int, int, int, int, Simulation, List[str], str, str]
 ) -> None:
     """A worker function for multiprocessing.
 
@@ -228,7 +231,7 @@ def simulate_single_culture(
     methods can't be pickled. Therefore, the instance method worker had to be
     refactored to a standalone function (or a static method).
     """
-    k, i, f, g, seed, sim, outputs, output_dir = args
+    k, i, f, g, seed, sim, outputs, name_force, output_dir = args
 
     current_realization_name = realization_name(
         sim.prob_diff[k],
@@ -240,8 +243,10 @@ def simulate_single_culture(
         sim.movement,
     )
     output = create_output_demux(current_realization_name, outputs, output_dir)
+    type_force = choose_force(name_force)
     sim.cultures[current_realization_name] = Culture(
         output,
+        type_force,
         adjacency_threshold=sim.adjacency_threshold,
         cell_radius=sim.cell_radius,
         cell_max_repro_attempts=sim.cell_max_repro_attempts,
