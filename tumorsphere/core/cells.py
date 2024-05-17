@@ -185,12 +185,10 @@ class Cell:
         s_diag2 = (self.culture.cell_area/np.pi)*(self.aspect_ratio+1/self.aspect_ratio)
 
         # longitudinal & transversal mobility
-        # we calculate the semi_major_axis to use it later
-        semi_major_axis = np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)        
         if self.aspect_ratio != 1: #np.close?
             mP = (
                 1
-                / semi_major_axis
+                / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
                 * (3 * self.aspect_ratio / 4.0)
                 * (
                     (self.aspect_ratio) / (1 - self.aspect_ratio**2)
@@ -201,7 +199,7 @@ class Cell:
             )
             mS = (
                 1
-                / semi_major_axis
+                / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
                 * (3 * self.aspect_ratio / 8.0)
                 * (
                     (self.aspect_ratio) / (self.aspect_ratio**2 - 1.0)
@@ -211,20 +209,17 @@ class Cell:
                 )
             )
         else:
-            mP = 1 / semi_major_axis
-            mS = 1 / semi_major_axis
+            mP = 1 / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
+            mS = 1 / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
 
         # rotational mobility
-        #mR = 3.0 / (2.0 * (semi_major_axis**2 + semi_minor_axis**2)) * mP
         mR = 3.0 / (2.0 * s_diag2) * mP
         # sum and difference of mobility tensor elements
         s_SmPmS = (mP + mS) / 2.0
         s_DmPmS = (mP - mS) / 2.0
 
         # repulsion & torque strength
-        #s_Rep = kRep * bExp / (semi_major_axis**2 + semi_minor_axis**2)
         s_Rep = kRep * bExp / s_diag2
-        #s_Rot = mR * kRep * bExp / (semi_major_axis**2 + semi_minor_axis**2)
         s_Rot = mR * kRep * bExp / s_diag2
         # return of all the parameters
         return s_Rot, s_Rep, s_DmPmS, s_SmPmS, s_epsA05, s_epsA2, s_diag2
@@ -233,20 +228,30 @@ class Cell:
     # ---------------------------------------------------------
     def direction(self):
         """
-        It returns the direction of the velocity vector of the given cell.
+        It returns the direction of the velocity vector of the given cell
+        and its perpendicular direction
 
         Returns
         -------
         np.ndarray
             The direction of the velocity vector.
         """
-        return np.array(
+        parallel_direction=np.array(
             [
                 np.cos(self.culture.cell_phies[self._index]),
                 np.sin(self.culture.cell_phies[self._index]),
                 0,
             ]
         )
+        perpendicular_direction = np.array(
+            [
+                np.cos(self.culture.cell_phies[self._index]+np.pi/2),
+                np.sin(self.culture.cell_phies[self._index]+np.pi/2),
+                0,
+            ]
+        )
+
+        return parallel_direction, perpendicular_direction
     
     # ---------------------------------------------------------
     def velocity(self):
@@ -260,12 +265,10 @@ class Cell:
         """
 
         # longitudinal & transversal mobility
-        # we calculate the semi_major_axis to use it later
-        semi_major_axis = np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
         if self.aspect_ratio != 1: #np.close?
             mP = (
                 1
-                / semi_major_axis
+                / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
                 * (3 * self.aspect_ratio / 4.0)
                 * (
                     (self.aspect_ratio) / (1 - self.aspect_ratio**2)
@@ -275,7 +278,7 @@ class Cell:
                 )
             )
         else:
-            mP = 1 / semi_major_axis
+            mP = 1 / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
 
         # we suppose kProp linear with s_epsA
         s_epsA = (self.aspect_ratio**2-1)/(self.aspect_ratio**2+1)

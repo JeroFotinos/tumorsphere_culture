@@ -36,6 +36,7 @@ class Culture:
         movement: bool = True,
         cell_area: float = np.pi,
         stabilization_time: int = 100,
+        maximum_overlap: float = 1.2,
     ):
         """
         Initialize a new culture of cells.
@@ -131,6 +132,7 @@ class Culture:
         self.reproduction = reproduction
         self.movement = movement
         self.cell_area = cell_area
+        self.maximum_overlap = maximum_overlap
 
         # we instantiate the culture's RNG with the provided entropy
         self.rng_seed = rng_seed
@@ -483,6 +485,44 @@ class Culture:
         return relative_pos_x, relative_pos_y
     
     # ---------------------------------------------------------
+    def calculate_overlap(self, cell_index: int, neighbor_index: int, relative_pos_x: float, relative_pos_y: float):
+        """
+
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        -------
+        """
+        # OJO SOLO SI SON TODAS IGUALES
+        cell = self.cells[cell_index]
+        neighbor = self.cells[neighbor_index]
+        
+        s_epsA = (cell.aspect_ratio**2-1)/(cell.aspect_ratio**2+1)
+        I_0 = self.cell_area*np.sqrt((1-s_epsA**2)/(1-(s_epsA**2)*(np.cos(self.cell_phies[cell_index]-self.cell_phies[neighbor_index]))**2))
+        
+        cell_parallel_direction, cell_perpendicular_direction = cell.direction()
+        Q_cell = np.outer(cell_parallel_direction, cell_parallel_direction) - np.outer(cell_perpendicular_direction, cell_perpendicular_direction)
+        
+        neighbor_parallel_direction, neighbor_perpendicular_direction = neighbor.direction()
+        Q_neighbor = np.outer(neighbor_parallel_direction, neighbor_parallel_direction) - np.outer(neighbor_perpendicular_direction, neighbor_perpendicular_direction)
+        
+        relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
+
+        matriz = np.identity(3)-(s_epsA/2)*(Q_cell+Q_neighbor)
+        #num = np.matmul(relative_pos, np.matmul(matriz, relative_pos))
+        #num = np.dot(relative_pos, np.dot(matriz, relative_pos))
+        num = relative_pos @ matriz @ relative_pos
+        denom = 2*(1-s_epsA**2*(np.cos(self.cell_phies[cell_index]-self.cell_phies[neighbor_index]))**2)*(self.cell_area/np.pi)*(cell.aspect_ratio+1/cell.aspect_ratio)
+
+
+        overlap = I_0*np.exp(-num/denom)
+        # we return the overlap between the cell and its neighbor
+        return overlap 
+    
+    # ---------------------------------------------------------
     def interaction(self, cell_index: int, delta_t: float):
         """The given cell interacts with others if they are close enough.
 
@@ -521,6 +561,8 @@ class Culture:
             # distance relative to the square and angle necessary for the interaction
             distance_sq = relative_pos_x**2 + relative_pos_y**2
 
+            #overlap = self.calculate_overlap(cell_index, neighbor_index, relative_pos_x, relative_pos_y)
+            #if overlap>self.maximum_overlap:
             if distance_sq < (self.cells[cell_index].semi_axis()[1]+self.cells[neighbor_index].semi_axis()[1]) ** 2:
                 force2, dphi2 = self.type_force.calculate_force(
                     self.cells,
@@ -533,6 +575,8 @@ class Culture:
                 )
                 force = force+force2
                 dphi = dphi+dphi2
+
+            #print(overlap)
                 
 
         dif_position = (cell.velocity() + force) * delta_t
@@ -563,7 +607,7 @@ class Culture:
         # Updating the cell's position
         self.cell_positions = self.cell_positions + dif_positions
 
-        # and the velocity
+        # and the angle
         self.cell_phies = self.cell_phies + dphies
 
         # Enforcing boundary condition
