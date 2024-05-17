@@ -67,52 +67,6 @@ def read_data(csv_file):
     return df
 
 
-def add_zero_time_point(df):
-    """
-    Adds a row to the DataFrame for time t=0.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        The original DataFrame.
-
-    Returns
-    -------
-    df : pandas.DataFrame
-        The modified DataFrame.
-    """
-    # Define the new rows as a dictionary
-    new_rows = {
-        "pd": [],
-        "ps": [],
-        "n": [],
-        "time": [],
-        "total_cells": [],
-        "active_cells": [],
-        "stem_cells": [],
-        "active_stem_cells": [],
-    }
-
-    # Loop over unique values of p_d, ps, and n
-    for p_d in df["pd"].unique():
-        for ps in df[df["pd"] == p_d]["ps"].unique():
-            for n in df[(df["pd"] == p_d) & (df["ps"] == ps)]["n"].unique():
-                # Add the new row
-                new_rows["pd"].append(p_d)
-                new_rows["ps"].append(ps)
-                new_rows["n"].append(n)
-                new_rows["time"].append(0)
-                new_rows["total_cells"].append(1)
-                new_rows["active_cells"].append(1)
-                new_rows["stem_cells"].append(1)
-                new_rows["active_stem_cells"].append(1)
-
-    # Append the new rows to the original DataFrame
-    df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
-
-    return df
-
-
 def add_active_stem_cells_indicator(df):
     """
     Adds a new column to the DataFrame that indicates whether there are active stem cells.
@@ -158,6 +112,7 @@ def average_over_realizations(df):
     mean_df : pandas.DataFrame
         The DataFrame containing the computed means.
     """
+    # The columns whose averages we report
     cols_to_average = [
         "total_cells",
         "active_cells",
@@ -166,9 +121,15 @@ def average_over_realizations(df):
         "active_stem_cells_indicator",
     ]
 
-    # Group by 'pd', 'ps' and 'time' columns, and compute mean for the remaining columns
+    # the values that define a realization (we use them to group)
+    realization_parameters = ["pd", "ps", "time"]
+
+    # Group by 'pd', 'ps' and 'time' columns, and compute mean for the
+    # remaining columns
     mean_df = (
-        df.groupby(["pd", "ps", "time"])[cols_to_average].mean().reset_index()
+        df.groupby(realization_parameters)[cols_to_average]
+        .mean()
+        .reset_index()
     )
 
     return mean_df
