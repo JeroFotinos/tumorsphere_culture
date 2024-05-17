@@ -92,7 +92,7 @@ def generate_dataframe_from_dat(data_dir):
     cols = [
         "pd",
         "ps",
-        "seed",
+        "rng_seed",
         "time",
         "total_cells",
         "active_cells",
@@ -131,10 +131,10 @@ def generate_dataframe_from_dat(data_dir):
             print(f"Skipping file {file_path} due to parsing error.")
             continue
 
-        # Add columns for pd, ps, seed, and time to the temporary dataframe
+        # Add columns for pd, ps, rng_seed, and time to the temporary dataframe
         temp_df["pd"] = p_d
         temp_df["ps"] = p_s
-        temp_df["seed"] = seed
+        temp_df["rng_seed"] = seed
         temp_df["time"] = range(len(temp_df))
 
         # Reorder the columns of the temporary dataframe
@@ -144,7 +144,7 @@ def generate_dataframe_from_dat(data_dir):
         df = pd.concat([df, temp_df], ignore_index=True)
 
     # Convert the columns to the desired data types
-    df[["seed", "time"]] = df[["seed", "time"]].astype(int)
+    df[["rng_seed", "time"]] = df[["rng_seed", "time"]].astype(int)
     df[["ps", "pd"]] = df[["ps", "pd"]].astype(float)
 
     return df
@@ -248,12 +248,12 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
                 stem_cells_query = f"""
                 SELECT COUNT(*)
                 FROM (
-                    SELECT cell_id, MAX(t_change) as latest_change
+                    SELECT cell_id, MAX(t_change) as latest_time, MAX(change_id) as latest_change_id
                     FROM StemChanges
                     WHERE t_change <= {time}
                     GROUP BY cell_id
-                )
-                JOIN StemChanges USING (cell_id)
+                ) AS latest_changes
+                JOIN StemChanges ON StemChanges.cell_id = latest_changes.cell_id AND StemChanges.change_id = latest_changes.latest_change_id
                 JOIN Cells USING (cell_id)
                 WHERE is_stem = 1 AND culture_id = {culture_id} AND t_creation <= {time}
                 """
@@ -263,12 +263,12 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
                 active_stem_cells_query = f"""
                 SELECT COUNT(*)
                 FROM (
-                    SELECT cell_id, MAX(t_change) as latest_change
+                    SELECT cell_id, MAX(t_change) as latest_time, MAX(change_id) as latest_change_id
                     FROM StemChanges
                     WHERE t_change <= {time}
                     GROUP BY cell_id
-                )
-                JOIN StemChanges USING (cell_id)
+                ) AS latest_changes
+                JOIN StemChanges ON StemChanges.cell_id = latest_changes.cell_id AND StemChanges.change_id = latest_changes.latest_change_id
                 JOIN Cells USING (cell_id)
                 WHERE is_stem = 1 AND culture_id = {culture_id} AND t_creation <= {time} AND (t_deactivation IS NULL OR t_deactivation > {time})
                 """
