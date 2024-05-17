@@ -35,8 +35,9 @@ class Culture:
         reproduction: bool = False,
         movement: bool = True,
         cell_area: float = np.pi,
-        stabilization_time: int = 100,
+        stabilization_time: int = 5,
         maximum_overlap: float = 1.2,
+        delta_t: float = 0.1,
     ):
         """
         Initialize a new culture of cells.
@@ -133,6 +134,7 @@ class Culture:
         self.movement = movement
         self.cell_area = cell_area
         self.maximum_overlap = maximum_overlap
+        self.delta_t = delta_t
 
         # we instantiate the culture's RNG with the provided entropy
         self.rng_seed = rng_seed
@@ -762,11 +764,6 @@ class Culture:
         # we simulate for num_times time steps
         reproduction = self.reproduction
         movement = self.movement
-        # time parameters for movement and saving
-        t = 0
-        delta_t = 0.1
-        save_t = 0.5 #2.0 #0.1
-        tolerance_t = 1e-2
 
         for i in range(1, num_times + 1):
             #print(" ")
@@ -787,7 +784,7 @@ class Culture:
 
                 for index in self.active_cell_indexes:
                     dif_position, dphi = self.interaction(
-                        cell_index=index, delta_t=delta_t
+                        cell_index=index, delta_t=self.delta_t
                     )
                     dif_positions = np.append(
                         dif_positions, [dif_position], axis=0
@@ -801,15 +798,14 @@ class Culture:
                             self.deformation(cell_index= index)
 
                 self.move(dif_positions=dif_positions, dphies=dphies)
-                t = t + delta_t
 
             # Save the data (for dat, ovito, and/or SQLite)
             # we save it when the time step is a multiple of save_t using the tolerance
-            if np.mod(t, save_t)<tolerance_t or np.mod(t, save_t)>save_t-tolerance_t:
-                self.output.record_culture_state(
-                    tic=i,
-                    cells=self.cells,
-                    cell_positions=self.cell_positions,
-                    active_cell_indexes=self.active_cell_indexes,
-                    side=self.side,
-                )
+            #if np.mod(t, save_t)<tolerance_t or np.mod(t, save_t)>save_t-tolerance_t:
+            self.output.record_culture_state(
+                tic=i,
+                cells=self.cells,
+                cell_positions=self.cell_positions,
+                active_cell_indexes=self.active_cell_indexes,
+                side=self.side,
+            )
