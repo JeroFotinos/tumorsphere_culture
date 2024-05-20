@@ -18,6 +18,7 @@ import os
 import sqlite3
 
 import pandas as pd
+import numpy as np
 
 # ------------------------ Functions for `.dat` files ------------------------
 
@@ -295,6 +296,79 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
 
         # Save the DataFrame as a CSV file
         result_df.to_csv(csv_path_and_name, index=False)
+
+
+# ------------------------ Functions for DataFrame operations ----------------
+
+
+def average_over_realizations(
+    df: pd.DataFrame,
+    avg_stem_indicator: bool = False,
+    calculate_stem_indicator: bool = False,
+) -> pd.DataFrame:
+    """Computes the mean and standard deviation of the time evolution for the
+    cell numbers, for every ps and pd combination.
+
+    We average the dataframe over the realizations (i.e., the rng_seed),
+    grouping by pd, ps and the time step.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The original DataFrame.
+    avg_stem_indicator : bool, optional
+        Whether the active_stem_cells_indicator column is already present, and
+        should be averaged.
+    calculate_stem_indicator : bool, optional
+        Whether to calculate the active_stem_cells_indicator column.
+
+    Raises
+    ------
+    ValueError
+        If the active_stem_cells_indicator column is already present, i.e. if
+        avg_stem_indicator is set to True, but
+        calculate_stem_indicator is set to True.
+
+    Returns
+    -------
+    mean_std_df : pandas.DataFrame
+        The DataFrame containing the computed means and standard deviations.
+    """
+    # Add the active_stem_cells_indicator column to the original DataFrame
+    if calculate_stem_indicator:
+        df.loc[:, "active_stem_cells_indicator"] = np.sign(
+            df["active_stem_cells"]
+        ).astype(int)
+
+    # The columns whose averages we report
+    cols_to_aggregate = [
+        "total_cells",
+        "active_cells",
+        "stem_cells",
+        "active_stem_cells",
+    ]
+
+    if avg_stem_indicator:
+        cols_to_aggregate.append("active_stem_cells_indicator")
+
+    # The values that define a realization (we use them to group)
+    realization_parameters = ["pd", "ps", "time"]
+
+    # Group by 'pd', 'ps' and 'time' columns, and compute mean and std for the
+    # remaining columns
+    grouped = df.groupby(realization_parameters)[cols_to_aggregate]
+    mean_df = grouped.mean().reset_index()
+    std_df = grouped.std().reset_index()
+
+    # Merge mean and std dataframes
+    mean_std_df = pd.merge(
+        mean_df,
+        std_df,
+        on=realization_parameters,
+        suffixes=("", "_std"),
+    )
+
+    return mean_std_df
 
 
 # ------------------------ Instructions for Module Execution -----------------
