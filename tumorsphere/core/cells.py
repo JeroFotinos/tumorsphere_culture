@@ -224,35 +224,6 @@ class Cell:
         # return of all the parameters
         return s_Rot, s_Rep, s_DmPmS, s_SmPmS, s_epsA05, s_epsA2, s_diag2
 
-
-    # ---------------------------------------------------------
-    def direction(self):
-        """
-        It returns the direction of the velocity vector of the given cell
-        and its perpendicular direction
-
-        Returns
-        -------
-        np.ndarray
-            The direction of the velocity vector.
-        """
-        parallel_direction=np.array(
-            [
-                np.cos(self.culture.cell_phies[self._index]),
-                np.sin(self.culture.cell_phies[self._index]),
-                0,
-            ]
-        )
-        perpendicular_direction = np.array(
-            [
-                np.cos(self.culture.cell_phies[self._index]+np.pi/2),
-                np.sin(self.culture.cell_phies[self._index]+np.pi/2),
-                0,
-            ]
-        )
-
-        return parallel_direction, perpendicular_direction
-    
     # ---------------------------------------------------------
     def velocity(self):
         """
@@ -261,7 +232,7 @@ class Cell:
         Returns
         -------
         np.ndarray
-            The direction of the velocity vector.
+            The velocity vector of the cell.
         """
 
         # longitudinal & transversal mobility
