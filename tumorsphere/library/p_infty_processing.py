@@ -10,7 +10,13 @@ standard `.db` merged database. If `db_files=False`, an additional step is
 used to add the time zero points, because the `.dat` files do not have these.
 """
 
+from tumorsphere.library.dataframe_generation import (
+    average_over_realizations,
+)
+
+from typing import List, Union
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
 import scipy as sp
@@ -19,11 +25,81 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 
 
-def set_plot_style():
-    """Sets the plot style to be used for the graphs."""
-    plt.style.use("ggplot")
-    plt.rcParams["axes.edgecolor"] = "darkgray"
-    plt.rcParams["axes.linewidth"] = 0.8
+def plot_p_infty_vs_time(
+    mean_df: pd.DataFrame,
+    ps: Union[float, List[float]],
+    pd: float,
+    log: bool = False,
+) -> None:
+    """
+    Plot p_infty as a function of time for given ps values and pd.
+
+    Parameters
+    ----------
+    mean_df : pd.DataFrame
+        DataFrame containing the data, in the form output by
+        `average_over_realizations` (it should include the
+        'active_stem_cells_indicator' column).
+    ps : float or List[float]
+        Probability or list of probabilities of stem cell proliferation.
+    pd : float
+        Probability of differentiation.
+    log : bool, default=False
+        Whether to use a logarithmic scale for the y-axis.
+
+    Raises
+    ------
+    ValueError
+        If no data matches the provided criteria.
+
+    Examples
+    --------
+    >>> plot_p_infty_vs_time(df_from_dbs, ps=[0.6, 0.7], pd=0.1)
+    """
+
+    # Ensure ps is a list
+    if isinstance(ps, float):
+        ps = [ps]
+
+    # Filter the DataFrame for the given pd and ps values
+    filtered_df = mean_df.loc[(mean_df["pd"] == pd) & (mean_df["ps"].isin(ps))]
+
+    # Check if the filtered DataFrame is empty
+    if filtered_df.empty:
+        raise ValueError("No data matches the provided criteria.")
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+
+    cmap = cm.get_cmap("viridis", len(ps))
+
+    for idx, ps_value in enumerate(ps):
+        ps_df = filtered_df[filtered_df["ps"] == ps_value]
+        # Ensure colors are evenly distributed in the colormap
+        color = cmap(idx / (len(ps) - 1))
+
+        plt.errorbar(
+            ps_df["time"],
+            ps_df["active_stem_cells_indicator"],
+            yerr=ps_df["active_stem_cells_indicator_std"],
+            label=f"$P_\infty (t)$ for $p_s=${ps_value}",
+            color=color,
+            uplims=True,
+            lolims=True,
+            marker=".",
+            linestyle="-",
+        )
+
+    plt.xlabel("$t$")
+    plt.ylabel("$P_\infty$")
+    plt.title(f"$P_\infty (t)$ for $p_d = {pd}$")
+    plt.legend()
+
+    if log:
+        plt.yscale("log")
+
+    plt.grid(True)
+    plt.show()
 
 
 def p_infty_of_ps(p_s, p_c, c):
@@ -47,178 +123,67 @@ def p_infty_of_ps(p_s, p_c, c):
     return 0.5 * erf((p_s - p_c) / c) + 0.5
 
 
-def read_data(csv_file):
+def plot_p_infty_vs_ps(
+    mean_df: pd.DataFrame,
+    time_steps: List[int],
+    pd: float = 0.0,
+    fit: bool = False,
+    save: bool = False,
+    path_to_save: str = None,
+    dpi: int = 600,
+) -> None:
     """
-    Reads the csv file and returns a pandas DataFrame.
+    Plot P_infty as a function of ps for different time steps and for each pd,
+    optionally fitting a function to the points.
 
     Parameters
     ----------
-    csv_file : str
-        The path to the csv file.
-
-    Returns
-    -------
-    df : pandas.DataFrame
-        The DataFrame containing the data from the csv file.
-    """
-    with open(csv_file, "r") as file:
-        df = pd.read_csv(file)
-
-    return df
-
-
-def add_active_stem_cells_indicator(df):
-    """
-    Adds a new column to the DataFrame that indicates whether there are active stem cells.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        The DataFrame to add the new column to.
-
-    Returns
-    -------
-    df : pandas.DataFrame
-        The updated DataFrame.
-    """
-
-    # If 'active_stem_cells' is object, print out unique values to investigate
-    if df["active_stem_cells"].dtypes == "object":
-        print("Some strings detected in the place of numbers.")
-        print(df["active_stem_cells"].unique())
-
-    # Using numpy.sign
-    df["active_stem_cells_indicator"] = np.sign(
-        df["active_stem_cells"]
-    ).astype(int)
-
-    return df
-
-
-def average_over_realizations(df):
-    """Computes the mean time evolution for the cell numbers, for every ps and
-    pd combination.
-
-    We average the dataframe over the realization number, gruping by pd, pd
-    and the time step.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        The original DataFrame.
-
-    Returns
-    -------
-    mean_df : pandas.DataFrame
-        The DataFrame containing the computed means.
-    """
-    # The columns whose averages we report
-    cols_to_average = [
-        "total_cells",
-        "active_cells",
-        "stem_cells",
-        "active_stem_cells",
-        "active_stem_cells_indicator",
-    ]
-
-    # the values that define a realization (we use them to group)
-    realization_parameters = ["pd", "ps", "time"]
-
-    # Group by 'pd', 'ps' and 'time' columns, and compute mean for the
-    # remaining columns
-    mean_df = (
-        df.groupby(realization_parameters)[cols_to_average]
-        .mean()
-        .reset_index()
-    )
-
-    return mean_df
-
-
-def plot_p_infty_vs_ps(mean_df, list_of_steps, output_path, pd_values=[0]):
-    """Plots P_infty as a function of ps for different time steps and for each
-    pd.
-
-    Parameters
-    ----------
-    mean_df : pandas.DataFrame
-        The DataFrame containing the data to plot.
-    pd_values : list of float
+    mean_df : pd.DataFrame
+        DataFrame containing the data, in the form output by
+        `average_over_realizations` (it should include the
+        'active_stem_cells_indicator' column).
+    time_steps : list of int
+        The list of time steps to plot.
+    pd_values : list of float, default=[0]
         The list of p_d values to consider.
-    list_of_steps : list of int
-        The list of time steps to plot.
-    output_path : str
-        The base path to save the plots to. Each plot will be saved to a file with name
-        constructed as {output_path}_pd_{pd_value}.png.
+    fit : bool, default=False
+        Whether to fit a function to the points.
+    save : bool, default=False
+        Whether to save the plot to a file.
+    path_to_save : str, optional
+        The path to save the plot to. If not provided, defaults to a name based
+        on the parameters.
+
+    Raises
+    ------
+    ValueError
+        If no data matches the provided criteria.
+
+    Examples
+    --------
+    >>> plot_p_infty_vs_ps(
+    >>>     mean_df,
+    >>>     time_steps=[10, 20, 30],
+    >>>     pd_values=0.1,
+    >>>     fit=True,
+    >>>     save=True,
+    >>>     path_to_save='plot.png',
+    >>> )
     """
-    # Define color map for different time steps
-    cmap = plt.cm.magma
 
-    for pd_value in pd_values:
-        # Define figure and axis objects
-        fig, ax = plt.subplots()
-
-        # Loop over time steps and plot active_stem_cells_indicator as a function of ps
-        for i, t in enumerate(list_of_steps):
-            df_time = mean_df[
-                (mean_df["time"] == t) & (mean_df["pd"] == pd_value)
-            ]
-            ax.plot(
-                df_time["ps"],
-                df_time["active_stem_cells_indicator"],
-                color=cmap(i / len(list_of_steps)),
-                marker=".",
-                linestyle="--",
-                label=f"Time: {t}",
-            )
-
-        # Set axis labels and legend
-        ax.set_xlabel("$p_s$", fontsize=14, color="black")
-        ax.set_ylabel("$P_{\infty}$", fontsize=14, color="black")
-        ax.legend(
-            title="Time Steps", bbox_to_anchor=(0.05, 1), loc="upper left"
-        )
-
-        # Save the plot to a file
-        plt.savefig(f"{output_path}_pd_{pd_value}.png", dpi=600)
-        plt.close(fig)  # Close the figure to free up memory
-
-
-def plot_p_infty_vs_ps_with_fit(
-    mean_df, time_steps, output_path, pd_values=[0]
-):
-    """Plots P_infty as a function of ps for the given time steps and fits the
-    p_infty_of_ps function to the data.
-
-    Parameters
-    ----------
-    mean_df : pandas.DataFrame
-        The DataFrame containing the computed means.
-    pd_values : list
-        The list of pd values to plot.
-    time_steps : list
-        The list of time steps to plot.
-    output_path : str
-        The path to save the plot to.
-
-    Returns
-    -------
-    None
-    """
     # Define color map for different time steps
     cmap = plt.cm.magma
 
     # Define figure and axis objects
     fig, ax = plt.subplots()
 
-    # Loop over p_d and time steps
-    for pd_value in pd_values:
-        for i, t in enumerate(time_steps):
-            # Get the mean_df for the selected p_d and time
-            df_time = mean_df[
-                (mean_df["time"] == t) & (mean_df["pd"] == pd_value)
-            ]
+    # Loop over time steps and plot active_stem_cells_indicator as a function of ps
+    for i, t in enumerate(time_steps):
+        df_time = mean_df[(mean_df["time"] == t) & (mean_df["pd"] == pd)]
+        if df_time.empty:
+            continue
 
+        if fit:
             # Plot the data points
             ax.scatter(
                 df_time["ps"],
@@ -252,7 +217,17 @@ def plot_p_infty_vs_ps_with_fit(
                 y_values,
                 color=cmap(i / len(time_steps)),
                 linestyle="--",
+                marker=".",
                 label=f"Fitted function: Time {t}",
+            )
+        else:
+            ax.plot(
+                df_time["ps"],
+                df_time["active_stem_cells_indicator"],
+                color=cmap(i / len(time_steps)),
+                marker=".",
+                linestyle="--",
+                label=f"Time: {t}",
             )
 
     # Set axis labels and legend
@@ -260,7 +235,13 @@ def plot_p_infty_vs_ps_with_fit(
     ax.set_ylabel("$P_{\infty}$", fontsize=14, color="black")
     ax.legend(title="Time Steps", bbox_to_anchor=(0.05, 1), loc="upper left")
 
-    plt.savefig(f"{output_path}_fit_pd_{pd_value}.png", dpi=600)
+    if save:
+        if path_to_save is None:
+            path_to_save = f"p_infty_vs_ps_pd_{pd}_steps_{'_'.join(map(str, time_steps))}.png"
+        plt.savefig(path_to_save, dpi=dpi)
+        plt.close(fig)  # Close the figure to free up memory
+    else:
+        plt.show()
 
 
 def plot_fitted_pc_vs_t(mean_df, output_path, pd_values=[0]):
