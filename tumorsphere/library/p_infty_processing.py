@@ -217,7 +217,6 @@ def plot_p_infty_vs_ps(
                 y_values,
                 color=cmap(i / len(time_steps)),
                 linestyle="--",
-                marker=".",
                 label=f"Fitted function: Time {t}",
             )
         else:
