@@ -10,7 +10,13 @@ standard `.db` merged database. If `db_files=False`, an additional step is
 used to add the time zero points, because the `.dat` files do not have these.
 """
 
+from tumorsphere.library.dataframe_generation import (
+    average_over_realizations,
+)
+
+from typing import List, Union
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
 import scipy as sp
@@ -19,11 +25,81 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 
 
-def set_plot_style():
-    """Sets the plot style to be used for the graphs."""
-    plt.style.use("ggplot")
-    plt.rcParams["axes.edgecolor"] = "darkgray"
-    plt.rcParams["axes.linewidth"] = 0.8
+def plot_p_infty_vs_time(
+    mean_df: pd.DataFrame,
+    ps: Union[float, List[float]],
+    pd: float,
+    log: bool = False,
+) -> None:
+    """
+    Plot p_infty as a function of time for given ps values and pd.
+
+    Parameters
+    ----------
+    mean_df : pd.DataFrame
+        DataFrame containing the data, in the form output by
+        `average_over_realizations` (it should include the
+        'active_stem_cells_indicator' column).
+    ps : float or List[float]
+        Probability or list of probabilities of stem cell proliferation.
+    pd : float
+        Probability of differentiation.
+    log : bool, default=False
+        Whether to use a logarithmic scale for the y-axis.
+
+    Raises
+    ------
+    ValueError
+        If no data matches the provided criteria.
+
+    Examples
+    --------
+    >>> plot_p_infty_vs_time(df_from_dbs, ps=[0.6, 0.7], pd=0.1)
+    """
+
+    # Ensure ps is a list
+    if isinstance(ps, float):
+        ps = [ps]
+
+    # Filter the DataFrame for the given pd and ps values
+    filtered_df = mean_df.loc[(mean_df["pd"] == pd) & (mean_df["ps"].isin(ps))]
+
+    # Check if the filtered DataFrame is empty
+    if filtered_df.empty:
+        raise ValueError("No data matches the provided criteria.")
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+
+    cmap = cm.get_cmap("viridis", len(ps))
+
+    for idx, ps_value in enumerate(ps):
+        ps_df = filtered_df[filtered_df["ps"] == ps_value]
+        # Ensure colors are evenly distributed in the colormap
+        color = cmap(idx / (len(ps) - 1))
+
+        plt.errorbar(
+            ps_df["time"],
+            ps_df["active_stem_cells_indicator"],
+            yerr=ps_df["active_stem_cells_indicator_std"],
+            label=f"$P_\infty (t)$ for $p_s=${ps_value}",
+            color=color,
+            uplims=True,
+            lolims=True,
+            marker=".",
+            linestyle="-",
+        )
+
+    plt.xlabel("$t$")
+    plt.ylabel("$P_\infty$")
+    plt.title(f"$P_\infty (t)$ for $p_d = {pd}$")
+    plt.legend()
+
+    if log:
+        plt.yscale("log")
+
+    plt.grid(True)
+    plt.show()
 
 
 def p_infty_of_ps(p_s, p_c, c):
@@ -47,235 +123,125 @@ def p_infty_of_ps(p_s, p_c, c):
     return 0.5 * erf((p_s - p_c) / c) + 0.5
 
 
-def read_data(csv_file):
+def plot_p_infty_vs_ps(
+    mean_df: pd.DataFrame,
+    time_steps: List[int],
+    pd: float = 0.0,
+    fit: bool = False,
+    save: bool = False,
+    path_to_save: str = None,
+    dpi: int = 600,
+    print_statistics: bool = False,
+    plot_err_bars: bool = True,
+    fit_with_y_err: bool = False,
+) -> None:
     """
-    Reads the csv file and returns a pandas DataFrame.
+    Plot P_infty as a function of ps for different time steps and for each pd,
+    optionally fitting a function to the points.
 
     Parameters
     ----------
-    csv_file : str
-        The path to the csv file.
-
-    Returns
-    -------
-    df : pandas.DataFrame
-        The DataFrame containing the data from the csv file.
-    """
-    with open(csv_file, "r") as file:
-        df = pd.read_csv(file)
-
-    return df
-
-
-def add_zero_time_point(df):
-    """
-    Adds a row to the DataFrame for time t=0.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        The original DataFrame.
-
-    Returns
-    -------
-    df : pandas.DataFrame
-        The modified DataFrame.
-    """
-    # Define the new rows as a dictionary
-    new_rows = {
-        "pd": [],
-        "ps": [],
-        "n": [],
-        "time": [],
-        "total_cells": [],
-        "active_cells": [],
-        "stem_cells": [],
-        "active_stem_cells": [],
-    }
-
-    # Loop over unique values of p_d, ps, and n
-    for p_d in df["pd"].unique():
-        for ps in df[df["pd"] == p_d]["ps"].unique():
-            for n in df[(df["pd"] == p_d) & (df["ps"] == ps)]["n"].unique():
-                # Add the new row
-                new_rows["pd"].append(p_d)
-                new_rows["ps"].append(ps)
-                new_rows["n"].append(n)
-                new_rows["time"].append(0)
-                new_rows["total_cells"].append(1)
-                new_rows["active_cells"].append(1)
-                new_rows["stem_cells"].append(1)
-                new_rows["active_stem_cells"].append(1)
-
-    # Append the new rows to the original DataFrame
-    df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
-
-    return df
-
-
-def add_active_stem_cells_indicator(df):
-    """
-    Adds a new column to the DataFrame that indicates whether there are active stem cells.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        The DataFrame to add the new column to.
-
-    Returns
-    -------
-    df : pandas.DataFrame
-        The updated DataFrame.
-    """
-
-    # If 'active_stem_cells' is object, print out unique values to investigate
-    if df["active_stem_cells"].dtypes == "object":
-        print("Some strings detected in the place of numbers.")
-        print(df["active_stem_cells"].unique())
-
-    # Using numpy.sign
-    df["active_stem_cells_indicator"] = np.sign(
-        df["active_stem_cells"]
-    ).astype(int)
-
-    return df
-
-
-def average_over_realizations(df):
-    """Computes the mean time evolution for the cell numbers, for every ps and
-    pd combination.
-
-    We average the dataframe over the realization number, gruping by pd, pd
-    and the time step.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        The original DataFrame.
-
-    Returns
-    -------
-    mean_df : pandas.DataFrame
-        The DataFrame containing the computed means.
-    """
-    cols_to_average = [
-        "total_cells",
-        "active_cells",
-        "stem_cells",
-        "active_stem_cells",
-        "active_stem_cells_indicator",
-    ]
-
-    # Group by 'pd', 'ps' and 'time' columns, and compute mean for the remaining columns
-    mean_df = (
-        df.groupby(["pd", "ps", "time"])[cols_to_average].mean().reset_index()
-    )
-
-    return mean_df
-
-
-def plot_p_infty_vs_ps(mean_df, list_of_steps, output_path, pd_values=[0]):
-    """Plots P_infty as a function of ps for different time steps and for each
-    pd.
-
-    Parameters
-    ----------
-    mean_df : pandas.DataFrame
-        The DataFrame containing the data to plot.
-    pd_values : list of float
-        The list of p_d values to consider.
-    list_of_steps : list of int
+    mean_df : pd.DataFrame
+        DataFrame containing the data, in the form output by
+        `average_over_realizations` (it should include the
+        'active_stem_cells_indicator' column).
+    time_steps : list of int
         The list of time steps to plot.
-    output_path : str
-        The base path to save the plots to. Each plot will be saved to a file with name
-        constructed as {output_path}_pd_{pd_value}.png.
+    pd : float, default=0.0
+        The p_d value to consider.
+    fit : bool, default=False
+        Whether to fit a function to the points.
+    save : bool, default=False
+        Whether to save the plot to a file.
+    path_to_save : str, optional
+        The path to save the plot to. If not provided, defaults to a name based
+        on the parameters.
+    dpi : int, default=600
+        The resolution in dots per inch for the saved plot.
+    print_statistics : bool, default=False
+        Whether to print fitting statistics.
+    plot_err_bars : bool, default=False
+        Whether to plot error bars for the data points.
+    fit_with_y_err : bool, default=False
+        Whether to fit the function using y-errors (uncertainties in the data
+        points).
+
+    Raises
+    ------
+    ValueError
+        If no data matches the provided criteria.
+
+    Examples
+    --------
+    >>> plot_p_infty_vs_ps(
+    >>>     mean_df,
+    >>>     time_steps=[10, 20, 30],
+    >>>     pd=0.1,
+    >>>     fit=True,
+    >>>     save=True,
+    >>>     path_to_save='plot.png',
+    >>> )
     """
-    # Define color map for different time steps
-    cmap = plt.cm.magma
 
-    for pd_value in pd_values:
-        # Define figure and axis objects
-        fig, ax = plt.subplots()
-
-        # Loop over time steps and plot active_stem_cells_indicator as a function of ps
-        for i, t in enumerate(list_of_steps):
-            df_time = mean_df[
-                (mean_df["time"] == t) & (mean_df["pd"] == pd_value)
-            ]
-            ax.plot(
-                df_time["ps"],
-                df_time["active_stem_cells_indicator"],
-                color=cmap(i / len(list_of_steps)),
-                marker=".",
-                linestyle="--",
-                label=f"Time: {t}",
-            )
-
-        # Set axis labels and legend
-        ax.set_xlabel("$p_s$", fontsize=14, color="black")
-        ax.set_ylabel("$P_{\infty}$", fontsize=14, color="black")
-        ax.legend(
-            title="Time Steps", bbox_to_anchor=(0.05, 1), loc="upper left"
-        )
-
-        # Save the plot to a file
-        plt.savefig(f"{output_path}_pd_{pd_value}.png", dpi=600)
-        plt.close(fig)  # Close the figure to free up memory
-
-
-def plot_p_infty_vs_ps_with_fit(
-    mean_df, time_steps, output_path, pd_values=[0]
-):
-    """Plots P_infty as a function of ps for the given time steps and fits the
-    p_infty_of_ps function to the data.
-
-    Parameters
-    ----------
-    mean_df : pandas.DataFrame
-        The DataFrame containing the computed means.
-    pd_values : list
-        The list of pd values to plot.
-    time_steps : list
-        The list of time steps to plot.
-    output_path : str
-        The path to save the plot to.
-
-    Returns
-    -------
-    None
-    """
     # Define color map for different time steps
     cmap = plt.cm.magma
 
     # Define figure and axis objects
     fig, ax = plt.subplots()
 
-    # Loop over p_d and time steps
-    for pd_value in pd_values:
-        for i, t in enumerate(time_steps):
-            # Get the mean_df for the selected p_d and time
-            df_time = mean_df[
-                (mean_df["time"] == t) & (mean_df["pd"] == pd_value)
-            ]
+    # Loop over time steps and plot active_stem_cells_indicator as a function
+    # of ps
+    for i, t in enumerate(time_steps):
+        df_time = mean_df[(mean_df["time"] == t) & (mean_df["pd"] == pd)]
+        if df_time.empty:
+            continue
 
-            # Plot the data points
-            ax.scatter(
+        yerr = (
+            df_time["active_stem_cells_indicator_std"]
+            if plot_err_bars
+            else None
+        )
+
+        if fit:
+            sigma = (
+                df_time["active_stem_cells_indicator_std"]
+                if fit_with_y_err
+                else None
+            )
+
+            # Plot the data points with error bars if specified
+            ax.errorbar(
                 df_time["ps"],
                 df_time["active_stem_cells_indicator"],
+                yerr=yerr,
                 color=cmap(i / len(time_steps)),
                 marker=".",
+                uplims=True,
+                lolims=True,
+                linestyle="None",
                 label=f"Time: {t}",
             )
 
             # Perform the curve fit
-            popt, _ = sp.optimize.curve_fit(
+            popt, pcov = sp.optimize.curve_fit(
                 p_infty_of_ps,
                 df_time["ps"],
                 df_time["active_stem_cells_indicator"],
                 p0=(0.7, 0.1),
                 maxfev=5000,
                 bounds=((0, 0), (1, 1)),
+                sigma=sigma,
             )
+
+            # Print the results of the fittings
+            if print_statistics:
+                print(f"----------- Time {t} -----------")
+                print("Fitting parameters:")
+                print(f"  p_c (critical percolation probability): {popt[0]}")
+                print(f"  c (constant): {popt[1]}")
+                print("Covariance of parameters (covariance matrix):")
+                print(f"  {pcov}\n")
+                # print('--------------------------------')
 
             # Generate x values for the fitted function
             x_values = np.linspace(
@@ -293,97 +259,192 @@ def plot_p_infty_vs_ps_with_fit(
                 linestyle="--",
                 label=f"Fitted function: Time {t}",
             )
+        else:
+            ax.errorbar(
+                df_time["ps"],
+                df_time["active_stem_cells_indicator"],
+                yerr=yerr,
+                color=cmap(i / len(time_steps)),
+                marker=".",
+                uplims=True,
+                lolims=True,
+                linestyle="--",
+                label=f"Time: {t}",
+            )
 
     # Set axis labels and legend
     ax.set_xlabel("$p_s$", fontsize=14, color="black")
     ax.set_ylabel("$P_{\infty}$", fontsize=14, color="black")
     ax.legend(title="Time Steps", bbox_to_anchor=(0.05, 1), loc="upper left")
+    ax.grid(True)
 
-    plt.savefig(f"{output_path}_fit_pd_{pd_value}.png", dpi=600)
+    if save:
+        if path_to_save is None:
+            path_to_save = f"p_infty_vs_ps_pd_{pd}_steps_{'_'.join(map(str, time_steps))}.png"
+        plt.savefig(path_to_save, dpi=dpi)
+        plt.close(fig)  # Close the figure to free up memory
+    else:
+        plt.show()
 
 
-def plot_fitted_pc_vs_t(mean_df, output_path, pd_values=[0]):
-    """Fits the function to the data for each time step and each pd, and plots
-    the fitted percolation probability. Also, it generates a CSV file for each
-    p_d value, storing 3 columns with the value for t, and the corresponding
-    values of pc and c.
+def make_df_fitted_pc_vs_t(
+    mean_df: pd.DataFrame, pd_value: float = 0.0, fit_with_uncert: bool = True
+) -> pd.DataFrame:
+    """
+    Fits the function to the data for each time step and each pd, and returns
+    a DataFrame with the fitted percolation probability and constant, along
+    with their standard errors.
+
+    It requires a DataFrame as output by `average_over_realizations`, with a
+    column for the average of the 'active_stem_cells_indicator'.
 
     Parameters
     ----------
     mean_df : pandas.DataFrame
         The DataFrame containing the data to fit the function to.
-    pd_values : list of float
-        The list of p_d values to consider.
-    output_path : str
-        The base path to save the plots and CSV files to. Each plot will be saved to a file with name
-        constructed as {output_path}_pd_{pd_value}.png, and each CSV file as {output_path}_pd_{pd_value}.csv.
-    """
+    pd_value : float, default=0.0
+        The p_d value to consider.
+    fit_with_uncert : bool, default=True
+        Whether to fit the data using the uncertainties in
+        active_stem_cells_indicator_std.
 
+    Returns
+    -------
+    fitted_df : pandas.DataFrame
+        The DataFrame containing the time, fitted percolation probability
+        $p_c$, constant $c$, and their standard errors.
+    """
     bnds = ((0, 0), (1, 1))  # bounds for the parameters
 
-    for pd_value in pd_values:
-        popt = []
-        pcov = []
-        list_of_pc = []
-        list_of_c = []
+    times_of_observation = sorted(set(mean_df["time"]))
+    list_of_pc = []
+    list_of_c = []
+    list_of_pc_err = []
+    list_of_c_err = []
 
-        # Loop over time steps
-        times_of_observation = sorted(set(mean_df["time"]))
-        for t in times_of_observation:
-            df_time = mean_df[
-                (mean_df["time"] == t) & (mean_df["pd"] == pd_value)
-            ]
-            # we fit with scipy
-            popt_i, pcov_i = curve_fit(
-                p_infty_of_ps,
-                df_time["ps"],
-                df_time["active_stem_cells_indicator"],
-                p0=(0.7, 0.1),
-                maxfev=5000,
-                bounds=bnds,
-            )
-            popt.append(popt_i)
-            pcov.append(pcov_i)
-            list_of_pc.append(popt_i[0])
-            list_of_c.append(popt_i[1])
+    # Loop over time steps
+    for t in times_of_observation:
+        df_time = mean_df[(mean_df["time"] == t) & (mean_df["pd"] == pd_value)]
+        if (
+            fit_with_uncert
+            and "active_stem_cells_indicator_std" in df_time.columns
+        ):
+            sigma = df_time["active_stem_cells_indicator_std"]
+        else:
+            sigma = None
 
-        # Save the parameters to a CSV file
-        pd.DataFrame(
-            {
-                "t": times_of_observation,
-                "pc": list_of_pc,
-                "c": list_of_c,
-            }
-        ).to_csv(f"{output_path}_pd_{pd_value}.csv", index=False)
-
-        fig, ax = plt.subplots()
-        ax.plot(
-            times_of_observation,
-            list_of_pc,
-            marker=".",
-            linestyle="dashed",
-            label=f"$p_c(t)$",
+        # we fit with scipy
+        popt_i, pcov_i = curve_fit(
+            p_infty_of_ps,
+            df_time["ps"],
+            df_time["active_stem_cells_indicator"],
+            p0=(0.7, 0.1),
+            maxfev=5000,
+            bounds=bnds,
+            sigma=sigma,
         )
+        list_of_pc.append(popt_i[0])
+        list_of_c.append(popt_i[1])
+        list_of_pc_err.append(np.sqrt(pcov_i[0, 0]))  # Standard error of pc
+        list_of_c_err.append(np.sqrt(pcov_i[1, 1]))  # Standard error of c
 
-        ax.set_xlabel("$t$", fontsize=12, color="black")
-        ax.set_ylabel("$p_c$", fontsize=12, color="black")
-        ax.set_title(
-            f"Fitted percolation probability vs time for $p_d = {pd_value}$",
-            fontdict={"fontsize": 12},
-        )
-        ax.legend()
+    fitted_df = pd.DataFrame(
+        {
+            "t": times_of_observation,
+            "pc": list_of_pc,
+            "pc_err": list_of_pc_err,
+            "c": list_of_c,
+            "c_err": list_of_c_err,
+        }
+    )
 
-        plt.savefig(f"{output_path}_pd_{pd_value}.png", dpi=600)
+    return fitted_df
+
+
+def plot_fitted_pc_vs_t(
+    fitted_df: pd.DataFrame,
+    output_path: str = "",
+    pd_value: float = 0.0,
+    save: bool = False,
+    dpi: int = 600,
+    plot_err_bars: bool = False,
+) -> None:
+    """
+    Plots the fitted percolation probability as a function of time.
+
+    It requires a DataFrame as output by `make_df_fitted_pc_vs_t`. If save is
+    set to True, the plot is saved to a file named
+    'fitted_pc_vs_t_pd_{pd}.png'.
+
+    Parameters
+    ----------
+    fitted_df : pandas.DataFrame
+        The DataFrame containing the time, fitted percolation probability
+        $p_c$, constant $c$, and their standard errors.
+    output_path : str
+        The path to save the plot.
+    pd_value : float, default=0.0
+        The p_d value to consider.
+    save : bool, default=True
+        Whether to save the plot.
+    dpi : int, default=600
+        The resolution in dots per inch for the saved plot.
+    plot_err_bars : bool, default=False
+        Whether to plot error bars.
+
+    Returns
+    -------
+    None
+    """
+    times_of_observation = fitted_df["t"]
+    list_of_pc = fitted_df["pc"]
+    list_of_pc_err = fitted_df["pc_err"] if plot_err_bars else None
+
+    fig, ax = plt.subplots()
+    ax.errorbar(
+        times_of_observation,
+        list_of_pc,
+        yerr=list_of_pc_err,
+        fmt="." if plot_err_bars else "o",
+        uplims=True,
+        lolims=True,
+        linestyle="dashed",
+        label="$p_c(t)$",
+    )
+
+    ax.set_xlabel("$t$", fontsize=12, color="black")
+    ax.set_ylabel("$p_c$", fontsize=12, color="black")
+    ax.set_title(
+        f"Fitted critic percolation probability vs time for $p_d = {pd_value}$",
+        fontdict={"fontsize": 12},
+    )
+    ax.legend()
+    ax.grid(True)
+
+    if save:
+        plt.savefig(f"{output_path}fitted_pc_vs_t_pd_{pd_value}.png", dpi=dpi)
         plt.close(fig)  # Close the figure to free up memory
+    else:
+        plt.show()
 
 
-def create_heatmap(df, output_path, pd_values=[0]):
+def plot_pinfty_heatmap_in_ps_vs_t(
+    mean_df: pd.DataFrame,
+    output_path: str = "",
+    pd_value: float = 0.0,
+    save: bool = False,
+    dpi: int = 600,
+    annotate: bool = False,
+):
     """Creates and saves a heatmap of P_infty for each given probability pd.
 
     The function creates a heatmap for each given 'pd' value and saves it to
     the indicated working directory as a .png file. The file is named
-    'heatmap_pd_{}.png', where {} is replaced by the 'pd' value. The heatmap's
-    color intensity indicates the value of 'active_stem_cells_indicator'.
+    'heatmap_ps_vs_t_of_pinfty__pd_{}.png', where {} is replaced by the 'pd'
+    value. The heatmap's color intensity indicates the value of
+    'active_stem_cells_indicator'. It requires a DataFrame as output by
+    `average_over_realizations`, with a column for the average of the
+    'active_stem_cells_indicator'.
 
     Parameters
     ----------
@@ -392,9 +453,8 @@ def create_heatmap(df, output_path, pd_values=[0]):
         'ps', 'time', and 'active_stem_cells_indicator' columns.
     output_path : str
         The path for saving the plot.
-    pd_values : list
-        The list of unique probabilities pd values for which the heatmap
-        should be created.
+    pd_values : float
+        The pd value for which the heatmap should be created.
 
     Returns
     -------
@@ -406,31 +466,35 @@ def create_heatmap(df, output_path, pd_values=[0]):
     >>> create_heatmap(df, output_path, df['pd'].unique())
 
     """
-    for pd in pd_values:
-        # Filter the DataFrame for the current 'pd' value
-        df_filtered = df[df["pd"] == pd]
+    # Filter the DataFrame for the current 'pd' value
+    df_filtered = mean_df[mean_df["pd"] == pd_value]
 
-        # Pivot the DataFrame
-        df_pivot = df_filtered.pivot(
-            index="ps", columns="time", values="active_stem_cells_indicator"
-        )
+    # Pivot the DataFrame
+    df_pivot = df_filtered.pivot(
+        index="ps", columns="time", values="active_stem_cells_indicator"
+    )
 
-        # Create a heatmap
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(df_pivot, cmap="magma", annot=True, fmt=".2f")
+    # Create a heatmap
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(df_pivot, cmap="magma", annot=annotate, fmt=".2f")
 
-        plt.title(
-            f"Heatmap of active_stem_cells_indicator by $p_s$ and $t$ for $p_d$ = {pd}"
-        )
-        plt.xlabel("$t$")
-        plt.ylabel("$p_s$")
+    plt.title(
+        f"Heatmap of active_stem_cells_indicator by $p_s$ and $t$ for $p_d$ = {pd_value}"
+    )
+    plt.xlabel("$t$")
+    plt.ylabel("$p_s$")
 
-        # Save the heatmap to a file
-        plt.savefig(f"{output_path}heatmap_pd_{pd}.png", dpi=600)
-        plt.close()
+    # Save the heatmap to a file
+    if save:
+        plt.savefig(
+                f"{output_path}heatmap_ps_vs_t_of_pinfty__pd_{pd_value}.png", dpi=dpi
+            )
+        plt.close()  # Close the figure to free up memory
+    else:
+        plt.show()
 
 
-def create_pc_heatmap(mean_df, output_path, time_step):
+def plot_pc_heatmap_in_ps_vs_pd(mean_df, output_path, time_step):
     """Creates and saves a heatmap of pc for a given time step.
 
     Usually, we want to see the critical probability pc for the latest time
@@ -450,6 +514,14 @@ def create_pc_heatmap(mean_df, output_path, time_step):
     Returns
     -------
     None
+
+    Deprecation warning
+    -------------------
+    This function is deprecated, since now we can simply use the function
+    make_df_fitted_pc_vs_t for different pd values, and then concatenate the
+    DataFrames and plot them all together, filtering by time. This function
+    will be removed in the future, but for now it is kept for compatibility
+    with previous versions of the library.
     """
     bnds = ((0, 0), (1, 1))  # bounds for the parameters
 
