@@ -189,7 +189,8 @@ def plot_p_infty_vs_ps(
     # Define figure and axis objects
     fig, ax = plt.subplots()
 
-    # Loop over time steps and plot active_stem_cells_indicator as a function of ps
+    # Loop over time steps and plot active_stem_cells_indicator as a function
+    # of ps
     for i, t in enumerate(time_steps):
         df_time = mean_df[(mean_df["time"] == t) & (mean_df["pd"] == pd)]
         if df_time.empty:
@@ -427,7 +428,14 @@ def plot_fitted_pc_vs_t(
         plt.show()
 
 
-def create_heatmap(df, output_path, pd_values=[0]):
+def plot_pinfty_heatmap_in_ps_vs_t(
+    mean_df: pd.DataFrame,
+    output_path: str = "",
+    pd_value: float = 0.0,
+    save: bool = False,
+    dpi: int = 600,
+    annotate: bool = False,
+):
     """Creates and saves a heatmap of P_infty for each given probability pd.
 
     The function creates a heatmap for each given 'pd' value and saves it to
@@ -442,9 +450,8 @@ def create_heatmap(df, output_path, pd_values=[0]):
         'ps', 'time', and 'active_stem_cells_indicator' columns.
     output_path : str
         The path for saving the plot.
-    pd_values : list
-        The list of unique probabilities pd values for which the heatmap
-        should be created.
+    pd_values : float
+        The pd value for which the heatmap should be created.
 
     Returns
     -------
@@ -456,31 +463,35 @@ def create_heatmap(df, output_path, pd_values=[0]):
     >>> create_heatmap(df, output_path, df['pd'].unique())
 
     """
-    for pd in pd_values:
-        # Filter the DataFrame for the current 'pd' value
-        df_filtered = df[df["pd"] == pd]
+    # Filter the DataFrame for the current 'pd' value
+    df_filtered = mean_df[mean_df["pd"] == pd_value]
 
-        # Pivot the DataFrame
-        df_pivot = df_filtered.pivot(
-            index="ps", columns="time", values="active_stem_cells_indicator"
-        )
+    # Pivot the DataFrame
+    df_pivot = df_filtered.pivot(
+        index="ps", columns="time", values="active_stem_cells_indicator"
+    )
 
-        # Create a heatmap
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(df_pivot, cmap="magma", annot=True, fmt=".2f")
+    # Create a heatmap
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(df_pivot, cmap="magma", annot=annotate, fmt=".2f")
 
-        plt.title(
-            f"Heatmap of active_stem_cells_indicator by $p_s$ and $t$ for $p_d$ = {pd}"
-        )
-        plt.xlabel("$t$")
-        plt.ylabel("$p_s$")
+    plt.title(
+        f"Heatmap of active_stem_cells_indicator by $p_s$ and $t$ for $p_d$ = {pd_value}"
+    )
+    plt.xlabel("$t$")
+    plt.ylabel("$p_s$")
 
-        # Save the heatmap to a file
-        plt.savefig(f"{output_path}heatmap_pd_{pd}.png", dpi=600)
-        plt.close()
+    # Save the heatmap to a file
+    if save:
+        plt.savefig(
+                f"{output_path}heatmap_ps_vs_t_of_pinfty__pd_{pd_value}.png", dpi=dpi
+            )
+        plt.close()  # Close the figure to free up memory
+    else:
+        plt.show()
 
 
-def create_pc_heatmap(mean_df, output_path, time_step):
+def plot_pc_heatmap_in_ps_vs_pd(mean_df, output_path, time_step):
     """Creates and saves a heatmap of pc for a given time step.
 
     Usually, we want to see the critical probability pc for the latest time
@@ -500,6 +511,14 @@ def create_pc_heatmap(mean_df, output_path, time_step):
     Returns
     -------
     None
+
+    Deprecation warning
+    -------------------
+    This function is deprecated, since now we can simply use the function
+    make_df_fitted_pc_vs_t for different pd values, and then concatenate the
+    DataFrames and plot them all together, filtering by time. This function
+    will be removed in the future, but for now it is kept for compatibility
+    with previous versions of the library.
     """
     bnds = ((0, 0), (1, 1))  # bounds for the parameters
 
