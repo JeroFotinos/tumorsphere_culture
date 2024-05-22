@@ -440,8 +440,11 @@ def plot_pinfty_heatmap_in_ps_vs_t(
 
     The function creates a heatmap for each given 'pd' value and saves it to
     the indicated working directory as a .png file. The file is named
-    'heatmap_pd_{}.png', where {} is replaced by the 'pd' value. The heatmap's
-    color intensity indicates the value of 'active_stem_cells_indicator'.
+    'heatmap_ps_vs_t_of_pinfty__pd_{}.png', where {} is replaced by the 'pd'
+    value. The heatmap's color intensity indicates the value of
+    'active_stem_cells_indicator'. It requires a DataFrame as output by
+    `average_over_realizations`, with a column for the average of the
+    'active_stem_cells_indicator'.
 
     Parameters
     ----------
