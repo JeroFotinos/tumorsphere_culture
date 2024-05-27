@@ -2,6 +2,7 @@
 
 from itertools import product
 from typing import Tuple
+from collections import defaultdict
 
 import numpy as np
 
@@ -53,7 +54,7 @@ class SpatialHashGrid:
         self.bounds = bounds
         self.cube_size = cube_size
         self.offsets = np.array(list(product(range(-1, 2), repeat=3)))
-        self.hash_table = {}
+        self.hash_table = defaultdict(set)
 
     def get_hash_key(
         self,
@@ -68,10 +69,7 @@ class SpatialHashGrid:
         position: np.ndarray,
     ) -> None:
         """Add a cell to the hash table."""
-        hash_key = self.get_hash_key(position)
-        if hash_key not in self.hash_table:
-            self.hash_table[hash_key] = set()
-        self.hash_table[hash_key].add(cell_index)
+        self.hash_table[self.get_hash_key(position)].add(cell_index)
 
     def remove_cell_from_hash_table(
         self,
@@ -79,9 +77,7 @@ class SpatialHashGrid:
         position: np.ndarray,
     ) -> None:
         """Remove a cell from the hash table."""
-        hash_key = self.get_hash_key(position)
-        if hash_key in self.hash_table:
-            self.hash_table[hash_key].remove(cell_index)
+        self.hash_table[self.get_hash_key(position)].remove(cell_index)
 
     def is_position_in_bounds(
         self,
@@ -172,7 +168,6 @@ class SpatialHashGrid:
 
         # Convert array of keys to tuples and filter valid keys
         for adj_key in map(tuple, adj_keys):  # Convert once and iterate
-            if adj_key in self.hash_table:
-                neighbors.update(self.hash_table[adj_key])
+            neighbors.update(self.hash_table[adj_key])
 
         return neighbors
