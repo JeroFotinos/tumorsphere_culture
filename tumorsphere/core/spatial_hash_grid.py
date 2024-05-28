@@ -1,6 +1,8 @@
 """Module that defines the SpatialHashGrid class."""
 
-from itertools import product
+from collections import defaultdict
+from collections.abc import Iterable
+from itertools import product, chain
 from typing import Tuple
 
 import numpy as np
@@ -53,14 +55,17 @@ class SpatialHashGrid:
         self.bounds = bounds
         self.cube_size = cube_size
         self.offsets = np.array(list(product(range(-1, 2), repeat=3)))
-        self.hash_table = {}
+        self.hash_table = defaultdict(set)
 
-    def get_hash_key(
+    def get_bucket_position(
         self,
         position: np.ndarray,
-    ) -> Tuple[int, int, int]:
+    ) -> np.ndarray:
         """Get the hash key of a position."""
-        return tuple(np.floor(position / self.cube_size).astype(int))
+        return np.floor(position / self.cube_size).astype(int)
+
+    def get_hash_key(self, position: np.ndarray) -> bytes:
+        return self.get_bucket_position(position).tobytes()
 
     def add_cell_to_hash_table(
         self,
@@ -68,10 +73,7 @@ class SpatialHashGrid:
         position: np.ndarray,
     ) -> None:
         """Add a cell to the hash table."""
-        hash_key = self.get_hash_key(position)
-        if hash_key not in self.hash_table:
-            self.hash_table[hash_key] = set()
-        self.hash_table[hash_key].add(cell_index)
+        self.hash_table[self.get_hash_key(position)].add(cell_index)
 
     def remove_cell_from_hash_table(
         self,
@@ -79,9 +81,7 @@ class SpatialHashGrid:
         position: np.ndarray,
     ) -> None:
         """Remove a cell from the hash table."""
-        hash_key = self.get_hash_key(position)
-        if hash_key in self.hash_table:
-            self.hash_table[hash_key].remove(cell_index)
+        self.hash_table[self.get_hash_key(position)].remove(cell_index)
 
     def is_position_in_bounds(
         self,
@@ -138,7 +138,7 @@ class SpatialHashGrid:
             )
 
     # @profile
-    def find_neighbors(self, position: np.ndarray) -> set:
+    def find_neighbors(self, position: np.ndarray) -> Iterable:
         """Returns the set of indexes of all existing cells within a 3D Moore
         neighborhood of a given position.
 
@@ -155,24 +155,20 @@ class SpatialHashGrid:
 
         Returns
         -------
-        set
-            A set of cell identifiers that are considered neighbors of a new
+        Iterable
+            An iterable of cell identifiers that are considered neighbors of a new
             cell in the provided position.
         """
-        neighbors = set()
-        # Convert key to array once
-        key = np.array(self.get_hash_key(position))
+        # Find position bucket
+        bucket = self.get_bucket_position(position)
 
-        # Broadcasting addition to get adjacent keys
-        adj_keys = key + self.offsets
+        # Broadcasting addition to get adjacent buckets
+        adj_buckets = bucket + self.offsets
 
         # Handle toroidal wrapping
         if self.bounds is not None and self.torus:
-            adj_keys = np.mod(adj_keys, self.bounds)
+            adj_buckets = np.mod(adj_buckets, self.bounds)
 
-        # Convert array of keys to tuples and filter valid keys
-        for adj_key in map(tuple, adj_keys):  # Convert once and iterate
-            if adj_key in self.hash_table:
-                neighbors.update(self.hash_table[adj_key])
-
-        return neighbors
+        return chain.from_iterable(
+            map(lambda b: self.hash_table[b.tobytes()], adj_buckets)
+        )
