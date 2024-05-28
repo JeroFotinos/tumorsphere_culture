@@ -193,8 +193,10 @@ class Culture:
 
                 # set of all existing cell indexes that would neighbor the new
                 # cell
-                neighbor_indices = self.grid.find_neighbors(
-                    position=child_position,
+                neighbor_indices = list(
+                    self.grid.find_neighbors(
+                        position=child_position,
+                    )
                 )
                 # modifies the set in-place to remove the parent cell index
                 neighbor_indices.remove(cell_index)
@@ -202,7 +204,6 @@ class Culture:
                 # array with the distances from the proposed child position to
                 # the other cells
                 if len(neighbor_indices) > 0:
-                    neighbor_indices = list(neighbor_indices)
                     neighbor_position_mat = self.cell_positions[
                         neighbor_indices, :
                     ]
