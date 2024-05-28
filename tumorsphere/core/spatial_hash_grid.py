@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from collections.abc import Iterable
-from itertools import product, chain
+from itertools import chain, product
 from typing import Tuple
 
 import numpy as np
@@ -156,8 +156,8 @@ class SpatialHashGrid:
         Returns
         -------
         Iterable
-            An iterable of cell identifiers that are considered neighbors of a new
-            cell in the provided position.
+            An iterable of cell identifiers that are considered neighbors of a
+            new cell in the provided position.
         """
         # Find position bucket
         bucket = self.get_bucket_position(position)

@@ -10,19 +10,18 @@ standard `.db` merged database. If `db_files=False`, an additional step is
 used to add the time zero points, because the `.dat` files do not have these.
 """
 
-from tumorsphere.library.dataframe_generation import (
-    average_over_realizations,
-)
-
 from typing import List, Union
-import matplotlib.pyplot as plt
+
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy as sp
 import seaborn as sns
 from scipy.optimize import curve_fit
 from scipy.special import erf
+
+from tumorsphere.library.dataframe_generation import average_over_realizations
 
 
 def plot_p_infty_vs_time(
@@ -487,8 +486,9 @@ def plot_pinfty_heatmap_in_ps_vs_t(
     # Save the heatmap to a file
     if save:
         plt.savefig(
-                f"{output_path}heatmap_ps_vs_t_of_pinfty__pd_{pd_value}.png", dpi=dpi
-            )
+            f"{output_path}heatmap_ps_vs_t_of_pinfty__pd_{pd_value}.png",
+            dpi=dpi,
+        )
         plt.close()  # Close the figure to free up memory
     else:
         plt.show()

@@ -1,11 +1,10 @@
-from tumorsphere.library.dataframe_generation import (
-    average_over_realizations,
-)
-
 from typing import List, Union
-import pandas as pd
-import matplotlib.pyplot as plt
+
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from tumorsphere.library.dataframe_generation import average_over_realizations
 
 
 def plot_single_realization(
