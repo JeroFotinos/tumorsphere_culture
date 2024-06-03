@@ -1,3 +1,5 @@
+"""Module that contains the classes that handle simulation output."""
+
 import logging
 import os
 import sqlite3
@@ -6,6 +8,13 @@ from typing import List
 
 
 class TumorsphereOutput(ABC):
+    """
+    Abstract base class for defining the output interface for the simulation.
+
+    This class provides the methods that need to be implemented by concrete
+    output classes in order to record and store the simulation data.
+    """
+
     @abstractmethod
     def begin_culture(
         self,
@@ -16,14 +25,32 @@ class TumorsphereOutput(ABC):
         adjacency_threshold,
         swap_probability,
     ):
+        """
+        Record the beginning of a simulation.
+
+        This method is called just once at the beginning of the simulation to
+        record general culture parameters.
+        """
         pass
 
     @abstractmethod
     def record_stemness(self, cell_index, tic, stemness):
+        """
+        Record a change in the stemness of a cell.
+
+        This method is calld right after a cell has changed its stemness
+        """
         pass
 
     @abstractmethod
     def record_deactivation(self, cell_index, tic):
+        """
+        Record the deactivation of a cell.
+
+        This method is called when a cell is deactivated, right after setting
+        its available_space attribute to False, and removing it from the list
+        of active cells.
+        """
         pass
 
     @abstractmethod
@@ -34,16 +61,31 @@ class TumorsphereOutput(ABC):
         cell_positions,
         active_cell_indexes,
     ):
+        """
+        Record the state of the culture at a given time step.
+
+        This method is called after creating the first cell, with tic = 0, and
+        then after each time step, to record the state of the culture at that
+        time step.
+        """
         pass
 
     @abstractmethod
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
     ):
+        """
+        Record the creation of a new cell.
+
+        This method is called when a new cell is created, at the end of the
+        cell's __init__ method.
+        """
         pass
 
 
 class OutputDemux(TumorsphereOutput):
+    """Class managing multiple output objects and delegating method calls."""
+
     def __init__(
         self,
         culture_name: str,
@@ -62,6 +104,7 @@ class OutputDemux(TumorsphereOutput):
         adjacency_threshold,
         swap_probability,
     ):
+        """Delegate the call to all output objects in result_list."""
         for result in self.result_list:
             result.begin_culture(
                 prob_stem,
@@ -73,10 +116,12 @@ class OutputDemux(TumorsphereOutput):
             )
 
     def record_stemness(self, cell_index, tic, stemness):
+        """Delegate the call to all output objects in result_list."""
         for result in self.result_list:
             result.record_stemness(cell_index, tic, stemness)
 
     def record_deactivation(self, cell_index, tic):
+        """Delegate the call to all output objects in result_list."""
         for result in self.result_list:
             result.record_deactivation(cell_index, tic)
 
@@ -87,6 +132,7 @@ class OutputDemux(TumorsphereOutput):
         cell_positions,
         active_cell_indexes,
     ):
+        """Delegate the call to all output objects in result_list."""
         for result in self.result_list:
             result.record_culture_state(
                 tic,
@@ -98,6 +144,7 @@ class OutputDemux(TumorsphereOutput):
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
     ):
+        """Delegate the call to all output objects in result_list."""
         for result in self.result_list:
             result.record_cell(
                 index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
@@ -105,6 +152,8 @@ class OutputDemux(TumorsphereOutput):
 
 
 class SQLOutput(TumorsphereOutput):
+    """Class for handling output to a SQLite database."""
+
     def __init__(
         self, culture_name, output_dir="."
     ):  # Add output_dir parameter
@@ -175,6 +224,10 @@ class SQLOutput(TumorsphereOutput):
         adjacency_threshold,
         swap_probability,
     ) -> int:  # Wired annotation, the method returns None
+        """Record the beginning of a simulation.
+
+        Insert a new row in the Cultures table with the specified parameters.
+        """
         with self.conn:
             cursor = self.conn.cursor()
             cursor.execute(
@@ -198,6 +251,11 @@ class SQLOutput(TumorsphereOutput):
             # initialize self.culture_id in the __init__ method
 
     def record_stemness(self, cell_index, tic, stemness):
+        """Record a change in the stemness of a cell.
+
+        Insert a new row in the StemChanges table with the cell_id, the time
+        of the change, and the new stemness value from that time on.
+        """
         with self.conn:
             cursor = self.conn.cursor()
             cursor.execute(
@@ -213,6 +271,11 @@ class SQLOutput(TumorsphereOutput):
             )
 
     def record_deactivation(self, cell_index, tic):
+        """Record the deactivation of a cell.
+
+        Update the t_deactivation value for the specified cell in the Cells
+        table.
+        """
         with self.conn:
             cursor = self.conn.cursor()
 
@@ -234,11 +297,16 @@ class SQLOutput(TumorsphereOutput):
         cell_positions,
         active_cell_indexes,
     ):
+        """We do not record the state of the culture, it'd be redundant."""
         pass
 
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
     ):
+        """Record the creation of a new cell.
+
+        Insert a new row in the Cells table with the specified parameters.
+        """
         with self.conn:
             cursor = self.conn.cursor()
             cursor.execute(
@@ -273,6 +341,8 @@ class SQLOutput(TumorsphereOutput):
 
 
 class DatOutput(TumorsphereOutput):
+    """Class for handling output to a .dat file."""
+
     def __init__(self, culture_name, output_dir="."):
         self.filename = f"{output_dir}/{culture_name}.dat"
         with open(self.filename, "w") as datfile:
@@ -289,12 +359,15 @@ class DatOutput(TumorsphereOutput):
         adjacency_threshold,
         swap_probability,
     ):
+        """We do not record the beginning of the simulation."""
         pass
 
     def record_stemness(self, cell_index, tic, stemness):
+        """We do not record the individual stemness changes."""
         pass
 
     def record_deactivation(self, cell_index, tic):
+        """We do not record the individual deactivations."""
         pass
 
     def record_culture_state(
@@ -304,6 +377,11 @@ class DatOutput(TumorsphereOutput):
         cell_positions,
         active_cell_indexes,
     ):
+        """Record the state of the culture at a given time step.
+
+        We write the total number of cells, the number of active cells, the
+        number of stem cells, and the number of active stem cells to the file.
+        """
         with open(self.filename, "a") as datfile:
             # we count the total number of cells and active cells
             num_cells = len(cells)
@@ -332,10 +410,13 @@ class DatOutput(TumorsphereOutput):
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
     ):
+        """We do not record the individual cell creations."""
         pass
 
 
 class OvitoOutput(TumorsphereOutput):
+    """Class for handling output to a file for visualization in Ovito."""
+
     def __init__(self, culture_name, output_dir="."):
         self.output_dir = output_dir
         self.culture_name = culture_name
@@ -349,12 +430,15 @@ class OvitoOutput(TumorsphereOutput):
         adjacency_threshold,
         swap_probability,
     ):
+        """We do not record the beginning of the simulation."""
         pass
 
     def record_stemness(self, cell_index, tic, stemness):
+        """We do not record the individual stemness changes."""
         pass
 
     def record_deactivation(self, cell_index, tic):
+        """We do not record the individual deactivations."""
         pass
 
     def record_culture_state(
@@ -365,6 +449,7 @@ class OvitoOutput(TumorsphereOutput):
         active_cell_indexes,
     ):
         """Writes the data file in path for ovito, for time step t of self.
+
         Auxiliar function for simulate_with_ovito_data.
         """
         path_to_write = os.path.join(
@@ -444,6 +529,7 @@ class OvitoOutput(TumorsphereOutput):
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
     ):
+        """We do not record the individual cell creations."""
         pass
 
 
@@ -452,6 +538,7 @@ def create_output_demux(
     requested_outputs: list[str],
     output_dir: str = ".",
 ):
+    """Create an OutputDemux object with the requested output types."""
     output_types = {
         "sql": SQLOutput,
         "dat": DatOutput,

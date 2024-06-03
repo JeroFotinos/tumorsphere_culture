@@ -7,9 +7,16 @@ Classes:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from tumorsphere.core.culture import Culture
+# We avoid the circular import at runtime by using TYPE_CHECKING to
+# conditionally import Culture only when type checking. Then, we use
+# forward references (i.e., "Culture") in the type hints for the culture
+# attribute and __init__ parameters.
 
 
 @dataclass(frozen=False, slots=True)

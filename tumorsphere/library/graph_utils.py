@@ -1,5 +1,4 @@
-"""This module has functions for generating and plotting graphs from the
-cultures of the database.
+"""module for generating and plotting graphs from cultures in the database.
 
 CURRENTLY NOT WORKING.
 """
@@ -27,7 +26,9 @@ from sklearn.manifold import MDS
 def generate_graph_at_fixed_time(
     db_path: str, culture_id: int, time: int, path_to_save: str
 ) -> None:
-    r"""Generate a directed graph from a database for a given culture_id at a
+    r"""Generate directed graph from culture and save to GraphML file.
+
+    Generate a directed graph from a database for a given culture_id at a
     fixed time and save it to a GraphML file.
 
     Parameters
@@ -62,7 +63,6 @@ def generate_graph_at_fixed_time(
     Graph saved to /home/nate/Devel/tumorsphere_culture/examples/playground
     /graph_culture_id=1_time=5.graphml
     """
-
     # Create a directed graph
     G = nx.DiGraph()
 
@@ -144,8 +144,9 @@ def generate_graph_at_fixed_time(
 def generate_graph_evolution(
     db_path: str, culture_id: int, path_to_save: str
 ) -> None:
+    """Generate graph snapshots for the entire culture evolution."""
     # Create a list to store graph snapshots
-    graphs = []
+    # graphs = []
 
     # Connect to the SQLite database
     with sqlite3.connect(db_path) as conn:
@@ -179,8 +180,7 @@ def plot_static_graph_3D(
     sphere_radius: float = 1,
     sphere_opacity: float = 0.15,
 ) -> None:
-    r"""Plots in 3D the culture paternity graph (corresponding to a single
-    time).
+    r"""Plots in 3D the culture paternity graph (fixed time).
 
     The nodes are plotted as colored markers, with the colors determined by
     the 'active' and 'stem' attributes of the nodes:
@@ -234,7 +234,6 @@ def plot_static_graph_3D(
     >>> plot_static_graph_3D(G, spheres=False, sphere_radius=1, \
     ... sphere_opacity=0.15)
     """
-
     # Lists to hold node coordinates and colors
     x_nodes = []
     y_nodes = []
@@ -387,6 +386,7 @@ def plot_static_graph_3D(
 
 # ========== NOT WORKING ===========
 def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
+    """Plots the evolution of the culture graph over time."""
     # Create figure and axes
     fig, ax = plt.subplots()
     plt.subplots_adjust(bottom=0.25)
@@ -427,6 +427,7 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
 
     # Function to plot the graph for a given time
     def plot_graph(time):
+        """Plot the graph at a given time."""
         # Clear current axes
         ax.clear()
 
@@ -473,8 +474,8 @@ def plot_graph_evolution(path_to_files: str, culture_id: int) -> None:
         ax_slider, "Time", min_time, max_time, valinit=min_time, valstep=1
     )
 
-    # Update the plot when the slider is changed
     def update(val):
+        """Update the plot when the slider is changed."""
         time = int(slider.val)
         plot_graph(time)
         fig.canvas.draw_idle()

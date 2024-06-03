@@ -18,8 +18,7 @@ from tumorsphere.core.spatial_hash_grid import SpatialHashGrid
 
 
 class Simulation:
-    """Class for simulating multiple `Culture` objects with different
-    parameters.
+    """Class for simulating multiple `Culture` objects.
 
     Parameters
     ----------
@@ -89,8 +88,8 @@ class Simulation:
         `prob_diff` and the realization number.
 
 
-    Methods:
-    --------
+    Methods
+    -------
     simulate_parallel()
         Runs the simulation persisting data to one file for each culture.
     """
@@ -208,7 +207,10 @@ class Simulation:
         number_of_processes: int = None,
         output_dir: str = ".",
     ) -> None:
-        """Simulate culture growth `self.num_of_realizations` number of times
+        """
+        Simulate the growth of multiple cultures in parallel.
+
+        Simulate culture growth `self.num_of_realizations` number of times
         for each combination of self-replication (elements of the
         `self.prob_stem` list) and differentiation probabilities (elements of
         the `self.prob_diff` list), persisting the data of each culture to its
@@ -267,6 +269,7 @@ class Simulation:
 
 
 def realization_name(pd, ps, seed) -> str:
+    """Return the name of the realization."""
     return f"culture_pd={pd}_ps={ps}_rng_seed={seed}"
 
 

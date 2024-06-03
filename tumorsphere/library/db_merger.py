@@ -1,4 +1,6 @@
-"""This module provides functions to merge temporary single-culture SQLite
+"""Module for merging SQLite databases with simulation data.
+
+This module provides functions to merge temporary single-culture SQLite
 databases into a single consolidated database. The schema involves tables for
 representing cultures (of cells), cells (individually), and stemness changes.
 
@@ -160,7 +162,6 @@ def merge_db_files_in_dir_into_conn(
     merged one. It takes care of mapping the original `_index` to new
     `cell_id` in the merged database.
     """
-
     # Context manager for the connection
     with conn_merged:
         # Create a new database connection for the merged database
@@ -252,9 +253,10 @@ def merge_db_files_in_dir_into_conn(
 
 
 def merge_single_culture_dbs(dbs_folder, merging_path):
-    """Merges single culture data bases into a single data base. If the
-    database does not exist, it creates it. If it exists, it appends the new
-    data to it.
+    """Merges single culture data bases into a single data base.
+
+    If the database does not exist, it creates it. If it exists, it appends
+    the new data to it.
 
     Parameters
     ----------

@@ -16,6 +16,13 @@ from tumorsphere.core.spatial_hash_grid import SpatialHashGrid
 
 
 class Culture:
+    """
+    Class that represents a culture of cells.
+
+    This class handles the simulation, as well as some behavior of the cells,
+    such as reproduction.
+    """
+
     def __init__(
         self,
         output: TumorsphereOutput,
@@ -82,7 +89,6 @@ class Culture:
         active_cells : list[Cell]
             List of all active cells in the culture.
         """
-
         # cell attributes
         self.cell_max_repro_attempts = cell_max_repro_attempts
         self.adjacency_threshold = adjacency_threshold
@@ -127,8 +133,8 @@ class Culture:
     # ------------------cell related behavior------------------
 
     def generate_new_position(self, cell_index: int) -> np.ndarray:
-        """Generate a proposed position for the child cell, adjacent to the
-        given one.
+        """
+        Generate a proposed position for the child, adjacent to the given one.
 
         A new position for the child cell is randomly generated, at a distance
         equals to two times the radius of a cell (all cells are assumed to
@@ -175,7 +181,6 @@ class Culture:
         cells from the `active_cells` list when seting that to `False`, but
         the statement is kept as a way of double checking.
         """
-
         cell = self.cells[cell_index]
 
         if cell.available_space:
@@ -299,7 +304,6 @@ class Culture:
         num_times : int
             The number of time steps to simulate the cellular automaton.
         """
-
         # if the culture is brand-new, we create the tables of the DB and the
         # first cell
         if len(self.cells) == 0:
@@ -314,7 +318,7 @@ class Culture:
             )
 
             # we instantiate the first cell
-            first_cell_object = Cell(
+            Cell(
                 position=np.array([0, 0, 0]),
                 culture=self,
                 is_stem=self.first_cell_is_stem,

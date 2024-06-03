@@ -61,7 +61,6 @@ def plot_p_infty_vs_time(
     --------
     >>> plot_p_infty_vs_time(df_from_dbs, ps=[0.6, 0.7], pd=0.1)
     """
-
     # Ensure ps is a list
     if isinstance(ps, float):
         ps = [ps]
@@ -140,7 +139,8 @@ def plot_p_infty_vs_ps(
     plot_err_bars: bool = True,
     fit_with_y_err: bool = False,
 ) -> None:
-    """
+    """Plots and possibly fits P_infty as a function of ps.
+
     Plot P_infty as a function of ps for different time steps and for each pd,
     optionally fitting a function to the points.
 
@@ -187,7 +187,6 @@ def plot_p_infty_vs_ps(
     >>>     path_to_save='plot.png',
     >>> )
     """
-
     # Define color map for different time steps
     cmap = plt.cm.magma
 
@@ -299,10 +298,11 @@ def make_df_fitted_pc_vs_t(
     mean_df: pd.DataFrame, pd_value: float = 0.0, fit_with_uncert: bool = True
 ) -> pd.DataFrame:
     """
+    Obtains the fitted percolation probability as a function of time.
+
     Fits the function to the data for each time step and each pd, and returns
     a DataFrame with the fitted percolation probability and constant, along
     with their standard errors.
-
     It requires a DataFrame as output by `average_over_realizations`, with a
     column for the average of the 'active_stem_cells_indicator'.
 
