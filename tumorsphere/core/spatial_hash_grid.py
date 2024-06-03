@@ -3,7 +3,6 @@
 from collections import defaultdict
 from collections.abc import Iterable
 from itertools import chain, product
-from typing import Tuple
 
 import numpy as np
 

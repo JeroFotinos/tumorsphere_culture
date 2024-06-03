@@ -2,6 +2,7 @@ from typing import List, Union
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+
 import pandas as pd
 
 from tumorsphere.library.dataframe_generation import average_over_realizations
@@ -19,7 +20,7 @@ def plot_single_realization(
     plot_active_stem_cells: bool = True,
     log: bool = False,
 ) -> None:
-    """
+    r"""
     Plot the time evolution of the populations for a given realization.
 
     You can plot the total cells, active cells, stem cells, and active stem
@@ -61,8 +62,10 @@ def plot_single_realization(
 
     Examples
     --------
-    >>> plot_single_realization(df, culture_id=1, plot_total_cells=False, log=True)
-    >>> plot_single_realization(df, ps=0.6, pd=0.7, rng_seed=23, plot_active_cells=False)
+    >>> plot_single_realization(df, culture_id=1, \
+    ... plot_total_cells=False, log=True)
+    >>> plot_single_realization(df, ps=0.6, pd=0.7, \
+    ... rng_seed=23, plot_active_cells=False)
     """
 
     # Filter the DataFrame based on the provided parameters
@@ -74,7 +77,10 @@ def plot_single_realization(
     else:
         if ps is None or pd is None or rng_seed is None:
             raise ValueError(
-                "If culture_id is not provided, ps, pd, and rng_seed must be specified."
+                (
+                    "If culture_id is not provided, "
+                    "ps, pd, and rng_seed must be specified."
+                )
             )
         filtered_df = df[
             (df["ps"] == ps) & (df["pd"] == pd) & (df["rng_seed"] == rng_seed)
@@ -133,7 +139,8 @@ def plot_single_realization(
     plt.xlabel("Time")
     plt.ylabel("Cell Count")
     plt.title(
-        f"Time Evolution of Cell Populations with $p_s = ${ps} and $p_d = ${pd}"
+        "Time Evolution of Cell Populations "
+        f"with $p_s = ${ps} and $p_d = ${pd}"
     )
     plt.legend()
 
@@ -155,7 +162,8 @@ def plot_avg_evolution(
     log: bool = False,
 ) -> None:
     """
-    Plot the average time evolution of the populations for given values of ps and pd.
+    Plot the average time evolution of the populations for given values
+    of ps and pd.
 
     Parameters
     ----------
@@ -332,7 +340,10 @@ def plot_avg_evolution(
     plt.ylabel("Cell Count")
     if len(ps) == 1:
         plt.title(
-            f"Average Time Evolution of Cell Populations with $p_s = ${ps_value} and $p_d = ${pd}"
+            (
+                "Average Time Evolution of Cell Populations "
+                f"with $p_s = ${ps_value} and $p_d = ${pd}"
+            )
         )
     else:
         plt.title(

@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 import click
 
@@ -156,7 +155,7 @@ def simulate(
     grid_cube_size,
     grid_torus,
 ):
-    """
+    r"""
     Command-line interface for running the tumorsphere simulation.
 
     Parameters
@@ -192,12 +191,23 @@ def simulate(
     Examples
     --------
     >>> tumorsphere simulate --help
-    >>> tumorsphere simulate --prob-stem "0.6,0.7,0.8" --prob-diff "0" --realizations 5 --steps-per-realization 10 --rng-seed 1234 --parallel-processes 4 --sql False --dat-files True --ovito True
+    >>> tumorsphere simulate --prob-stem "0.6,0.7,0.8" \
+    ... --prob-diff "0" \
+    ... --realizations 5 \
+    ... --steps-per-realization 10 \
+    ... --rng-seed 1234 \
+    ... --parallel-processes 4 \
+    ... --sql False \
+    ... --dat-files True \
+    ... --ovito True
     """
     # Directory check and creation logic
     if not os.path.exists(output_dir):
         click.echo(
-            f"The specified output directory '{output_dir}' does not exist. Creating it..."
+            (
+                f"The specified output directory '{output_dir}' does not "
+                "exist. Creating it..."
+            )
         )
         os.makedirs(output_dir, exist_ok=True)
 
@@ -339,7 +349,7 @@ cli.add_command(mergedbs)
     ),
 )
 def makedf(db_path, csv_path, dat_files):
-    """Command-line interface that makes the DataFrame of population numbers
+    r"""Command-line interface that makes the DataFrame of population numbers
     for each simulated culture in a merged data base.
 
     Parameters
@@ -355,7 +365,8 @@ def makedf(db_path, csv_path, dat_files):
     Examples
     --------
     >>> tumorsphere makedf --help
-    >>> tumorsphere makedf --db-path ./merged.db --csv-path ./population_numbers.csv
+    >>> tumorsphere makedf --db-path ./merged.db --csv-path \
+    ... ./population_numbers.csv
     """
     if not dat_files:
         generate_dataframe_from_db(db_path, csv_path)

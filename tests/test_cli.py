@@ -4,7 +4,8 @@ import shutil
 from pathlib import Path
 
 import pandas as pd
-import pytest
+
+# import pytest
 
 # ---------- tumorsphere simulate command ----------
 
@@ -130,12 +131,18 @@ def test_cli_mergedbs(run_cli):
     )
 
     # Merge the databases
-    merge_command = f"tumorsphere mergedbs --dbs-folder {dbs_folder} --merging-path {merging_path}"
+    merge_command = (
+        f"tumorsphere mergedbs --dbs-folder {dbs_folder} "
+        f"--merging-path {merging_path}"
+    )
     stdout, stderr, returncode = run_cli(merge_command, cwd=str(cwd))
     assert returncode == 0, "Merging databases failed"
 
     # Compare the newly merged database with the correct version
-    compare_command = f"tumorsphere are-dbs-equal --db1 {correct_merged_db} --db2 {merging_path}"
+    compare_command = (
+        f"tumorsphere are-dbs-equal --db1 {correct_merged_db} "
+        f"--db2 {merging_path}"
+    )
     stdout, stderr, returncode = run_cli(compare_command, cwd=str(cwd))
     assert returncode == 0, "Command failed with an error"
     assert (
@@ -187,7 +194,10 @@ def test_cli_makedf__from_dat(run_cli):
     )
 
     # Generate the CSV from the .dat files
-    command = f"tumorsphere makedf --db-path {data_dir} --csv-path {csv_path} --dat-files True"
+    command = (
+        f"tumorsphere makedf --db-path {data_dir} --csv-path {csv_path} "
+        "--dat-files True"
+    )
     stdout, stderr, returncode = run_cli(command, cwd=str(cwd))
     assert returncode == 0, "Command failed with an error"
 

@@ -14,14 +14,20 @@ from typing import List, Union
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+
 import numpy as np
+
 import pandas as pd
+
 import scipy as sp
-import seaborn as sns
 from scipy.optimize import curve_fit
 from scipy.special import erf
 
-from tumorsphere.library.dataframe_generation import average_over_realizations
+import seaborn as sns
+
+# from tumorsphere.library.dataframe_generation import (
+#     average_over_realizations
+# )
 
 
 def plot_p_infty_vs_time(
@@ -81,7 +87,7 @@ def plot_p_infty_vs_time(
             ps_df["time"],
             ps_df["active_stem_cells_indicator"],
             yerr=ps_df["active_stem_cells_indicator_std"],
-            label=f"$P_\infty (t)$ for $p_s=${ps_value}",
+            label=rf"$P_\infty (t)$ for $p_s=${ps_value}",
             color=color,
             uplims=True,
             lolims=True,
@@ -90,8 +96,8 @@ def plot_p_infty_vs_time(
         )
 
     plt.xlabel("$t$")
-    plt.ylabel("$P_\infty$")
-    plt.title(f"$P_\infty (t)$ for $p_d = {pd}$")
+    plt.ylabel(r"$P_\infty$")
+    plt.title(rf"$P_\infty (t)$ for $p_d = {pd}$")
     plt.legend()
 
     if log:
@@ -272,14 +278,17 @@ def plot_p_infty_vs_ps(
             )
 
     # Set axis labels and legend
-    ax.set_xlabel("$p_s$", fontsize=14, color="black")
-    ax.set_ylabel("$P_{\infty}$", fontsize=14, color="black")
+    ax.set_xlabel(r"$p_s$", fontsize=14, color="black")
+    ax.set_ylabel(r"$P_{\infty}$", fontsize=14, color="black")
     ax.legend(title="Time Steps", bbox_to_anchor=(0.05, 1), loc="upper left")
     ax.grid(True)
 
     if save:
         if path_to_save is None:
-            path_to_save = f"p_infty_vs_ps_pd_{pd}_steps_{'_'.join(map(str, time_steps))}.png"
+            path_to_save = (
+                f"p_infty_vs_ps_pd_{pd}_"
+                f"steps_{'_'.join(map(str, time_steps))}.png"
+            )
         plt.savefig(path_to_save, dpi=dpi)
         plt.close(fig)  # Close the figure to free up memory
     else:
@@ -414,7 +423,10 @@ def plot_fitted_pc_vs_t(
     ax.set_xlabel("$t$", fontsize=12, color="black")
     ax.set_ylabel("$p_c$", fontsize=12, color="black")
     ax.set_title(
-        f"Fitted critic percolation probability vs time for $p_d = {pd_value}$",
+        (
+            "Fitted critic percolation probability vs time"
+            rf"for $p_d = {pd_value}$"
+        ),
         fontdict={"fontsize": 12},
     )
     ax.legend()
@@ -478,7 +490,8 @@ def plot_pinfty_heatmap_in_ps_vs_t(
     sns.heatmap(df_pivot, cmap="magma", annot=annotate, fmt=".2f")
 
     plt.title(
-        f"Heatmap of active_stem_cells_indicator by $p_s$ and $t$ for $p_d$ = {pd_value}"
+        "Heatmap of active_stem_cells_indicator by $p_s$ "
+        rf"and $t$ for $p_d$ = {pd_value}"
     )
     plt.xlabel("$t$")
     plt.ylabel("$p_s$")
@@ -584,24 +597,36 @@ if __name__ == "__main__":
     # generated from the standard `.db` merged database.
     db_files = True
 
-    csv_file = "/home/nate/Devel/tumorsphere_culture/examples/playground/df_simulations.csv"
-    plot1_output_path = "/home/nate/Devel/tumorsphere_culture/examples/playground/post_processed/p_infty_vs_ps"
-    plot2_output_path = "/home/nate/Devel/tumorsphere_culture/examples/playground/post_processed/pc_vs_t"
-    output_path = "/home/nate/Devel/tumorsphere_culture/examples/playground/post_processed/"
+    csv_file = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "playground/df_simulations.csv"
+    )
+    plot1_output_path = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "playground/post_processed/p_infty_vs_ps"
+    )
+    plot2_output_path = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "playground/post_processed/pc_vs_t"
+    )
+    output_path = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "playground/post_processed/"
+    )
 
-    set_plot_style()
-    df = read_data(csv_file)
-    if not db_files:
-        # db files don't have this need
-        df = add_zero_time_point(df)
-    df = add_active_stem_cells_indicator(df)
-    mean_df = average_over_realizations(df)
-    plot_p_infty_vs_ps(
-        mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0]
-    )
-    plot_p_infty_vs_ps_with_fit(
-        mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0]
-    )
-    plot_fitted_pc_vs_t(mean_df, plot2_output_path, pd_values=[0])
-    create_heatmap(mean_df, output_path, pd_values=[0])
-    create_pc_heatmap(mean_df, output_path, time_step=10)
+    # set_plot_style()
+    # df = read_data(csv_file)
+    # if not db_files:
+    #     # db files don't have this need
+    #     df = add_zero_time_point(df)
+    # df = add_active_stem_cells_indicator(df)
+    # mean_df = average_over_realizations(df)
+    # plot_p_infty_vs_ps(
+    #     mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0]
+    # )
+    # plot_p_infty_vs_ps_with_fit(
+    #     mean_df, [4, 6, 8, 10], plot1_output_path, pd_values=[0]
+    # )
+    # plot_fitted_pc_vs_t(mean_df, plot2_output_path, pd_values=[0])
+    # create_heatmap(mean_df, output_path, pd_values=[0])
+    # create_pc_heatmap(mean_df, output_path, time_step=10)
