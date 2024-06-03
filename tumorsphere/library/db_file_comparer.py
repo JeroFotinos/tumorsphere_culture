@@ -1,10 +1,21 @@
-"""Compares to `.db` files to see if they are EXACTLY the same. Might not be
-useful if different ordering of rows doesn't matter."""
+"""Compares to `.db` files to see if they are EXACTLY the same.
+
+Might not be useful if different ordering of rows doesn't matter.
+"""
 
 import sqlite3
 
 
 def compare_databases(db_path1, db_path2):
+    """Compare two SQLite databases.
+
+    Parameters
+    ----------
+    db_path1 : str
+        The path to the first database.
+    db_path2 : str
+        The path to the second database.
+    """
     # Connect to both databases
     conn1 = sqlite3.connect(db_path1)
     conn2 = sqlite3.connect(db_path2)

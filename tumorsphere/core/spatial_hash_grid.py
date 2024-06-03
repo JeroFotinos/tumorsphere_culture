@@ -10,6 +10,37 @@ import numpy as np
 
 
 class SpatialHashGrid:
+    """
+    A class representing a spatial hash grid in a culture.
+
+    Attributes
+    ----------
+    hash_table : Dict[Tuple[int, int, int], Set[int]]
+        A dictionary that maps the coordinates of the grid to the set of cell
+        indices that are in that cube.
+    culture : Culture, optional
+        The Culture to be spatially hashed. None at initialization, but
+        meant to be set by `tumorsphere.core.culture.Culture.__init__()`.
+    bounds : float, optional
+        The bounds of the grid. If None, the space is unbounded. If provided,
+        the space is bounded to the [0, bounds)^3 cube.
+    cube_size : float, optional
+        The size of the cubes in the grid. This value comes from considering
+        that cells have usually radius 1, so a cube of side `h=2r` is enough
+        to make sure that we only have to check superpositions with cells on
+        the same or first neighboring grid cells. Enlarge if using larger
+        cells.
+    torus : bool, optional
+        Whether the grid is a torus or not. If True, the grid is a torus, so
+        the cells that go out of the bounds appear on the other side of the
+        grid. If False, the grid is a bounded cube, so behavior should be
+        defined to manage what happens when cells go out of the bounds of the
+        simulation.
+    offsets : np.ndarray
+        The offsets to be added to the current bucket to get the adjacent
+        buckets. This is used to get the neighbors of a cell in the grid.
+    """
+
     def __init__(
         self,
         culture=None,  # type Culture, not declared to avoid circular imports
@@ -64,6 +95,7 @@ class SpatialHashGrid:
         return np.floor(position / self.cube_size).astype(int)
 
     def get_hash_key(self, position: np.ndarray) -> bytes:
+        """Get the hash key of a position as a bytes object."""
         return self.get_bucket_position(position).tobytes()
 
     def add_cell_to_hash_table(
@@ -95,7 +127,10 @@ class SpatialHashGrid:
         self,
         position: np.ndarray,
     ) -> np.ndarray:
-        """Get the updated position within the bounds of the grid, given
+        """
+        Get the updated position within the bounds of the grid.
+
+        Get the updated position within the bounds of the grid, given
         an old, out-of-bounds position.
 
         For a toroidal grid, positions wrap around the edges to the
@@ -138,14 +173,13 @@ class SpatialHashGrid:
 
     # @profile
     def find_neighbors(self, position: np.ndarray) -> Iterable:
-        """Returns the set of indexes of all existing cells within a 3D Moore
-        neighborhood of a given position.
+        """Returns set of cell indexes within a position's neighborhood.
 
         This method considers cells in the same and adjacent cubes as
-        neighbors. With this, the set of neighbors is the set of indexes of
-        existing cells that would neighbor a new cell in the provided
-        position. Note that acording to this, a cell is always a neighbor of
-        itself.
+        neighbors (3D Moore neighborhood). With this, the set of neighbors
+        is the set of indexes of existing cells that would neighbor a new cell
+        in the provided position. Note that acording to this, a cell is always
+        a neighbor of itself.
 
         Parameters
         ----------

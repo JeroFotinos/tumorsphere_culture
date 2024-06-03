@@ -9,6 +9,8 @@ def count_time_steps_of_cultures_in_dir(
     data_dir: str, dat_files: bool = False
 ) -> None:
     """
+    Print the time steps of each culture in the `data_dir` directory.
+
     Count the number of time steps of each culture in the `data_dir`
     directory, and print the steps to the console, indicating the parameters
     for each culture.

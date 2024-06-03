@@ -1,3 +1,5 @@
+"""Module for plotting the time evolution of the population numbers."""
+
 from typing import List, Union
 
 import matplotlib.cm as cm
@@ -67,7 +69,6 @@ def plot_single_realization(
     >>> plot_single_realization(df, ps=0.6, pd=0.7, \
     ... rng_seed=23, plot_active_cells=False)
     """
-
     # Filter the DataFrame based on the provided parameters
     if culture_id is not None:
         filtered_df = df[df["culture_id"] == culture_id]
@@ -162,8 +163,7 @@ def plot_avg_evolution(
     log: bool = False,
 ) -> None:
     """
-    Plot the average time evolution of the populations for given values
-    of ps and pd.
+    Plot the average time evolution of the populations for given ps and pd.
 
     Parameters
     ----------
@@ -193,7 +193,6 @@ def plot_avg_evolution(
     --------
     >>> plot_avg_evolution(df_from_dbs, ps=[0.6, 0.7], pd=0.1)
     """
-
     # Ensure ps is a list
     if isinstance(ps, float):
         ps = [ps]

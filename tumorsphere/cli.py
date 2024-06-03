@@ -1,3 +1,10 @@
+"""
+Module that provides a CLI for the tumorsphere package.
+
+Do `tumorsphere --help` for a list of available commands, and `tumorsphere
+COMMAND --help` for help on a specific command.
+"""
+
 import os
 
 import click
@@ -16,6 +23,7 @@ from tumorsphere.library.time_step_counter import (
 
 @click.group()
 def cli():
+    """Command-line interface for the tumorsphere package."""
     pass
 
 
@@ -261,7 +269,9 @@ cli.add_command(simulate)
     ),
 )
 def status(data_dir, dat_files):
-    """Command-line interface that prints the simulation time step each
+    """CLI that prints the time step for each simulation.
+
+    Command-line interface that prints the simulation time step each
     tumorsphere culture is in, indicating its parameters for identification
     purposes.
 
@@ -297,7 +307,9 @@ cli.add_command(status)
     help="Path and name of the merged `.db` file to append to or create",
 )
 def mergedbs(dbs_folder, merging_path):
-    """Command-line interface that merges single culture data bases into a
+    """CLI that merges data bases.
+
+    Command-line interface that merges single culture data bases into a
     single data base. If the database does not exist, it creates it. If it
     exists, it appends the new data to it.
 
@@ -349,8 +361,11 @@ cli.add_command(mergedbs)
     ),
 )
 def makedf(db_path, csv_path, dat_files):
-    r"""Command-line interface that makes the DataFrame of population numbers
-    for each simulated culture in a merged data base.
+    r"""CLI that makes the DataFrame of population numbers.
+
+    Command-line interface that makes the DataFrame of population numbers
+    for each simulated culture in a merged data base, or out of a set of
+    `.dat` files.
 
     Parameters
     ----------
@@ -406,7 +421,6 @@ def are_dbs_equal(db1, db2):
         bool
             True if the databases are equal, False otherwise.
     """
-
     return compare_databases(db1, db2)
 
 

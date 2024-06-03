@@ -1,4 +1,5 @@
-"""
+"""Module for generating a pandas DataFrame from simulation data.
+
 This module generate a pandas `DataFrame` with population numbers and data of
 the culture they are from, using the `.db` database or the old `.dat` files.
 Functions in this module can be imported without further consequences, but
@@ -64,8 +65,7 @@ def extract_params_from_filename(filename):
 
 def generate_dataframe_from_dat(data_dir):
     """
-    Load simulation data from a directory of .dat files into a pandas
-    DataFrame.
+    Load simulation data from a directory of .dat files into a DataFrame.
 
     Reads the files in the indicated directory. The files are supposed to be
     CSVs, containing four columns: numbers of total cells, active cells, stem
@@ -159,8 +159,7 @@ def generate_dataframe_from_dat(data_dir):
 
 
 def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
-    """Generate a pandas DataFrame from the given SQLite database and save it
-    as a CSV file.
+    """Generate DataFrame from the SQLite database and save it as a CSV file.
 
     The DataFrame will contain a row for each simulation time per culture,
     with the following columns:
@@ -207,7 +206,6 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
     --------
     >>> generate_dataframe("merged_database.sqlite", "output_dataframe.csv")
     """
-
     # Connect to the SQLite database
     with sqlite3.connect(db_path) as conn:
         # Query to get the maximum simulation time per culture
@@ -253,7 +251,8 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
                 SELECT COUNT(*),
                     COUNT(
                         CASE
-                            WHEN t_deactivation IS NULL OR t_deactivation > {time}
+                            WHEN t_deactivation IS NULL
+                                OR t_deactivation > {time}
                             THEN 1
                         END
                     )
@@ -338,11 +337,12 @@ def average_over_realizations(
     avg_stem_indicator: bool = False,
     calculate_stem_indicator: bool = False,
 ) -> pd.DataFrame:
-    """Computes the mean and standard deviation of the time evolution for the
-    cell numbers, for every ps and pd combination.
+    """Compute the mean time evolution for the cells.
 
-    We average the dataframe over the realizations (i.e., the rng_seed),
-    grouping by pd, ps and the time step.
+    Computes the mean and standard deviation of the time evolution for the
+    cell numbers, for every ps and pd combination. We average the dataframe
+    over the realizations (i.e., the rng_seed), grouping by pd, ps and the
+    time step.
 
     Parameters
     ----------
