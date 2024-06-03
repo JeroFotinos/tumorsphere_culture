@@ -37,7 +37,11 @@ def compare_databases(db_path1, db_path2):
             for i, (row1, row2) in enumerate(zip(rows1, rows2)):
                 if row1 != row2:
                     print(
-                        f"Row {i} is different:\n\tFirst DB: {row1}\n\tSecond DB: {row2}"
+                        (
+                            f"Row {i} is different:\n"
+                            f"\tFirst DB: {row1}\n"
+                            f"\tSecond DB: {row2}"
+                        )
                     )
             return False
 
@@ -46,6 +50,12 @@ def compare_databases(db_path1, db_path2):
 
 
 if __name__ == "__main__":
-    db_path1 = "/home/nate/Devel/tumorsphere_culture/examples/playground/merged_new_into_existing.db"
-    db_path2 = "/home/nate/Devel/tumorsphere_culture/examples/playground/merged_from_individual_cultures.db"
+    db_path1 = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "playground/merged_new_into_existing.db"
+    )
+    db_path2 = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "playground/merged_from_individual_cultures.db"
+    )
     compare_databases(db_path1, db_path2)

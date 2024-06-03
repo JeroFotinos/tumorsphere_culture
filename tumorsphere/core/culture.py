@@ -7,7 +7,6 @@ Classes:
 """
 
 from datetime import datetime
-from typing import Set
 
 import numpy as np
 

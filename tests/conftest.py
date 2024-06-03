@@ -1,4 +1,3 @@
-import os
 import sqlite3
 import subprocess
 import tempfile
@@ -20,7 +19,10 @@ def temp_db():
             cursor.execute(create_statement)
             for row in data.get(table, []):
                 cursor.execute(
-                    f"INSERT INTO {table} VALUES ({','.join('?' for _ in row)})",
+                    (
+                        f"INSERT INTO {table} VALUES ("
+                        f"{','.join('?' for _ in row)})"
+                    ),
                     row,
                 )
         conn.commit()
@@ -36,7 +38,8 @@ def temp_db():
 
 @pytest.fixture(scope="session")
 def run_cli():
-    """Fixture to run a CLI command and return its output, error, and exit status."""
+    """Fixture to run a CLI command and return its output, error, and exit
+    status."""
 
     def _run_cli(command, cwd=None):
         result = subprocess.run(
@@ -89,9 +92,11 @@ def compare_databases_ignore_timestamp(db_path1, db_path2):
     # from the Cultures table
     for table_name, _ in schema1:
         if table_name == "Cultures":
-            query = "SELECT culture_id, prob_stem, prob_diff, culture_seed, adjacency_threshold, swap_probability FROM {} ORDER BY rowid".format(
-                table_name
-            )
+            query = (
+                "SELECT culture_id, prob_stem, prob_diff, culture_seed, "
+                "adjacency_threshold, swap_probability "
+                "FROM {} ORDER BY rowid"
+            ).format(table_name)
         else:
             query = f"SELECT * FROM {table_name} ORDER BY rowid"
 
@@ -103,7 +108,11 @@ def compare_databases_ignore_timestamp(db_path1, db_path2):
             for i, (row1, row2) in enumerate(zip(rows1, rows2)):
                 if row1 != row2:
                     print(
-                        f"Row {i} is different:\n\tFirst DB: {row1}\n\tSecond DB: {row2}"
+                        (
+                            f"Row {i} is different:\n"
+                            f"\tFirst DB: {row1}\n"
+                            f"\tSecond DB: {row2}"
+                        )
                     )
             return False
 

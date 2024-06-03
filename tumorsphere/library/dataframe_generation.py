@@ -18,6 +18,7 @@ import os
 import sqlite3
 
 import numpy as np
+
 import pandas as pd
 
 # ------------------------ Functions for `.dat` files ------------------------
@@ -45,9 +46,10 @@ def extract_params_from_filename(filename):
 
     Notes
     -----
-    Parameter extraction from the filename is abstracted and separated into its own
-    function to keep the main data loading function cleaner and more focused. This can be
-    particularly useful if the file name parsing logic becomes more complex in the future.
+    Parameter extraction from the filename is abstracted and separated into
+    its own function to keep the main data loading function cleaner and more
+    focused. This can be particularly useful if the file name parsing logic
+    becomes more complex in the future.
 
     """
     # starting in 1 to remove the string "culture"
@@ -62,12 +64,14 @@ def extract_params_from_filename(filename):
 
 def generate_dataframe_from_dat(data_dir):
     """
-    Load simulation data from a directory of .dat files into a pandas DataFrame.
+    Load simulation data from a directory of .dat files into a pandas
+    DataFrame.
 
-    Reads the files in the indicated directory. The files are supposed to be CSVs,
-    containing four columns: numbers of total cells, active cells, stem cells and
-    active stem cells; in that order, as a function of time (each row representing
-    a time step). Also, the first row is skipped cause it contains headers.
+    Reads the files in the indicated directory. The files are supposed to be
+    CSVs, containing four columns: numbers of total cells, active cells, stem
+    cells and active stem cells; in that order, as a function of time (each
+    row representing a time step). Also, the first row is skipped cause it
+    contains headers.
 
     Parameters
     ----------
@@ -160,15 +164,24 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
 
     The DataFrame will contain a row for each simulation time per culture,
     with the following columns:
-    - "culture_id": the culture_id value for the culture referred to by that row
+    - "culture_id": the culture_id value for the culture referred to by that
+        row
     - "pd": the value of prob_diff for that culture
     - "ps": the value of prob_stem for that culture
     - "rng_seed": the culture_seed value for that culture
-    - "time": the simulation time. For each culture, there will be a row for each integer value starting from 0, up to the greatest t_creation of the cells in that culture.
-    - "total_cells": the number of cells in that culture with t_creation less or equal than the 'time' value for that row.
-    - "active_cells": the number of cells in that culture with null t_deactivation, or t_deactivation greater than the 'time' value for that row.
-    - "stem_cells": the number of cells that are stem cells at that time in that culture.
-    - "active_stem_cells": similar to 'stem_cells', but only counting the cells that also have null t_deactivation, or t_deactivation greater than the 'time' value for that row.
+    - "time": the simulation time. For each culture, there will be a row for
+        each integer value starting from 0, up to the greatest t_creation of
+        the cells in that culture.
+    - "total_cells": the number of cells in that culture with t_creation less
+        or equal than the 'time' value for that row.
+    - "active_cells": the number of cells in that culture with null
+        t_deactivation, or t_deactivation greater than the 'time' value for
+        that row.
+    - "stem_cells": the number of cells that are stem cells at that time in
+        that culture.
+    - "active_stem_cells": similar to 'stem_cells', but only counting the
+        cells that also have null t_deactivation, or t_deactivation greater
+        than the 'time' value for that row.
 
     Parameters
     ----------
@@ -180,7 +193,8 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
     Returns
     -------
     None
-        The function saves the DataFrame to the specified CSV file and does not return any value.
+        The function saves the DataFrame to the specified CSV file and does
+        not return any value.
 
     Raises
     ------
@@ -237,7 +251,12 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
                 # Query to get total_cells and active_cells
                 cells_query = f"""
                 SELECT COUNT(*),
-                    COUNT(CASE WHEN t_deactivation IS NULL OR t_deactivation > {time} THEN 1 END)
+                    COUNT(
+                        CASE
+                            WHEN t_deactivation IS NULL OR t_deactivation > {time}
+                            THEN 1
+                        END
+                    )
                 FROM Cells
                 WHERE culture_id = {culture_id} AND t_creation <= {time}
                 """
@@ -249,14 +268,20 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
                 stem_cells_query = f"""
                 SELECT COUNT(*)
                 FROM (
-                    SELECT cell_id, MAX(t_change) as latest_time, MAX(change_id) as latest_change_id
+                    SELECT cell_id,
+                        MAX(t_change) as latest_time,
+                        MAX(change_id) as latest_change_id
                     FROM StemChanges
                     WHERE t_change <= {time}
                     GROUP BY cell_id
                 ) AS latest_changes
-                JOIN StemChanges ON StemChanges.cell_id = latest_changes.cell_id AND StemChanges.change_id = latest_changes.latest_change_id
+                JOIN StemChanges
+                ON StemChanges.cell_id = latest_changes.cell_id
+                AND StemChanges.change_id = latest_changes.latest_change_id
                 JOIN Cells USING (cell_id)
-                WHERE is_stem = 1 AND culture_id = {culture_id} AND t_creation <= {time}
+                WHERE is_stem = 1
+                AND culture_id = {culture_id}
+                AND t_creation <= {time}
                 """
                 stem_cells = conn.execute(stem_cells_query).fetchone()[0]
 
@@ -264,14 +289,21 @@ def generate_dataframe_from_db(db_path: str, csv_path_and_name: str):
                 active_stem_cells_query = f"""
                 SELECT COUNT(*)
                 FROM (
-                    SELECT cell_id, MAX(t_change) as latest_time, MAX(change_id) as latest_change_id
+                    SELECT cell_id,
+                        MAX(t_change) as latest_time,
+                        MAX(change_id) as latest_change_id
                     FROM StemChanges
                     WHERE t_change <= {time}
                     GROUP BY cell_id
                 ) AS latest_changes
-                JOIN StemChanges ON StemChanges.cell_id = latest_changes.cell_id AND StemChanges.change_id = latest_changes.latest_change_id
+                JOIN StemChanges
+                ON StemChanges.cell_id = latest_changes.cell_id
+                AND StemChanges.change_id = latest_changes.latest_change_id
                 JOIN Cells USING (cell_id)
-                WHERE is_stem = 1 AND culture_id = {culture_id} AND t_creation <= {time} AND (t_deactivation IS NULL OR t_deactivation > {time})
+                WHERE is_stem = 1
+                AND culture_id = {culture_id}
+                AND t_creation <= {time}
+                AND (t_deactivation IS NULL OR t_deactivation > {time})
                 """
                 active_stem_cells = conn.execute(
                     active_stem_cells_query
@@ -380,14 +412,23 @@ if __name__ == "__main__":
     db_files = True
 
     # directories for `.dat` files
-    dat_data_dir = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/data/"
-    dat_save_path = "/home/nate/Devel/tumorsphere_culture/examples/multiprocessing_example/df_simulations.csv"
+    dat_data_dir = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "multiprocessing_example/data/"
+    )
+    dat_save_path = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "multiprocessing_example/df_simulations.csv"
+    )
 
     # directories for `.db` Data Base
     db_path = (
         "/home/nate/Devel/tumorsphere_culture/examples/playground/merged.db"
     )
-    db_csv_path_and_name = "/home/nate/Devel/tumorsphere_culture/examples/playground/df_simulations.csv"
+    db_csv_path_and_name = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "playground/df_simulations.csv"
+    )
 
     if db_files:
         generate_dataframe_from_db(db_path, db_csv_path_and_name)

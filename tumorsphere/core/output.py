@@ -179,7 +179,10 @@ class SQLOutput(TumorsphereOutput):
             cursor = self.conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO Cultures (prob_stem, prob_diff, culture_seed, simulation_start, adjacency_threshold, swap_probability)
+                INSERT INTO Cultures (
+                    prob_stem, prob_diff, culture_seed, simulation_start,
+                    adjacency_threshold, swap_probability
+                )
                 VALUES (?, ?, ?, ?, ?, ?);
             """,
                 (
@@ -213,7 +216,8 @@ class SQLOutput(TumorsphereOutput):
         with self.conn:
             cursor = self.conn.cursor()
 
-            # Recording (updating) the t_deactivation value for the specified cell
+            # Recording (updating) the t_deactivation value for the specified
+            # cell
             cursor.execute(
                 """
                 UPDATE Cells
@@ -239,7 +243,10 @@ class SQLOutput(TumorsphereOutput):
             cursor = self.conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO Cells (_index, parent_index, position_x, position_y, position_z, t_creation, culture_id)
+                INSERT INTO Cells (
+                    _index, parent_index, position_x, position_y, position_z,
+                    t_creation, culture_id
+                )
                 VALUES (?, ?, ?, ?, ?, ?, ?);
             """,
                 (
@@ -316,7 +323,10 @@ class DatOutput(TumorsphereOutput):
 
             # we save the data to the file
             datfile.write(
-                f"{num_cells}, {num_active}, {total_stem_counter}, {active_stem_counter} \n"
+                (
+                    f"{num_cells}, {num_active}, {total_stem_counter},"
+                    f" {active_stem_counter} \n"
+                )
             )
 
     def record_cell(
@@ -364,8 +374,11 @@ class OvitoOutput(TumorsphereOutput):
         with open(path_to_write, "w") as file_to_write:
             file_to_write.write(str(len(cells)) + "\n")
             file_to_write.write(
-                ' Lattice="1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:Color:r:1'
-                + "\n"
+                (
+                    ' Lattice="1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0"'
+                    "Properties=species:S:1:pos:R:3:Color:r:1"
+                    "\n"
+                )
             )
 
             for cell in cells:  # csc activas

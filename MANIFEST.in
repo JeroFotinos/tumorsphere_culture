@@ -7,7 +7,8 @@ recursive-include library *
 recursive-include .github *
 
 exclude requirements.txt
-# exclude tox.ini
+exclude tox.ini
+exclude dev-requirements.txt
 
 recursive-exclude tests *
 recursive-exclude data *

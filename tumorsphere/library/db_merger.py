@@ -181,7 +181,11 @@ def merge_db_files_in_dir_into_conn(
                 for culture in cultures:
                     cursor_merged.execute(
                         """
-                        INSERT INTO Cultures (prob_stem, prob_diff, culture_seed, simulation_start, adjacency_threshold, swap_probability)
+                        INSERT INTO Cultures (
+                            prob_stem, prob_diff, culture_seed,
+                            simulation_start, adjacency_threshold,
+                            swap_probability
+                        )
                         VALUES (?, ?, ?, ?, ?, ?);
                     """,
                         (
@@ -205,7 +209,10 @@ def merge_db_files_in_dir_into_conn(
                     # Insert into merged database and get the new cell_id
                     cursor_merged.execute(
                         """
-                        INSERT INTO Cells (_index, parent_index, position_x, position_y, position_z, t_creation, t_deactivation, culture_id)
+                        INSERT INTO Cells (
+                            _index, parent_index, position_x, position_y,
+                            position_z, t_creation, t_deactivation, culture_id
+                        )
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?);
                     """,
                         (

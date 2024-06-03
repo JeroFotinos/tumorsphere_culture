@@ -8,14 +8,17 @@ import os
 import sqlite3
 
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
+
 import networkx as nx
+from networkx import Graph
+
 import numpy as np
 
-# import plotly.express as px
 import plotly.graph_objects as go
-from matplotlib.widgets import Slider
-from networkx import Graph
+
 from scipy.spatial.transform import Rotation as R
+
 from sklearn.manifold import MDS
 
 # ----------------- Graph generation functions -----------------
@@ -24,7 +27,7 @@ from sklearn.manifold import MDS
 def generate_graph_at_fixed_time(
     db_path: str, culture_id: int, time: int, path_to_save: str
 ) -> None:
-    """Generate a directed graph from a database for a given culture_id at a
+    r"""Generate a directed graph from a database for a given culture_id at a
     fixed time and save it to a GraphML file.
 
     Parameters
@@ -50,11 +53,14 @@ def generate_graph_at_fixed_time(
     )
     >>> culture_id = 1
     >>> time = 5
-    >>> path_to_save = "/home/nate/Devel/tumorsphere_culture/examples/playground/"
+    >>> path_to_save = \
+    ... "/home/nate/Devel/tumorsphere_culture/examples/playground/"
     >>> generate_graph_at_fixed_time(db_path, culture_id, time, path_to_save)
 
-    >>> generate_graph_at_fixed_time("path/to/database.db", 42, 10, "path/to/save")
-    Graph saved to /home/nate/Devel/tumorsphere_culture/examples/playground/graph_culture_id=1_time=5.graphml
+    >>> generate_graph_at_fixed_time("path/to/database.db", 42, 10, \
+    ... "path/to/save")
+    Graph saved to /home/nate/Devel/tumorsphere_culture/examples/playground
+    /graph_culture_id=1_time=5.graphml
     """
 
     # Create a directed graph
@@ -64,9 +70,12 @@ def generate_graph_at_fixed_time(
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
 
-        # Query to get the cells for the given culture_id, including 3D positions
+        # Query to get the cells for the given culture_id, including 3D
+        # positions
         cells_query = """
-            SELECT cell_id, _index, parent_index, position_x, position_y, position_z, t_deactivation
+            SELECT cell_id,
+                _index, parent_index, position_x, position_y, position_z,
+                t_deactivation
             FROM Cells
             WHERE culture_id = ? AND t_creation <= ?
         """
@@ -170,7 +179,7 @@ def plot_static_graph_3D(
     sphere_radius: float = 1,
     sphere_opacity: float = 0.15,
 ) -> None:
-    """Plots in 3D the culture paternity graph (corresponding to a single
+    r"""Plots in 3D the culture paternity graph (corresponding to a single
     time).
 
     The nodes are plotted as colored markers, with the colors determined by
@@ -216,11 +225,14 @@ def plot_static_graph_3D(
     Examples
     --------
     >>> import networkx as nx
-    >>> path_of_saved_graph = '/home/nate/Devel/tumorsphere_culture/examples/playground/'
+    >>> path_of_saved_graph = \
+    ... '/home/nate/Devel/tumorsphere_culture/examples/playground/'
     >>> culture_id = 1
     >>> time = 5
-    >>> G = nx.read_graphml(os.path.join(path_to_save, f"graph_culture_id={culture_id}_time={time}.graphml"))
-    >>> plot_static_graph_3D(G, spheres=False, sphere_radius=1, sphere_opacity=0.15)
+    >>> G = nx.read_graphml(os.path.join(path_to_save, \
+    ... f"graph_culture_id={culture_id}_time={time}.graphml"))
+    >>> plot_static_graph_3D(G, spheres=False, sphere_radius=1, \
+    ... sphere_opacity=0.15)
     """
 
     # Lists to hold node coordinates and colors
@@ -480,7 +492,10 @@ if __name__ == "__main__":
     culture_id = 1
     time = 5
     path_to_save = "/home/nate/Devel/tumorsphere_culture/examples/playground/"
-    folder = "/home/nate/Devel/tumorsphere_culture/examples/playground/graph_evolution/"
+    folder = (
+        "/home/nate/Devel/tumorsphere_culture/examples/"
+        "playground/graph_evolution/"
+    )
 
     # # Generating the graph `.graphml` file
     # generate_graph_at_fixed_time(db_path, culture_id, time, path_to_save)
@@ -489,7 +504,9 @@ if __name__ == "__main__":
     # # load the graph from the `.graphml` file
     # G = nx.read_graphml(
     #     os.path.join(
-    #         path_to_save, f"graph_culture_id={culture_id}_time={time}.graphml"
+    #         path_to_save, (
+    #             f"graph_culture_id={culture_id}_time={time}.graphml"
+    #         )
     #     )
     # )
     # # Plotting in 3D space according to coordinates
