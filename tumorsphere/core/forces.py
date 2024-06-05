@@ -75,7 +75,8 @@ class Vicsek(Forces):
     ):  
         fx = 0
         fy = 0
-        dphi2 = np.mean([phies[cell_index], phies[neighbor_index]])-phies[cell_index]
+        alpha = np.arctan2(np.sin(phies[cell_index])+np.sin(phies[neighbor_index]),np.cos(phies[cell_index])+np.cos(phies[neighbor_index]))
+        dphi2 = alpha-phies[cell_index]
         return np.array([fx, fy, 0]), dphi2
 
 class Vicsek_and_Spring_Force(Forces):
@@ -96,7 +97,8 @@ class Vicsek_and_Spring_Force(Forces):
     ):  
         fx = -self.k_spring_force * (-relative_pos_x)   # OJO SIGNO
         fy = -self.k_spring_force * (-relative_pos_y)
-        dphi2 = np.mean([phies[cell_index], phies[neighbor_index]])-phies[cell_index]
+        alpha = np.arctan2(np.sin(phies[cell_index])+np.sin(phies[neighbor_index]),np.cos(phies[cell_index])+np.cos(phies[neighbor_index]))
+        dphi2 = alpha-phies[cell_index]
         return np.array([fx, fy, 0]), dphi2
     
 class Grossman(Forces):

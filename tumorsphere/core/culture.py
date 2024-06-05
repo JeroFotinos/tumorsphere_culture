@@ -35,7 +35,7 @@ class Culture:
         reproduction: bool = False,
         movement: bool = True,
         cell_area: float = np.pi,
-        stabilization_time: int = 100,
+        stabilization_time: int = 10,
         maximum_overlap: float = 1,
         delta_t: float = 0.1,
     ):
@@ -498,13 +498,22 @@ class Culture:
         -------
         -------
         """
-        # OJO SOLO SI SON TODAS IGUALES
         cell = self.cells[cell_index]
         neighbor = self.cells[neighbor_index]
         
-        s_epsA = (cell.aspect_ratio**2-1)/(cell.aspect_ratio**2+1)
-        I_0 = self.cell_area*np.sqrt((1-s_epsA**2)/(1-(s_epsA**2)*(np.cos(self.cell_phies[cell_index]-self.cell_phies[neighbor_index]))**2))
-        
+        #s_epsA = (cell.aspect_ratio**2-1)/(cell.aspect_ratio**2+1)
+        #I_0 = self.cell_area*np.sqrt((1-s_epsA**2)/(1-(s_epsA**2)*(np.cos(self.cell_phies[cell_index]-self.cell_phies[neighbor_index]))**2))
+        eps_cell = (cell.aspect_ratio**2-1)/(cell.aspect_ratio**2+1)
+        alpha_cell = cell.semi_axis()[0]*(cell.aspect_ratio**2+1)
+
+        eps_neighbor = (neighbor.aspect_ratio**2-1)/(neighbor.aspect_ratio**2+1)
+        alpha_neighbor = neighbor.semi_axis()[0]*(neighbor.aspect_ratio**2+1)
+
+        I_1 = (4*np.pi*cell.semi_axis()[0]*cell.semi_axis()[1]*neighbor.semi_axis()[0]*neighbor.semi_axis()[1])
+        I_2 = (alpha_cell+alpha_neighbor)**2-(alpha_cell*eps_cell-alpha_neighbor*eps_neighbor)**2-4*alpha_cell*eps_cell*alpha_neighbor*eps_neighbor*(np.cos(self.cell_phies[cell_index]-self.cell_phies[neighbor_index]))**2
+
+        I_0 = I_1/np.sqrt(I_2)
+
         Q_cell = np.array([
             [np.cos(2*self.cell_phies[cell_index]),np.sin(2*self.cell_phies[cell_index]), 0],
             [np.sin(2*self.cell_phies[cell_index]),-np.cos(2*self.cell_phies[cell_index]), 0],
@@ -519,14 +528,11 @@ class Culture:
 
         relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
 
-        matriz = np.identity(3)-(s_epsA/2)*(Q_cell+Q_neighbor)
-        #num = np.matmul(relative_pos, np.matmul(matriz, relative_pos))
-        #num = np.dot(relative_pos, np.dot(matriz, relative_pos))
-        num = relative_pos @ matriz @ relative_pos
-        denom = 2*(1-s_epsA**2*(np.cos(self.cell_phies[cell_index]-self.cell_phies[neighbor_index]))**2)*(self.cell_area/np.pi)*(cell.aspect_ratio+1/cell.aspect_ratio)
+        matriz = np.identity(3)-(alpha_cell*eps_cell*Q_cell+alpha_neighbor*eps_neighbor*Q_neighbor)/(alpha_cell+alpha_neighbor)
+        mult_mat = relative_pos @ matriz @ relative_pos
+        cte = (alpha_cell+alpha_neighbor)/I_2
 
-
-        overlap = I_0*np.exp(-num/denom)
+        overlap = I_0*np.exp(-cte*mult_mat)
         # we return the overlap between the cell and its neighbor
         return overlap 
     
@@ -569,10 +575,10 @@ class Culture:
             # distance relative to the square and angle necessary for the interaction
             distance_sq = relative_pos_x**2 + relative_pos_y**2
 
-            #overlap = self.calculate_overlap(cell_index, neighbor_index, relative_pos_x, relative_pos_y)
-            #if overlap>self.maximum_overlap:
+            overlap = self.calculate_overlap(cell_index, neighbor_index, relative_pos_x, relative_pos_y)
+            if overlap>self.maximum_overlap:
             #if distance_sq < (2*self.cells[cell_index].semi_axis()[1]) ** 2:
-            if distance_sq < (self.cells[cell_index].semi_axis()[1]+self.cells[neighbor_index].semi_axis()[1]) ** 2:
+            #if distance_sq < (self.cells[cell_index].semi_axis()[1]+self.cells[neighbor_index].semi_axis()[1]) ** 2:
                 force2, dphi2 = self.type_force.calculate_force(
                     self.cells,
                     self.cell_phies,
@@ -584,8 +590,6 @@ class Culture:
                 )
                 force = force+force2
                 dphi = dphi+dphi2
-
-            #print(overlap)
                 
 
         dif_position = (cell.velocity() + force) * delta_t
