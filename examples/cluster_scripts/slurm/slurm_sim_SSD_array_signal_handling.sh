@@ -44,11 +44,13 @@ scratch_dir="/scratch/${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 mkdir -p "$scratch_dir"
 
 # Creating a new directory in the user's home to store the results (unique for each array task)
-final_output_dir="$HOME/data_${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
+final_output_dir="$HOME/tumoresfera/sim_18/data_${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 mkdir -p "$final_output_dir"
 
 # Mapping SLURM_ARRAY_TASK_ID to the desired prob-stem value
-prob_stem=$(echo "scale=1; 0.1 * ${SLURM_ARRAY_TASK_ID}" | bc)
+# prob_stem=$(echo "scale=1; 0.1 * ${SLURM_ARRAY_TASK_ID}" | bc)
+prob_stem="0.$SLURM_ARRAY_TASK_ID"
+echo "prob_stem: $prob_stem"
 
 # Activate the conda environment
 source ~/miniconda3/bin/activate
