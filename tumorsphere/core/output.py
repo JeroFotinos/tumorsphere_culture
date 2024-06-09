@@ -36,6 +36,7 @@ class TumorsphereOutput(ABC):
         cell_positions,
         active_cell_indexes,
         side,
+        cell_area,
     ):
         pass
 
@@ -90,6 +91,7 @@ class OutputDemux(TumorsphereOutput):
         cell_positions,
         active_cell_indexes,
         side,
+        cell_area,
     ):
         for result in self.result_list:
             result.record_culture_state(
@@ -98,6 +100,7 @@ class OutputDemux(TumorsphereOutput):
                 cell_positions,
                 active_cell_indexes,
                 side,
+                cell_area,
             )
 
     def record_cell(
@@ -235,6 +238,7 @@ class SQLOutput(TumorsphereOutput):
         cell_positions,
         active_cell_indexes,
         side,
+        cell_area,
     ):
         pass
 
@@ -303,6 +307,7 @@ class DatOutput(TumorsphereOutput):
         cell_positions,
         active_cell_indexes,
         side,
+        cell_area,
     ):
         with open(self.filename, "a") as datfile:
             # we count the total number of cells and active cells
@@ -362,11 +367,12 @@ class OvitoOutput(TumorsphereOutput):
         cell_positions,
         active_cell_indexes,
         side,
+        cell_area,
     ):
         """Writes the data file in path for ovito, for time step t of self.
         Auxiliar function for simulate_with_ovito_data.
         """
-        if np.mod(tic, self.save_step)==0:
+        if np.mod(tic, self.save_step) == 0:
             path_to_write = os.path.join(
                 self.output_dir, f"ovito_data_{self.culture_name}.{tic:03}"
             )
@@ -383,19 +389,22 @@ class OvitoOutput(TumorsphereOutput):
                 )
                 for cell in cells:
                     if cell.is_stem and cell.available_space:
-                        semi_minor_axis, semi_major_axis = cell.semi_axis()
                         phi = cell.culture.cell_phies[cell._index]
                         line = (
-                            ("active_stem " if cell.culture.cell_phies[cell._index] is None  else "cell ")
+                            (
+                                "active_stem "
+                                if cell.culture.cell_phies[cell._index] is None
+                                else "cell "
+                            )
                             + str(cell_positions[cell._index][0])
                             + " "
                             + str(cell_positions[cell._index][1])
                             + " "
                             + str(cell_positions[cell._index][2])
                             + " "
-                            + f"{1 if phi is None else semi_major_axis}" # aspherical shape x
+                            + f"{1 if phi is None else np.sqrt((cell_area*cell.aspect_ratio)/np.pi)}"  # aspherical shape x
                             + " "
-                            + f"{1 if phi is None else semi_minor_axis}" # aspherical shape y
+                            + f"{1 if phi is None else np.sqrt(cell_area/(np.pi*cell.aspect_ratio))}"  # aspherical shape y
                             + " "
                             + "1"  # aspherical shape z
                             + " "

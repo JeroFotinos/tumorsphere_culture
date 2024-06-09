@@ -39,7 +39,7 @@ class Cell:
     Methods
     -------
     __init__(
-        position, culture, is_stem, phi=None, aspect_ratio=1, parent_index=0, 
+        position, culture, is_stem, phi=None, aspect_ratio=1, parent_index=0,
         parent_index=0, available_space=True
         )
         Initializes the Cell object and sets the _index attribute
@@ -66,7 +66,7 @@ class Cell:
         culture: "Culture",
         is_stem: bool,
         phi: float = None,
-        aspect_ratio: float = 1, 
+        aspect_ratio: float = 1,
         parent_index: Optional[int] = 0,
         available_space: bool = True,  # not to be set by user
         creation_time: int = 0,
@@ -133,98 +133,6 @@ class Cell:
         )
 
     # ---------------------------------------------------------
-    def semi_axis(self):
-        """
-        It calculates the semi-major and semi-minor axis given the area of the cell and
-        the aspect ratio.
-
-        Returns
-        -------
-        semi_minor_axis: float
-            The length of the semi-minor axis of the cell, the shortest radius.
-        semi_major_axis: float
-            The length of the semi-major axis of the cell, the longest radius.
-
-
-        Notes
-        -----
-        We use the fact that aspect_ratio = semi_major_axis/semi_minor_axis and 
-        cell_area = np.pi*semi_major_axis*semi_minor_axis to calculate them
-
-        """
-        semi_minor_axis = np.sqrt(self.culture.cell_area/(np.pi*self.aspect_ratio))
-        semi_major_axis = np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
-
-        return semi_minor_axis, semi_major_axis
-    # ---------------------------------------------------------
-    def derived_parameters(self, kRep, bExp): #, semi_minor_axis, semi_major_axis):
-        """
-        It calculates some parameters that are derived from attributes of the cell and 
-        the culture, and are necessary for the interaction.
-
-        Parameters
-        ----------
-        kRep : float
-            ?
-        kExp : float
-            ?
-
-        Returns
-        -------
-        #
-        """
-
-        # parámetros derivados
-
-        # anisotropy (global)
-        s_epsA = (self.aspect_ratio**2-1)/(self.aspect_ratio**2+1)
-        s_epsA2 = s_epsA * s_epsA
-        s_epsA05 = s_epsA / 2.0
-
-        # diagonal squared (global)
-        s_diag2 = (self.culture.cell_area/np.pi)*(self.aspect_ratio+1/self.aspect_ratio)
-
-        # longitudinal & transversal mobility
-        if self.aspect_ratio != 1: #np.close?
-            mP = (
-                1
-                / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
-                * (3 * self.aspect_ratio / 4.0)
-                * (
-                    (self.aspect_ratio) / (1 - self.aspect_ratio**2)
-                    + (2.0 * self.aspect_ratio**2 - 1.0)
-                    / np.power(self.aspect_ratio**2 - 1.0, 1.5)
-                    * np.log(self.aspect_ratio + np.sqrt(self.aspect_ratio**2 - 1.0))
-                )
-            )
-            mS = (
-                1
-                / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
-                * (3 * self.aspect_ratio / 8.0)
-                * (
-                    (self.aspect_ratio) / (self.aspect_ratio**2 - 1.0)
-                    + (2.0 * self.aspect_ratio**2 - 3.0)
-                    / np.power(self.aspect_ratio**2 - 1.0, 1.5)
-                    * np.log(self.aspect_ratio + np.sqrt(self.aspect_ratio**2 - 1.0))
-                )
-            )
-        else:
-            mP = 1 / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
-            mS = 1 / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
-
-        # rotational mobility
-        mR = 3.0 / (2.0 * s_diag2) * mP
-        # sum and difference of mobility tensor elements
-        s_SmPmS = (mP + mS) / 2.0
-        s_DmPmS = (mP - mS) / 2.0
-
-        # repulsion & torque strength
-        s_Rep = kRep * bExp / s_diag2
-        s_Rot = mR * kRep * bExp / s_diag2
-        # return of all the parameters
-        return s_Rot, s_Rep, s_DmPmS, s_SmPmS, s_epsA05, s_epsA2, s_diag2
-
-    # ---------------------------------------------------------
     def velocity(self):
         """
         It returns the velocity vector of the given cell.
@@ -236,29 +144,31 @@ class Cell:
         """
 
         # longitudinal & transversal mobility
-        if self.aspect_ratio != 1: #np.close?
+        if self.aspect_ratio != 1:  # np.close?
             mP = (
                 1
-                / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
+                / np.sqrt((self.culture.cell_area * self.aspect_ratio) / np.pi)
                 * (3 * self.aspect_ratio / 4.0)
                 * (
                     (self.aspect_ratio) / (1 - self.aspect_ratio**2)
                     + (2.0 * self.aspect_ratio**2 - 1.0)
                     / np.power(self.aspect_ratio**2 - 1.0, 1.5)
-                    * np.log(self.aspect_ratio + np.sqrt(self.aspect_ratio**2 - 1.0))
+                    * np.log(
+                        self.aspect_ratio + np.sqrt(self.aspect_ratio**2 - 1.0)
+                    )
                 )
             )
         else:
-            mP = 1 / np.sqrt((self.culture.cell_area*self.aspect_ratio)/np.pi)
+            mP = 1 / np.sqrt(
+                (self.culture.cell_area * self.aspect_ratio) / np.pi
+            )
 
         # we suppose kProp linear with s_epsA
-        s_epsA = (self.aspect_ratio**2-1)/(self.aspect_ratio**2+1)
-        kProp = s_epsA 
+        s_epsA = (self.aspect_ratio**2 - 1) / (self.aspect_ratio**2 + 1)
+        kProp = s_epsA
         s_v0 = kProp * mP
 
-
-
-        return s_v0*np.array(
+        return s_v0 * np.array(
             [
                 np.cos(self.culture.cell_phies[self._index]),
                 np.sin(self.culture.cell_phies[self._index]),
