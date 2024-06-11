@@ -59,22 +59,22 @@ source ~/miniconda3/bin/activate
 conda activate sim_17_venv
 
 # Logging start time
-echo "$(date +"%H:%M:%S"): Calling srun from $(hostname)"
+echo "$(date +"%Y-%m-%d %H:%M:%S"): Calling srun from $(hostname)"
 
 # # Merging databases
-# echo "$(date +"%H:%M:%S"): Merge databases"
+# echo "$(date +"%Y-%m-%d %H:%M:%S"): Merge databases"
 # srun tumorsphere mergedbs --dbs-folder "$dbs_folder" --merging-path "$merging_path"
-# echo "$(date +"%H:%M:%S"): Databases merged"
+# echo "$(date +"%Y-%m-%d %H:%M:%S"): Databases merged"
 
 
 # Making the DataFrame from .dat files
-echo "$(date +"%H:%M:%S"): Making the DataFrame from .dat files"
+echo "$(date +"%Y-%m-%d %H:%M:%S"): Making the DataFrame from .dat files"
 srun tumorsphere makedf --dat-folder "$dat_folder" --csv-path "$base_dir/sim_17_from_dat.csv" --dat-files True
-echo "$(date +"%H:%M:%S"): DataFrame made"
+echo "$(date +"%Y-%m-%d %H:%M:%S"): DataFrame made"
 
 
 # Making the DataFrame from the merged database
-echo "$(date +"%H:%M:%S"): Making the DataFrame from the merged database"
+echo "$(date +"%Y-%m-%d %H:%M:%S"): Making the DataFrame from the merged database"
 srun tumorsphere makedf --db-path "$db_path" --csv-path "$csv_path" --dat-files False
-echo "$(date +"%H:%M:%S"): DataFrame made"
+echo "$(date +"%Y-%m-%d %H:%M:%S"): DataFrame made"
 

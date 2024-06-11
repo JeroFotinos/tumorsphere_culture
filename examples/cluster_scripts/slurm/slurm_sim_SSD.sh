@@ -51,12 +51,12 @@ source ~/miniconda3/bin/activate
 conda activate sim_17_venv
 
 # Logging start time
-echo "$(date +"%H:%M:%S"): Calling srun from $(hostname)"
+echo "$(date +"%Y-%m-%d %H:%M:%S"): Calling srun from $(hostname)"
 
 # Call srun to execute the actual simulation
 srun tumorsphere simulate --prob-stem "$prob_stem" --prob-diff "0" --realizations 64 --steps-per-realization 50 --rng-seed 1292317634567 --parallel-processes 64 --sql True --dat-files True --ovito False --output-dir "$scratch_dir"
 
 # Save results after srun completes (copying from scratch to user's home)
-echo "$(date +"%H:%M:%S"): Saving results"
+echo "$(date +"%Y-%m-%d %H:%M:%S"): Saving results"
 sgather -rp "$scratch_dir" "$final_output_dir"
-echo "$(date +"%H:%M:%S"): Results saved"
+echo "$(date +"%Y-%m-%d %H:%M:%S"): Results saved"
