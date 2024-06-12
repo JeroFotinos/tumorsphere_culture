@@ -98,6 +98,13 @@ class Cell:
         available_space : bool, default=True
             Whether the cell has available space around it or not.
 
+        Notes
+        ------
+        Having the aspect ratio of the cell and if every cell has the same area,
+        we can calculate the semi major axis (l_par) and semi minor axis (l_perp)
+        with:
+        l_par = np.sqrt((cell_area*cell.aspect_ratio)/np.pi)
+        l_perp = sqrt(cell_area/(np.pi*cell.aspect_ratio))
         """
         self.culture = culture
         self.is_stem = is_stem

@@ -68,6 +68,107 @@ class Spring_Force(Force):
 
         return np.array([fx, fy, 0]), dphi2
 
+    """Grossman force with the extra term of the LB code"""
+
+    def __init__(
+        self,
+        k_spring_force: float = 0.5,
+    ):
+        super().__init__(k_spring_force)
+
+    def calculate_force(
+        self,
+        cells,
+        phies,
+        cell_index,
+        neighbor_index,
+        relative_pos_x,
+        relative_pos_y,
+        delta_t,
+        area,
+    ):
+        force_paper, dphi_paper = super().calculate_force(
+            cells,
+            phies,
+            cell_index,
+            neighbor_index,
+            relative_pos_x,
+            relative_pos_y,
+            delta_t,
+            area,
+        )
+
+        cell = cells[cell_index]
+
+        # we calculate the mobilities
+        # longitudinal & transversal mobility
+        if np.isclose(cell.aspect_ratio, 1):
+            mP = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
+            mS = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
+        else:
+            mP = (
+                1
+                / np.sqrt((area * cell.aspect_ratio) / np.pi)
+                * (3 * cell.aspect_ratio / 4.0)
+                * (
+                    (cell.aspect_ratio) / (1 - cell.aspect_ratio**2)
+                    + (2.0 * cell.aspect_ratio**2 - 1.0)
+                    / np.power(cell.aspect_ratio**2 - 1.0, 1.5)
+                    * np.log(
+                        cell.aspect_ratio + np.sqrt(cell.aspect_ratio**2 - 1.0)
+                    )
+                )
+            )
+            mS = (
+                1
+                / np.sqrt((area * cell.aspect_ratio) / np.pi)
+                * (3 * cell.aspect_ratio / 8.0)
+                * (
+                    (cell.aspect_ratio) / (cell.aspect_ratio**2 - 1.0)
+                    + (2.0 * cell.aspect_ratio**2 - 3.0)
+                    / np.power(cell.aspect_ratio**2 - 1.0, 1.5)
+                    * np.log(
+                        cell.aspect_ratio + np.sqrt(cell.aspect_ratio**2 - 1.0)
+                    )
+                )
+            )
+
+        # rotational mobility
+        mR = (
+            3
+            / (
+                2
+                * (area / np.pi)
+                * (cell.aspect_ratio + 1 / cell.aspect_ratio)
+            )
+            * mP
+        )
+
+        # and the matrix Q
+        Q_cell = np.array(
+            [
+                [
+                    np.cos(2 * phies[cell_index]),
+                    np.sin(2 * phies[cell_index]),
+                    0,
+                ],
+                [
+                    np.sin(2 * phies[cell_index]),
+                    -np.cos(2 * phies[cell_index]),
+                    0,
+                ],
+                [0, 0, 0],
+            ]
+        )
+
+        # and finally the force and dphi:
+        force = np.matmul(
+            ((mP + mS) / 2) * np.identity(3) + ((mP - mS) / 2) * Q_cell,
+            force_paper,
+        )
+        dphi = mR * dphi_paper
+        return force, dphi
+
 
 class Vicsek(Force):
     def __init__(self):
@@ -145,7 +246,7 @@ class Grossman(Force):
 
         cell = cells[cell_index]
 
-        # we first calculate the kernel, using f[ξ]=ξ**lambda. ξ=xi from the paper
+        # we first calculate the kernel, using f[ξ]=ξ**gamma. ξ=xi from the paper
         # We introduce some matrix/vectors/parameters that we need
 
         # nematic matrix
@@ -202,7 +303,7 @@ class Grossman(Force):
             / (2 * (1 - eps**2 * (np.cos(relative_angle)) ** 2) * diag2)
         )
 
-        # the kernel is: (k_rep = k, b_exp=lambda (from the paper))
+        # the kernel is: (k_rep = k, b_exp=gamma (from the paper))
         kernel = (self.kRep * self.bExp * xi**self.bExp) / (
             diag2 * (1 - eps**2 * (np.cos(relative_angle)) ** 2)
         )
@@ -213,12 +314,13 @@ class Grossman(Force):
         )
 
         # On the other way, we calculate the torque
-        # we introduce the alpha=angle of r_kj
-        alpha = np.arctan2(relative_pos_y, relative_pos_x)
+        # we introduce the theta = angle of r_kj
+        theta = np.arctan2(relative_pos_y, relative_pos_x)
         torque = (kernel / 2) * (
             eps
-            * (relative_pos_x**2 + relative_pos_y**2)
-            * np.sin(2 * (phies[cell_index] - alpha))
+            * np.linalg.norm(relative_pos)
+            ** 2  # (relative_pos_x**2 + relative_pos_y**2)
+            * np.sin(2 * (phies[cell_index] - theta))
             + eps**2
             * (
                 np.matmul(
@@ -344,8 +446,268 @@ class Grossman_LB_Code(Grossman):
 class Anisotropic_Grossman(Force):
     """Anisotropic Grossman force"""
 
-    pass
+    def __init__(
+        self,
+        kRep: float = 10,
+        bExp: float = 3,
+    ):
+        self.kRep = kRep
+        self.bExp = bExp
+
+    def calculate_force(
+        self,
+        cells,
+        phies,
+        cell_index,
+        neighbor_index,
+        relative_pos_x,
+        relative_pos_y,
+        delta_t,
+        area,
+    ):
+
+        cell = cells[cell_index]
+        neighbor = cells[neighbor_index]
+        # we first calculate the kernel, using f[ξ]=ξ**gamma. ξ=xi calculated
+        # We introduce some matrix/vectors/parameters that we need
+
+        # nematic matrix
+        Q_cell = np.array(
+            [
+                [
+                    np.cos(2 * phies[cell_index]),
+                    np.sin(2 * phies[cell_index]),
+                    0,
+                ],
+                [
+                    np.sin(2 * phies[cell_index]),
+                    -np.cos(2 * phies[cell_index]),
+                    0,
+                ],
+                [0, 0, 0],
+            ]
+        )
+
+        Q_neighbor = np.array(
+            [
+                [
+                    np.cos(2 * phies[neighbor_index]),
+                    np.sin(2 * phies[neighbor_index]),
+                    0,
+                ],
+                [
+                    np.sin(2 * phies[neighbor_index]),
+                    -np.cos(2 * phies[neighbor_index]),
+                    0,
+                ],
+                [0, 0, 0],
+            ]
+        )
+
+        # relative position and angle
+        relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
+        relative_angle = phies[cell_index] - phies[neighbor_index]
+
+        # anisotropy
+        eps_cell = (cell.aspect_ratio**2 - 1) / (cell.aspect_ratio**2 + 1)
+        eps_neighbor = (neighbor.aspect_ratio**2 - 1) / (
+            neighbor.aspect_ratio**2 + 1
+        )
+        # diagonal squared (what whe call alpha)
+        alpha_cell = (area / np.pi) * (
+            cell.aspect_ratio + 1 / cell.aspect_ratio
+        )
+        alpha_neighbor = (area / np.pi) * (
+            neighbor.aspect_ratio + 1 / neighbor.aspect_ratio
+        )
+
+        # we now calculate the mean nematic matrix (different than before)
+        mean_nematic = (
+            alpha_cell * eps_cell * Q_cell
+            + alpha_neighbor * eps_neighbor * Q_neighbor
+        ) / (alpha_cell + alpha_neighbor)
+
+        # and now we can calculate xi
+        xi = np.exp(
+            -1
+            * (
+                (alpha_cell + alpha_neighbor)
+                / (
+                    (alpha_cell + alpha_neighbor) ** 2
+                    - (alpha_cell * eps_cell + alpha_neighbor * eps_neighbor)
+                    ** 2
+                    - 4
+                    * alpha_cell
+                    * eps_cell
+                    * alpha_neighbor
+                    * eps_neighbor
+                    * np.cos(relative_angle) ** 2
+                )
+            )
+            * np.matmul(
+                relative_pos,
+                np.matmul(np.identity(3) - mean_nematic, relative_pos),
+            )
+        )
+        # the kernel is: (k_rep = k, b_exp=gamma (from the paper))
+        kernel = (
+            2
+            * self.kRep
+            * self.bExp
+            * xi**self.bExp
+            * (
+                (alpha_cell + alpha_neighbor)
+                / (
+                    (alpha_cell + alpha_neighbor) ** 2
+                    - (alpha_cell * eps_cell + alpha_neighbor * eps_neighbor)
+                    ** 2
+                    - 4
+                    * alpha_cell
+                    * eps_cell
+                    * alpha_neighbor
+                    * eps_neighbor
+                    * np.cos(relative_angle) ** 2
+                )
+            )
+        )
+
+        # finally we can calculate the force:
+        force = kernel * np.matmul(np.identity(3) - mean_nematic, relative_pos)
+
+        # On the other way, we calculate the torque
+        # we introduce the theta=angle of r_kj
+        theta = np.arctan2(relative_pos_y, relative_pos_x)
+        torque = kernel * (
+            (
+                (
+                    2
+                    * alpha_cell
+                    * eps_cell
+                    * alpha_neighbor
+                    * eps_neighbor
+                    * np.sin(-2 * relative_angle)
+                )
+                / (
+                    (alpha_cell + alpha_neighbor) ** 2
+                    - (alpha_cell * eps_cell + alpha_neighbor * eps_neighbor)
+                    ** 2
+                    - 4
+                    * alpha_cell
+                    * eps_cell
+                    * alpha_neighbor
+                    * eps_neighbor
+                    * np.cos(relative_angle) ** 2
+                )
+            )
+            * np.matmul(
+                relative_pos,
+                np.matmul(np.identity(3) - mean_nematic, relative_pos),
+            )
+            + (alpha_cell * eps_cell / (alpha_cell + alpha_neighbor))
+            * np.linalg.norm(relative_pos) ** 2
+            * np.sin(2 * (phies[cell_index] - theta))
+        )
+        dphi = torque * delta_t
+        return force, dphi
 
 
 class Anisotropic_Grossman_LB_Code(Anisotropic_Grossman):
-    pass
+    def __init__(
+        self,
+        kRep: float = 10,
+        bExp: float = 3,
+    ):
+        super().__init__(kRep, bExp)
+
+    def calculate_force(
+        self,
+        cells,
+        phies,
+        cell_index,
+        neighbor_index,
+        relative_pos_x,
+        relative_pos_y,
+        delta_t,
+        area,
+    ):
+        force_paper, dphi_paper = super().calculate_force(
+            cells,
+            phies,
+            cell_index,
+            neighbor_index,
+            relative_pos_x,
+            relative_pos_y,
+            delta_t,
+            area,
+        )
+
+        cell = cells[cell_index]
+
+        # we calculate the mobilities
+        # longitudinal & transversal mobility
+        if np.isclose(cell.aspect_ratio, 1):
+            mP = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
+            mS = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
+        else:
+            mP = (
+                1
+                / np.sqrt((area * cell.aspect_ratio) / np.pi)
+                * (3 * cell.aspect_ratio / 4.0)
+                * (
+                    (cell.aspect_ratio) / (1 - cell.aspect_ratio**2)
+                    + (2.0 * cell.aspect_ratio**2 - 1.0)
+                    / np.power(cell.aspect_ratio**2 - 1.0, 1.5)
+                    * np.log(
+                        cell.aspect_ratio + np.sqrt(cell.aspect_ratio**2 - 1.0)
+                    )
+                )
+            )
+            mS = (
+                1
+                / np.sqrt((area * cell.aspect_ratio) / np.pi)
+                * (3 * cell.aspect_ratio / 8.0)
+                * (
+                    (cell.aspect_ratio) / (cell.aspect_ratio**2 - 1.0)
+                    + (2.0 * cell.aspect_ratio**2 - 3.0)
+                    / np.power(cell.aspect_ratio**2 - 1.0, 1.5)
+                    * np.log(
+                        cell.aspect_ratio + np.sqrt(cell.aspect_ratio**2 - 1.0)
+                    )
+                )
+            )
+
+        # rotational mobility
+        mR = (
+            3
+            / (
+                2
+                * (area / np.pi)
+                * (cell.aspect_ratio + 1 / cell.aspect_ratio)
+            )
+            * mP
+        )
+
+        # and the matrix Q
+        Q_cell = np.array(
+            [
+                [
+                    np.cos(2 * phies[cell_index]),
+                    np.sin(2 * phies[cell_index]),
+                    0,
+                ],
+                [
+                    np.sin(2 * phies[cell_index]),
+                    -np.cos(2 * phies[cell_index]),
+                    0,
+                ],
+                [0, 0, 0],
+            ]
+        )
+
+        # and finally the force and dphi:
+        force = np.matmul(
+            ((mP + mS) / 2) * np.identity(3) + ((mP - mS) / 2) * Q_cell,
+            force_paper,
+        )
+        dphi = mR * dphi_paper
+        return force, dphi

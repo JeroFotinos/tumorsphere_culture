@@ -338,7 +338,7 @@ class DatOutput(TumorsphereOutput):
 
 
 class OvitoOutput(TumorsphereOutput):
-    def __init__(self, culture_name, output_dir=".", save_step=1):
+    def __init__(self, culture_name, output_dir=".", save_step=5):
         self.output_dir = output_dir
         self.culture_name = culture_name
         self.save_step = save_step
