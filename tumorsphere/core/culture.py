@@ -1251,10 +1251,6 @@ class Culture:
         movement = self.movement
 
         for i in range(1, num_times + 1):
-            print(" ")
-            print("step: ", i)
-            print(" --------------- ")
-
             # and reproduce or move the cells in this random order
             if reproduction:
                 # we get a permuted copy of the cells list

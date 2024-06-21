@@ -131,6 +131,7 @@ class Simulation:
         self,
         sql: bool = True,
         dat_files: bool = False,
+        dat_pos_ar: bool = False,
         ovito: bool = False,
         number_of_processes: int = None,
         output_dir: str = ".",
@@ -168,6 +169,8 @@ class Simulation:
             outputs.append("sql")
         if dat_files:
             outputs.append("dat")
+        if dat_pos_ar:
+            outputs.append("dat_pos_ar")
         if ovito:
             outputs.append("ovito")
 

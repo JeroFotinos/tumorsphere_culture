@@ -337,6 +337,56 @@ class DatOutput(TumorsphereOutput):
         pass
 
 
+class DatOutput_position_aspectratio(TumorsphereOutput):
+    def __init__(self, culture_name, output_dir="."):
+        self.culture_name = culture_name
+        self.output_dir = output_dir
+
+    def begin_culture(
+        self,
+        prob_stem,
+        prob_diff,
+        rng_seed,
+        simulation_start,
+        adjacency_threshold,
+        swap_probability,
+    ):
+        pass
+
+    def record_stemness(self, cell_index, tic, stemness):
+        pass
+
+    def record_deactivation(self, cell_index, tic):
+        pass
+
+    def record_culture_state(
+        self,
+        tic,
+        cells,
+        cell_positions,
+        active_cell_indexes,
+        side,
+        cell_area,
+    ):
+        filename = f"{self.output_dir}/{self.culture_name}_step={tic:05}.dat"
+        with open(filename, "w") as datfile:
+            datfile.write(
+                "position_x, position_y, position_z, aspect_ratio\n"
+            )
+            
+        for cell in cells:
+            with open(filename, "a") as datfile:
+                # we save the positions and the aspect ratio to the file
+                datfile.write(
+                    f"{cell_positions[cell._index][0]}, {cell_positions[cell._index][1]}, {cell_positions[cell._index][2]}, {cell.aspect_ratio} \n"
+                )
+
+    def record_cell(
+        self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
+    ):
+        pass    
+
+
 class OvitoOutput(TumorsphereOutput):
     def __init__(self, culture_name, output_dir=".", save_step=5):
         self.output_dir = output_dir
@@ -374,7 +424,7 @@ class OvitoOutput(TumorsphereOutput):
         """
         if np.mod(tic, self.save_step) == 0:
             path_to_write = os.path.join(
-                self.output_dir, f"ovito_data_{self.culture_name}.{tic:03}"
+                self.output_dir, f"ovito_data_{self.culture_name}.{tic:05}"
             )
 
             with open(path_to_write, "w") as file_to_write:
@@ -522,6 +572,7 @@ def create_output_demux(
     output_types = {
         "sql": SQLOutput,
         "dat": DatOutput,
+        "dat_pos_ar": DatOutput_position_aspectratio,
         "ovito": OvitoOutput,
     }
     outputs = []
