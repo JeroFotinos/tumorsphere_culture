@@ -344,6 +344,10 @@ class Culture:
             for index in active_cell_indexes:
                 self.reproduce(cell_index=index, tic=i)
 
+            # if i > self.therapy.start_time:
+            #                 if np.mod(i, self.therapy.freq) == 0:
+            #                     self.therapy()
+
             # Save the data (for dat, ovito, and/or SQLite)
             self.output.record_culture_state(
                 tic=i,
@@ -351,3 +355,6 @@ class Culture:
                 cell_positions=self.cell_positions,
                 active_cell_indexes=self.active_cell_indexes,
             )
+        
+        # We do the radiotherapy session at the end of the growth period
+        # self.radiotherapy()
