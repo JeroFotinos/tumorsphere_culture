@@ -6,8 +6,10 @@ Classes:
     on the Simulation class.
 """
 
+# import os
 from datetime import datetime
 
+import pandas as pd
 import numpy as np
 
 from tumorsphere.core.cells import Cell
@@ -295,7 +297,7 @@ class Culture:
         # if the cell's neighbourhood is already full, we do nothing
         # (reproduction is turned off)
 
-    # ---------------------------------------------------------
+    # --------------------------- Radiotherapy things ------------------------
 
     def realization_name(self) -> str:
         """Return the name of the realization."""
@@ -306,7 +308,11 @@ class Culture:
         )
         return name
 
-    def single_radiotherapy_session(self, s: float) -> None:
+    def single_radiotherapy_session(
+        self,
+        survival_ratio: float,
+        final_simulation_time: int,
+    ) -> None:
         """Simulate a single radiotherapy session.
 
         This function simulates a single radiotherapy session, where each
@@ -321,8 +327,9 @@ class Culture:
         s : float
             The probability that a cell survives the radiotherapy session.
         """
-        killed = self.rng.random(size=len(self.cells)) > s
-        filename = f"radiotherapy_{self.realization_name()}.dat"
+        killed = self.rng.random(size=len(self.cells)) > survival_ratio
+        # filename = f"radiotherapy_{self.realization_name()}.dat"
+        filename = "radiotherapy.dat"
 
         with open(filename, "a") as datfile:
             # we count the total number of cells, active cells, and killed
@@ -357,17 +364,27 @@ class Culture:
                         killed_active_counter = killed_active_counter + 1
 
             # we save the data to a file, including column names
+            # datfile.write(
+            #     "prob_supervivence_radiotherapy "
+            #     "prob_diff "
+            #     "prob_stem "
+            #     "rng_seed "
+            #     "final_simulation_time "
+            #     "num_cells "
+            #     "killed_cells "
+            #     "num_active "
+            #     "killed_active "
+            #     "total_stem "
+            #     "killed_stem "
+            #     "active_stem "
+            #     "killed_active_stem\n"
+            # )
             datfile.write(
-                "num_cells "
-                "killed_cells "
-                "num_active "
-                "killed_active "
-                "total_stem "
-                "killed_stem "
-                "active_stem "
-                "killed_active_stem\n"
-            )
-            datfile.write(
+                f"{self.prob_supervivence_radiotherapy} "
+                f"{self.prob_diff} "
+                f"{self.prob_stem} "
+                f"{self.rng_seed} "
+                f"{final_simulation_time} "
                 f"{num_cells} "
                 f"{killed_cells} "
                 f"{num_active} "
@@ -377,6 +394,51 @@ class Culture:
                 f"{active_stem_counter} "
                 f"{killed_active_stem_counter}\n"
             )
+
+    def radiotherapy_w_susceptibility(self) -> None:
+        """Simulate a radiotherapy session by assigning susceptibilities.
+
+        This function simulates a radiotherapy session where, due to increased
+        O2 consumption, the active cells are more sensitive to radiation than
+        quiescent cells. The probability of survival is different for active
+        and quiescent cells, by a factor beta. However, all of this is left
+        for postprocessing, so data can be used both for the described
+        situation, or for another one where the cells are killed with a
+        probability that varies with their position.
+
+        A pandas.DataFrame is generated and saved with the following columns:
+        - the norm of the position of the cell
+        - the cell's stemness
+        - whether the cell is active
+        - a “suceptibility” that will indicate whether the cell was killed
+          given the survival ratio (in postprocessing).
+        """
+        # we make the dictionary for the dataframe that will store the data
+        susceptibility = self.rng.random(size=len(self.cells))
+        norms = np.linalg.norm(self.cell_positions, axis=1)
+        data = {
+            "position_norm": norms,
+            "stemness": [],
+            "active": [],
+            "susceptibility": susceptibility,
+        }
+
+        # we get the stemness, activity, and killing status of the cells
+        for cell in self.cells:
+            data["stemness"].append(cell.is_stem)
+            data["active"].append(cell._index in self.active_cell_indexes)
+            assert (
+                cell._index in self.active_cell_indexes
+            ) == cell.available_space
+
+        # we make the dataframe
+        df = pd.DataFrame(data, index=False)
+
+        # we save the dataframe to a file
+        filename = (
+            f"radiotherapy_active_targeted_{self.realization_name()}.csv"
+        )
+        df.to_csv(filename)
 
     def simulate(self, num_times: int) -> None:
         """Simulate culture growth for a specified number of time steps.
@@ -442,4 +504,10 @@ class Culture:
             )
 
         # We do the radiotherapy session at the end of the growth period
-        self.single_radiotherapy_session(self.prob_supervivence_radiotherapy)
+        # self.single_radiotherapy_session(
+        #     survival_ratio=self.prob_supervivence_radiotherapy,
+        #     final_simulation_time=num_times,
+        # )
+
+        # we make the radiotherapy session with the susceptibility
+        self.radiotherapy_w_susceptibility()
