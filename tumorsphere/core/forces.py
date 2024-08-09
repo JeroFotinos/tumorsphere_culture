@@ -4,8 +4,11 @@ import numpy as np
 
 
 class Force(ABC):
+    """
+    The force or model used to calculate the interaction between 2 cells.
+    """
     @abstractmethod
-    def calculate_force(
+    def calculate_interaction(
         self,
         cells,
         phies,
@@ -16,14 +19,21 @@ class Force(ABC):
         delta_t,
         area,
     ):
+        """
+        Given the force/model, it returns the change in the velocity and in the 
+        orientation of the cell because of the force or torque exerted.
+        """
         pass
 
 
 class No_Forces(Force):
+    """
+    There are no forces in the system.
+    """
     def __init__(self):
         pass
 
-    def calculate_force(
+    def calculate_interaction(
         self,
         cells,
         phies,
@@ -34,18 +44,23 @@ class No_Forces(Force):
         delta_t,
         area,
     ):
-
-        return np.array([0, 0, 0]), 0
+        dif_velocity = np.array([0, 0, 0])
+        dif_phi = 0 
+        return dif_velocity, dif_phi
 
 
 class Spring_Force(Force):
+    """
+    The force used is a spring force. When two cells collide, they "bounce" on the
+    opposite direction.    
+    """
     def __init__(
         self,
         k_spring_force: float = 0.5,
     ):
         self.k_spring_force = k_spring_force
 
-    def calculate_force(
+    def calculate_interaction(
         self,
         cells,
         phies,
@@ -57,124 +72,29 @@ class Spring_Force(Force):
         area,
     ):
         cell = cells[cell_index]
-
+        # we first calculate the force
         fx = -self.k_spring_force * (-relative_pos_x)  # OJO SIGNO
         fy = -self.k_spring_force * (-relative_pos_y)
-
-        dphi2 = (
+        # In this model the change in the velocity is equal to the force
+        dif_velocity = np.array([fx, fy, 0])
+        # and the change in the orientation is given by the new velocity
+        dif_phi = (
             np.arctan2((cell.velocity()[1] + fy), (cell.velocity()[0] + fx))
             - phies[cell_index]
         )
 
-        return np.array([fx, fy, 0]), dphi2
-
-    """Grossman force with the extra term of the LB code"""
-
-    def __init__(
-        self,
-        k_spring_force: float = 0.5,
-    ):
-        super().__init__(k_spring_force)
-
-    def calculate_force(
-        self,
-        cells,
-        phies,
-        cell_index,
-        neighbor_index,
-        relative_pos_x,
-        relative_pos_y,
-        delta_t,
-        area,
-    ):
-        force_paper, dphi_paper = super().calculate_force(
-            cells,
-            phies,
-            cell_index,
-            neighbor_index,
-            relative_pos_x,
-            relative_pos_y,
-            delta_t,
-            area,
-        )
-
-        cell = cells[cell_index]
-
-        # we calculate the mobilities
-        # longitudinal & transversal mobility
-        if np.isclose(cell.aspect_ratio, 1):
-            mP = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
-            mS = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
-        else:
-            mP = (
-                1
-                / np.sqrt((area * cell.aspect_ratio) / np.pi)
-                * (3 * cell.aspect_ratio / 4.0)
-                * (
-                    (cell.aspect_ratio) / (1 - cell.aspect_ratio**2)
-                    + (2.0 * cell.aspect_ratio**2 - 1.0)
-                    / np.power(cell.aspect_ratio**2 - 1.0, 1.5)
-                    * np.log(
-                        cell.aspect_ratio + np.sqrt(cell.aspect_ratio**2 - 1.0)
-                    )
-                )
-            )
-            mS = (
-                1
-                / np.sqrt((area * cell.aspect_ratio) / np.pi)
-                * (3 * cell.aspect_ratio / 8.0)
-                * (
-                    (cell.aspect_ratio) / (cell.aspect_ratio**2 - 1.0)
-                    + (2.0 * cell.aspect_ratio**2 - 3.0)
-                    / np.power(cell.aspect_ratio**2 - 1.0, 1.5)
-                    * np.log(
-                        cell.aspect_ratio + np.sqrt(cell.aspect_ratio**2 - 1.0)
-                    )
-                )
-            )
-
-        # rotational mobility
-        mR = (
-            3
-            / (
-                2
-                * (area / np.pi)
-                * (cell.aspect_ratio + 1 / cell.aspect_ratio)
-            )
-            * mP
-        )
-
-        # and the matrix Q
-        Q_cell = np.array(
-            [
-                [
-                    np.cos(2 * phies[cell_index]),
-                    np.sin(2 * phies[cell_index]),
-                    0,
-                ],
-                [
-                    np.sin(2 * phies[cell_index]),
-                    -np.cos(2 * phies[cell_index]),
-                    0,
-                ],
-                [0, 0, 0],
-            ]
-        )
-
-        # and finally the force and dphi:
-        force = np.matmul(
-            ((mP + mS) / 2) * np.identity(3) + ((mP - mS) / 2) * Q_cell,
-            force_paper,
-        )
-        dphi = mR * dphi_paper
-        return force, dphi
+        return dif_velocity, dif_phi
 
 
 class Vicsek(Force):
+    """
+    The cells move using the Vicsek model: if they are close enough (if they touch),
+    their orientations allign.
+    """
     def __init__(self):
         pass
 
-    def calculate_force(
+    def calculate_interaction(
         self,
         cells,
         phies,
@@ -185,24 +105,27 @@ class Vicsek(Force):
         delta_t,
         area,
     ):
-        fx = 0
-        fy = 0
+        # In this model there is no change in the velocity but in the orientation
+        dif_velocity = np.array([0, 0, 0])
         alpha = np.arctan2(
             np.sin(phies[cell_index]) + np.sin(phies[neighbor_index]),
             np.cos(phies[cell_index]) + np.cos(phies[neighbor_index]),
         )
-        dphi2 = alpha - phies[cell_index]
-        return np.array([fx, fy, 0]), dphi2
+        dif_phi = alpha - phies[cell_index]
+        return dif_velocity, dif_phi
 
 
 class Vicsek_and_Spring_Force(Force):
+    """
+    Vicsek and Spring Force combined. They allign and bounce.
+    """
     def __init__(
         self,
         k_spring_force: float = 0.5,
     ):
         self.k_spring_force = k_spring_force
 
-    def calculate_force(
+    def calculate_interaction(
         self,
         cells,
         phies,
@@ -213,17 +136,24 @@ class Vicsek_and_Spring_Force(Force):
         delta_t,
         area,
     ):
+        # We first calculate the force
         fx = -self.k_spring_force * (-relative_pos_x)  # OJO SIGNO
         fy = -self.k_spring_force * (-relative_pos_y)
+        # In this model the change in velocity is equal to the force
+        dif_velocity = np.array([fx, fy, 0])
+        # and the change in the orientation is given by Vicsek
         alpha = np.arctan2(
             np.sin(phies[cell_index]) + np.sin(phies[neighbor_index]),
             np.cos(phies[cell_index]) + np.cos(phies[neighbor_index]),
         )
-        dphi2 = alpha - phies[cell_index]
-        return np.array([fx, fy, 0]), dphi2
+        dif_phi = alpha - phies[cell_index]
+        return dif_velocity, dif_phi
 
 
-class Grossman(Force):
+class Grosmann(Force):
+    """
+    The model is the given by Grosmann paper.
+    """
     def __init__(
         self,
         kRep: float = 10,
@@ -232,7 +162,7 @@ class Grossman(Force):
         self.kRep = kRep
         self.bExp = bExp
 
-    def calculate_force(
+    def calculate_interaction(
         self,
         cells,
         phies,
@@ -243,7 +173,7 @@ class Grossman(Force):
         delta_t,
         area,
     ):
-
+        # First of all we are going to calculate the force and the torque
         cell = cells[cell_index]
 
         # we first calculate the kernel, using f[ξ]=ξ**gamma. ξ=xi from the paper
@@ -335,46 +265,12 @@ class Grossman(Force):
                 / (1 - eps**2 * (np.cos(relative_angle)) ** 2)
             )
         )
-        dphi = torque * delta_t
-        return force, dphi
 
+        # Now that we have the force and torque we can calculate the change in velocity
+        # and orientation as it is done in the paper. Becuase of this, we need the Q 
+        # matrix (already calculated) and the mobilities
 
-class Grossman_LB_Code(Grossman):
-    """Grossman force with the extra term of the LB code"""
-
-    def __init__(
-        self,
-        kRep: float = 10,
-        bExp: float = 3,
-    ):
-        super().__init__(kRep, bExp)
-
-    def calculate_force(
-        self,
-        cells,
-        phies,
-        cell_index,
-        neighbor_index,
-        relative_pos_x,
-        relative_pos_y,
-        delta_t,
-        area,
-    ):
-        force_paper, dphi_paper = super().calculate_force(
-            cells,
-            phies,
-            cell_index,
-            neighbor_index,
-            relative_pos_x,
-            relative_pos_y,
-            delta_t,
-            area,
-        )
-
-        cell = cells[cell_index]
-
-        # we calculate the mobilities
-        # longitudinal & transversal mobility
+                # longitudinal & transversal mobility
         if np.isclose(cell.aspect_ratio, 1):
             mP = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
             mS = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
@@ -417,34 +313,20 @@ class Grossman_LB_Code(Grossman):
             * mP
         )
 
-        # and the matrix Q
-        Q_cell = np.array(
-            [
-                [
-                    np.cos(2 * phies[cell_index]),
-                    np.sin(2 * phies[cell_index]),
-                    0,
-                ],
-                [
-                    np.sin(2 * phies[cell_index]),
-                    -np.cos(2 * phies[cell_index]),
-                    0,
-                ],
-                [0, 0, 0],
-            ]
-        )
-
-        # and finally the force and dphi:
-        force = np.matmul(
+        # then the change in the velocity is given by:
+        dif_velocity = np.matmul(
             ((mP + mS) / 2) * np.identity(3) + ((mP - mS) / 2) * Q_cell,
-            force_paper,
+            force,
         )
-        dphi = mR * dphi_paper
-        return force, dphi
+        # and the change in the orientation:
+        dif_phi = mR * torque * delta_t
+        return dif_velocity, dif_phi
 
 
-class Anisotropic_Grossman(Force):
-    """Anisotropic Grossman force"""
+class Anisotropic_Grosmann(Force):
+    """
+    The model is the given by the generalization of Grosmann paper.
+    """
 
     def __init__(
         self,
@@ -454,7 +336,7 @@ class Anisotropic_Grossman(Force):
         self.kRep = kRep
         self.bExp = bExp
 
-    def calculate_force(
+    def calculate_interaction(
         self,
         cells,
         phies,
@@ -465,7 +347,8 @@ class Anisotropic_Grossman(Force):
         delta_t,
         area,
     ):
-
+        # First of all we are going to calculate the force and torque and then
+        # we see how these change the velocity and orientation
         cell = cells[cell_index]
         neighbor = cells[neighbor_index]
         # we first calculate the kernel, using f[ξ]=ξ**gamma. ξ=xi calculated
@@ -607,44 +490,12 @@ class Anisotropic_Grossman(Force):
             * np.linalg.norm(relative_pos) ** 2
             * np.sin(2 * (phies[cell_index] - theta))
         )
-        dphi = torque * delta_t
-        return force, dphi
 
+        # Now that we have the force and torque we can calculate the change in velocity
+        # and orientation as it is done in the paper. Becuase of this, we need the Q 
+        # matrix (already calculated) and the mobilities
 
-class Anisotropic_Grossman_LB_Code(Anisotropic_Grossman):
-    def __init__(
-        self,
-        kRep: float = 10,
-        bExp: float = 3,
-    ):
-        super().__init__(kRep, bExp)
-
-    def calculate_force(
-        self,
-        cells,
-        phies,
-        cell_index,
-        neighbor_index,
-        relative_pos_x,
-        relative_pos_y,
-        delta_t,
-        area,
-    ):
-        force_paper, dphi_paper = super().calculate_force(
-            cells,
-            phies,
-            cell_index,
-            neighbor_index,
-            relative_pos_x,
-            relative_pos_y,
-            delta_t,
-            area,
-        )
-
-        cell = cells[cell_index]
-
-        # we calculate the mobilities
-        # longitudinal & transversal mobility
+                # longitudinal & transversal mobility
         if np.isclose(cell.aspect_ratio, 1):
             mP = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
             mS = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
@@ -687,27 +538,11 @@ class Anisotropic_Grossman_LB_Code(Anisotropic_Grossman):
             * mP
         )
 
-        # and the matrix Q
-        Q_cell = np.array(
-            [
-                [
-                    np.cos(2 * phies[cell_index]),
-                    np.sin(2 * phies[cell_index]),
-                    0,
-                ],
-                [
-                    np.sin(2 * phies[cell_index]),
-                    -np.cos(2 * phies[cell_index]),
-                    0,
-                ],
-                [0, 0, 0],
-            ]
-        )
-
-        # and finally the force and dphi:
-        force = np.matmul(
+        # then the change in the velocity is given by:
+        dif_velocity = np.matmul(
             ((mP + mS) / 2) * np.identity(3) + ((mP - mS) / 2) * Q_cell,
-            force_paper,
+            force,
         )
-        dphi = mR * dphi_paper
-        return force, dphi
+        # and the change in the orientation:
+        dif_phi = mR * torque * delta_t
+        return dif_velocity, dif_phi

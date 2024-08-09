@@ -34,6 +34,7 @@ class TumorsphereOutput(ABC):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
         side,
         cell_area,
@@ -89,6 +90,7 @@ class OutputDemux(TumorsphereOutput):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
         side,
         cell_area,
@@ -98,6 +100,7 @@ class OutputDemux(TumorsphereOutput):
                 tic,
                 cells,
                 cell_positions,
+                cell_phies,
                 active_cell_indexes,
                 side,
                 cell_area,
@@ -236,6 +239,7 @@ class SQLOutput(TumorsphereOutput):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
         side,
         cell_area,
@@ -305,6 +309,7 @@ class DatOutput(TumorsphereOutput):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
         side,
         cell_area,
@@ -364,6 +369,7 @@ class DatOutput_position_aspectratio(TumorsphereOutput):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
         side,
         cell_area,
@@ -371,20 +377,20 @@ class DatOutput_position_aspectratio(TumorsphereOutput):
         filename = f"{self.output_dir}/{self.culture_name}_step={tic:05}.dat"
         with open(filename, "w") as datfile:
             datfile.write(
-                "position_x, position_y, position_z, aspect_ratio\n"
+                "position_x,position_y,position_z,orientation,aspect_ratio\n"
             )
-            
+
         for cell in cells:
             with open(filename, "a") as datfile:
                 # we save the positions and the aspect ratio to the file
                 datfile.write(
-                    f"{cell_positions[cell._index][0]}, {cell_positions[cell._index][1]}, {cell_positions[cell._index][2]}, {cell.aspect_ratio} \n"
+                    f"{cell_positions[cell._index][0]}, {cell_positions[cell._index][1]}, {cell_positions[cell._index][2]}, {cell_phies[cell._index]}, {cell.aspect_ratio} \n"
                 )
 
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
     ):
-        pass    
+        pass
 
 
 class OvitoOutput(TumorsphereOutput):
@@ -415,6 +421,7 @@ class OvitoOutput(TumorsphereOutput):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
         side,
         cell_area,

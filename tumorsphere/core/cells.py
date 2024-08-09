@@ -104,7 +104,7 @@ class Cell:
         we can calculate the semi major axis (l_par) and semi minor axis (l_perp)
         with:
         l_par = np.sqrt((cell_area*cell.aspect_ratio)/np.pi)
-        l_perp = sqrt(cell_area/(np.pi*cell.aspect_ratio))
+        l_perp = np.sqrt(cell_area/(np.pi*cell.aspect_ratio))
         """
         self.culture = culture
         self.is_stem = is_stem
@@ -142,7 +142,8 @@ class Cell:
     # ---------------------------------------------------------
     def velocity(self):
         """
-        It returns the velocity vector of the given cell.
+        It returns the velocity vector of the given cell  taking into account the 
+        mobility.
 
         Returns
         -------

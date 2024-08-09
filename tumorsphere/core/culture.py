@@ -36,7 +36,7 @@ class Culture:
         movement: bool = True,
         cell_area: float = np.pi,
         stabilization_time: int = 100,
-        maximum_overlap: float = 1,
+        maximum_overlap: float = 1.15,
         delta_t: float = 0.05,
         delta_deformation: float = 0.1,
         aspect_ratio_max: float = 2,
@@ -612,28 +612,29 @@ class Culture:
         """
         cell = self.cells[cell_index]
 
+        # list of neighbors
         neighbors = set(self.active_cell_indexes)
         neighbors.discard(cell_index)
 
-        # initialization of the forces of interaction
-        dphi = 0
-        force = np.zeros(3)
+        # initialization of the parameters of interaction
+        dif_phi = 0
+        dif_velocity = np.zeros(3)
 
+        # we calculate the interaction between the main cell and every neighbor
         for neighbor_index in neighbors:
             relative_pos_x, relative_pos_y = self.relative_pos(
                 self.cell_positions[cell_index],
                 self.cell_positions[neighbor_index],
             )
-            # distance relative to the square and angle necessary for the interaction
-            # distance_sq = relative_pos_x**2 + relative_pos_y**2
 
             overlap = self.calculate_overlap(
                 cell_index, neighbor_index, relative_pos_x, relative_pos_y
             )
+            # if two cells touch each other, we calculate the force between them
             if overlap > self.maximum_overlap:
-                # if distance_sq < (2*self.cells[cell_index].semi_axis()[1]) ** 2:
-                # if distance_sq < (self.cells[cell_index].semi_axis()[1]+self.cells[neighbor_index].semi_axis()[1]) ** 2:
-                force2, dphi2 = self.force.calculate_force(
+                # we calculate the change in velocity and orientation given by
+                # the model used for the force.
+                dif_velocity2, dif_phi2 = self.force.calculate_interaction(
                     self.cells,
                     self.cell_phies,
                     cell_index,
@@ -643,19 +644,22 @@ class Culture:
                     delta_t,
                     self.cell_area,
                 )
-                force = force + force2
-                dphi = dphi + dphi2
+                dif_velocity = dif_velocity + dif_velocity2
+                dif_phi = dif_phi + dif_phi2
 
-        dif_position = (cell.velocity() + force) * delta_t
+        # we calculate the change in the position of the cell, given all the neighbors.
+        # Remember that the intrinsic velocity is already multiplied by the mobility 
+        # (Like in Grosmann paper).
+        dif_position = (cell.velocity() + dif_velocity) * delta_t
 
         # we return the change in the position and in the phi angle of the cell
-        return dif_position, dphi
+        return dif_position, dif_phi
 
     # ---------------------------------------------------------
     def move(
         self,
         dif_positions: np.ndarray,
-        dphies: np.ndarray,
+        dif_phies: np.ndarray,
     ) -> None:
         """The given cell moves with a given velocity and changes its orientation.
 
@@ -667,7 +671,7 @@ class Culture:
         ----------
         dif_positions : np.ndarray
             Matrix that contains the changes in position of all the cells.
-        dphies : np.ndarray
+        dif_phies : np.ndarray
             Matrix that contains the changes in orientation of all the cells.
         -----
         """
@@ -675,7 +679,7 @@ class Culture:
         self.cell_positions = self.cell_positions + dif_positions
 
         # and the angle
-        self.cell_phies = self.cell_phies + dphies
+        self.cell_phies = self.cell_phies + dif_phies
 
         # Enforcing boundary condition
         self.cell_positions = np.mod(self.cell_positions, self.side)
@@ -1224,15 +1228,18 @@ class Culture:
                     Cell(
                         position=np.array(
                             [
-                                self.rng.uniform(low=0, high=self.side),
-                                self.rng.uniform(low=0, high=self.side),
+                                self.rng.uniform(
+                                    low=0, high=self.side
+                                ),
+                                self.rng.uniform(
+                                    low=0, high=self.side
+                                ), 
                                 0,
                             ]
                         ),
                         culture=self,
                         is_stem=self.first_cell_is_stem,
-                        phi=self.rng.uniform(low=0, high=2 * np.pi),
-                        # aspect_ratio=self.rng.uniform(low=1, high=2), #1+np.abs(1*self.rng.standard_normal()),
+                        phi=0,
                         aspect_ratio=1,
                         parent_index=0,
                         available_space=True,
@@ -1242,6 +1249,7 @@ class Culture:
             tic=0,
             cells=self.cells,
             cell_positions=self.cell_positions,
+            cell_phies=self.cell_phies,
             active_cell_indexes=self.active_cell_indexes,
             side=self.side,
             cell_area=self.cell_area,
@@ -1262,18 +1270,18 @@ class Culture:
 
             if movement:
                 dif_positions = np.empty((0, 3), float)
-                dphies = np.array([])
+                dif_phies = np.array([])
 
                 for index in self.active_cell_indexes:
-                    dif_position, dphi = self.interaction(
+                    dif_position, dif_phi = self.interaction(
                         cell_index=index, delta_t=self.delta_t
                     )
                     dif_positions = np.append(
                         dif_positions, [dif_position], axis=0
                     )
-                    dphies = np.append(dphies, dphi)
+                    dif_phies = np.append(dif_phies, dif_phi)
 
-                self.move(dif_positions=dif_positions, dphies=dphies)
+                self.move(dif_positions=dif_positions, dif_phies=dif_phies)
 
                 for index in self.active_cell_indexes:
                     # we wait for the system to stabilize to deform the cells
@@ -1284,6 +1292,7 @@ class Culture:
                 tic=i,
                 cells=self.cells,
                 cell_positions=self.cell_positions,
+                cell_phies=self.cell_phies,
                 active_cell_indexes=self.active_cell_indexes,
                 side=self.side,
                 cell_area=self.cell_area,
