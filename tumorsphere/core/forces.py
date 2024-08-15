@@ -417,7 +417,7 @@ class Anisotropic_Grosmann(Force):
                 (alpha_cell + alpha_neighbor)
                 / (
                     (alpha_cell + alpha_neighbor) ** 2
-                    - (alpha_cell * eps_cell + alpha_neighbor * eps_neighbor)
+                    - (alpha_cell * eps_cell - alpha_neighbor * eps_neighbor)
                     ** 2
                     - 4
                     * alpha_cell
@@ -442,7 +442,7 @@ class Anisotropic_Grosmann(Force):
                 (alpha_cell + alpha_neighbor)
                 / (
                     (alpha_cell + alpha_neighbor) ** 2
-                    - (alpha_cell * eps_cell + alpha_neighbor * eps_neighbor)
+                    - (alpha_cell * eps_cell - alpha_neighbor * eps_neighbor)
                     ** 2
                     - 4
                     * alpha_cell
@@ -472,7 +472,7 @@ class Anisotropic_Grosmann(Force):
                 )
                 / (
                     (alpha_cell + alpha_neighbor) ** 2
-                    - (alpha_cell * eps_cell + alpha_neighbor * eps_neighbor)
+                    - (alpha_cell * eps_cell - alpha_neighbor * eps_neighbor)
                     ** 2
                     - 4
                     * alpha_cell
@@ -495,7 +495,7 @@ class Anisotropic_Grosmann(Force):
         # and orientation as it is done in the paper. Becuase of this, we need the Q 
         # matrix (already calculated) and the mobilities
 
-                # longitudinal & transversal mobility
+        # longitudinal & transversal mobility
         if np.isclose(cell.aspect_ratio, 1):
             mP = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
             mS = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
