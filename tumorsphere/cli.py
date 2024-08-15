@@ -104,6 +104,18 @@ def cli():
     ),
 )
 @click.option(
+    "--df",
+    required=False,
+    type=bool,
+    default=False,
+    show_default=True,
+    help=(
+        "If True, it saves the distance to the center of the culture, "
+        "the stemness and activity status of each cell at the end of the "
+        "simulation in a `.csv` file."
+    ),
+)
+@click.option(
     "--output-dir",
     required=False,
     type=click.Path(),
@@ -158,6 +170,7 @@ def simulate(
     sql,
     dat_files,
     ovito,
+    df,
     output_dir,
     culture_bounds,
     grid_cube_size,
@@ -194,6 +207,10 @@ def simulate(
         ovito : bool, optional
             False by default. If True, it generates the data for plotting with
             Ovito.
+        df : bool, optional
+            False by default. If True, it saves the distance to the center of
+            the culture, the stemness and activity status of each cell at the
+            end of the simulation in a `.csv` file.
 
 
     Examples
@@ -245,6 +262,7 @@ def simulate(
         sql=sql,
         dat_files=dat_files,
         ovito=ovito,
+        df=df,
         number_of_processes=parallel_processes,
         output_dir=output_dir,
     )

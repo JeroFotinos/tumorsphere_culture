@@ -6,6 +6,9 @@ import sqlite3
 from abc import ABC, abstractmethod
 from typing import List
 
+import pandas as pd
+import numpy as np
+
 
 class TumorsphereOutput(ABC):
     """
@@ -82,6 +85,18 @@ class TumorsphereOutput(ABC):
         """
         pass
 
+    @abstractmethod
+    def record_final_state(
+        self, tic, cells, cell_positions, active_cell_indexes
+    ):
+        """
+        Record the final state of the culture.
+
+        This method is called at the end of the simulation, after the last time
+        step, to record the final state of the culture.
+        """
+        pass
+
 
 class OutputDemux(TumorsphereOutput):
     """Class managing multiple output objects and delegating method calls."""
@@ -148,6 +163,15 @@ class OutputDemux(TumorsphereOutput):
         for result in self.result_list:
             result.record_cell(
                 index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
+            )
+
+    def record_final_state(
+        self, tic, cells, cell_positions, active_cell_indexes
+    ):
+        """Delegate the call to all output objects in result_list."""
+        for result in self.result_list:
+            result.record_final_state(
+                tic, cells, cell_positions, active_cell_indexes
             )
 
 
@@ -339,6 +363,15 @@ class SQLOutput(TumorsphereOutput):
                 ),
             )
 
+    def record_final_state(
+        self, tic, cells, cell_positions, active_cell_indexes
+    ):
+        """Record the final state of the culture.
+
+        We do not record the final state of the culture, it'd be redundant.
+        """
+        pass
+
 
 class DatOutput(TumorsphereOutput):
     """Class for handling output to a .dat file."""
@@ -411,6 +444,14 @@ class DatOutput(TumorsphereOutput):
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
     ):
         """We do not record the individual cell creations."""
+        pass
+
+    def record_final_state(
+        self, tic, cells, cell_positions, active_cell_indexes
+    ):
+        """The final state of the culture is already recorded for the type of
+        data we are saving.
+        """
         pass
 
 
@@ -532,6 +573,103 @@ class OvitoOutput(TumorsphereOutput):
         """We do not record the individual cell creations."""
         pass
 
+    def record_final_state(
+        self, tic, cells, cell_positions, active_cell_indexes
+    ):
+        """We already recorded the final state of the culture."""
+        pass
+
+
+class DfOutput(TumorsphereOutput):
+    """Class for saving only the final state of the culture to a DataFrame."""
+
+    def __init__(self, culture_name, output_dir="."):
+        self.output_dir = output_dir
+        self.culture_name = culture_name
+
+    def begin_culture(
+        self,
+        prob_stem,
+        prob_diff,
+        rng_seed,
+        simulation_start,
+        adjacency_threshold,
+        swap_probability,
+    ):
+        """
+        Record the beginning of a simulation. We do nothing in this case.
+        """
+        pass
+
+    def record_stemness(self, cell_index, tic, stemness):
+        """
+        Record a change in the stemness of a cell. We do nothing in this case.
+        """
+        pass
+
+    def record_deactivation(self, cell_index, tic):
+        """
+        Record the deactivation of a cell. We do nothing in this case.
+        """
+        pass
+
+    def record_culture_state(
+        self,
+        tic,
+        cells,
+        cell_positions,
+        active_cell_indexes,
+    ):
+        """
+        Record the state of the culture at a given time step. We do nothing in
+        this case.
+        """
+        pass
+
+    def record_cell(
+        self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
+    ):
+        """
+        Record the creation of a new cell. We do nothing in this case.
+        """
+        pass
+
+    def record_final_state(
+        self, tic, cells, cell_positions, active_cell_indexes
+    ):
+        """
+        Record the final state of the culture.
+
+        This method is called at the end of the simulation, after the last time
+        step, to record the final state of the culture. We record the position
+        norm, the stemness, and the activity status.
+        """
+        # susceptibility = self.rng.random(size=len(self.cells))
+        norms = np.linalg.norm(cell_positions, axis=1)
+        data = {
+            "position_norm": norms,
+            "stemness": [],
+            "active": [],
+            # "susceptibility": [],  # susceptibility,
+        }
+
+        # we get the stemness and activity status of the cells
+        for cell in cells:
+            data["stemness"].append(cell.is_stem)
+            data["active"].append(cell._index in active_cell_indexes)
+            assert (
+                cell._index in active_cell_indexes
+            ) == cell.available_space
+
+        # we make the dataframe
+        df = pd.DataFrame(data)
+
+        # we save the dataframe to a file
+        filename = (
+            f"{self.output_dir}/final_state_t={tic}_{self.culture_name}.csv"
+        )
+        df.to_csv(filename, index=False)
+
 
 def create_output_demux(
     culture_name: str,
@@ -543,6 +681,7 @@ def create_output_demux(
         "sql": SQLOutput,
         "dat": DatOutput,
         "ovito": OvitoOutput,
+        "df": DfOutput,
     }
     outputs = []
     for out in requested_outputs:

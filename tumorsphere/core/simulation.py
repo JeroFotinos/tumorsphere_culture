@@ -99,7 +99,6 @@ class Simulation:
         first_cell_is_stem: bool = True,
         prob_stem=[0.36],
         prob_diff=[0],
-        prob_supervivence_radiotherapy=[0.6],
         num_of_realizations: int = 4,
         num_of_steps_per_realization: int = 10,
         rng_seed=0x87351080E25CB0FAD77A44A3BE03B491,
@@ -115,7 +114,7 @@ class Simulation:
         self.first_cell_is_stem = first_cell_is_stem
         self.prob_stem = prob_stem
         self.prob_diff = prob_diff
-        self.prob_supervivence_radiotherapy = prob_supervivence_radiotherapy
+        # self.prob_supervivence_radiotherapy = prob_supervivence_radiotherapy
         self.num_of_realizations = num_of_realizations
         self.num_of_steps_per_realization = num_of_steps_per_realization
         self.swap_probability = swap_probability
@@ -206,6 +205,7 @@ class Simulation:
         sql: bool = True,
         dat_files: bool = False,
         ovito: bool = False,
+        df: bool = False,
         number_of_processes: int = None,
         output_dir: str = ".",
     ) -> None:
@@ -247,6 +247,8 @@ class Simulation:
             outputs.append("dat")
         if ovito:
             outputs.append("ovito")
+        if df:
+            outputs.append("df")
 
         with mp.Pool(number_of_processes) as p:
             p.map(
@@ -259,7 +261,6 @@ class Simulation:
                         self,
                         outputs,
                         output_dir,
-                        self.prob_supervivence_radiotherapy[ll],
                         self.culture_bounds,
                         self.grid_cube_size,
                         self.grid_torus,
@@ -267,7 +268,6 @@ class Simulation:
                     for k in range(len(self.prob_diff))
                     for i in range(len(self.prob_stem))
                     for j in range(self.num_of_realizations)
-                    for ll in range(len(self.prob_supervivence_radiotherapy))
                 ],
             )
 
@@ -311,7 +311,6 @@ def simulate_single_culture(
         sim,
         outputs,
         output_dir,
-        prob_supervivence_radiotherapy,
         culture_bounds,
         grid_cube_size,
         grid_torus,
@@ -343,7 +342,6 @@ def simulate_single_culture(
         first_cell_is_stem=sim.first_cell_is_stem,
         prob_stem=sim.prob_stem[i],
         prob_diff=sim.prob_diff[k],
-        prob_supervivence_radiotherapy=prob_supervivence_radiotherapy,
         rng_seed=seed,
         swap_probability=sim.swap_probability,
     )

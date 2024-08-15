@@ -35,7 +35,6 @@ class Culture:
         first_cell_is_stem: bool = True,
         prob_stem: float = 0,
         prob_diff: float = 0,
-        prob_supervivence_radiotherapy: float = 0.5,
         rng_seed: int = 110293658491283598,
         swap_probability: float = 0.5,
     ):
@@ -123,9 +122,6 @@ class Culture:
 
         # we set the grid's culture to this one
         self.grid.culture = self
-
-        # we set the probability of survival to radiotherapy
-        self.prob_supervivence_radiotherapy = prob_supervivence_radiotherapy
 
     # ----------------database related behavior----------------
 
@@ -308,93 +304,6 @@ class Culture:
         )
         return name
 
-    def single_radiotherapy_session(
-        self,
-        survival_ratio: float,
-        final_simulation_time: int,
-    ) -> None:
-        """Simulate a single radiotherapy session.
-
-        This function simulates a single radiotherapy session, where each
-        cell survive with a certain probability s (and is killed with
-        probability 1-s).
-
-        The method returns the number of cells that were killed, how many of
-        them were stem cells, and how many of them were active.
-
-        Parameters
-        ----------
-        s : float
-            The probability that a cell survives the radiotherapy session.
-        """
-        killed = self.rng.random(size=len(self.cells)) > survival_ratio
-        # filename = f"radiotherapy_{self.realization_name()}.dat"
-        filename = "radiotherapy.dat"
-
-        with open(filename, "a") as datfile:
-            # we count the total number of cells, active cells, and killed
-            # cells
-            num_cells = len(self.cells)
-            num_active = len(self.active_cell_indexes)
-            killed_cells = np.sum(killed)
-
-            # we count the number of CSCs (total and killed)
-            total_stem_counter = 0
-            killed_stem_counter = 0
-            for cell in self.cells:
-                if cell.is_stem:
-                    total_stem_counter = total_stem_counter + 1
-                    if killed[cell._index]:
-                        killed_stem_counter = killed_stem_counter + 1
-
-            # we count the number of active CSCs (total and killed)
-            active_stem_counter = 0
-            killed_active_counter = 0
-            killed_active_stem_counter = 0
-            for index in self.active_cell_indexes:
-                if self.cells[index].is_stem:
-                    active_stem_counter = active_stem_counter + 1
-                    if killed[index]:
-                        killed_active_counter = killed_active_counter + 1
-                        killed_active_stem_counter = (
-                            killed_active_stem_counter + 1
-                        )
-                else:
-                    if killed[index]:
-                        killed_active_counter = killed_active_counter + 1
-
-            # we save the data to a file, including column names
-            # datfile.write(
-            #     "prob_supervivence_radiotherapy "
-            #     "prob_diff "
-            #     "prob_stem "
-            #     "rng_seed "
-            #     "final_simulation_time "
-            #     "num_cells "
-            #     "killed_cells "
-            #     "num_active "
-            #     "killed_active "
-            #     "total_stem "
-            #     "killed_stem "
-            #     "active_stem "
-            #     "killed_active_stem\n"
-            # )
-            datfile.write(
-                f"{self.prob_supervivence_radiotherapy} "
-                f"{self.prob_diff} "
-                f"{self.prob_stem} "
-                f"{self.rng_seed} "
-                f"{final_simulation_time} "
-                f"{num_cells} "
-                f"{killed_cells} "
-                f"{num_active} "
-                f"{killed_active_counter} "
-                f"{total_stem_counter} "
-                f"{killed_stem_counter} "
-                f"{active_stem_counter} "
-                f"{killed_active_stem_counter}\n"
-            )
-
     def radiotherapy_w_susceptibility(self) -> None:
         """Simulate a radiotherapy session by assigning susceptibilities.
 
@@ -491,10 +400,6 @@ class Culture:
             for index in active_cell_indexes:
                 self.reproduce(cell_index=index, tic=i)
 
-            # if i > self.therapy.start_time:
-            #                 if np.mod(i, self.therapy.freq) == 0:
-            #                     self.therapy()
-
             # Save the data (for dat, ovito, and/or SQLite)
             self.output.record_culture_state(
                 tic=i,
@@ -503,11 +408,9 @@ class Culture:
                 active_cell_indexes=self.active_cell_indexes,
             )
 
-        # We do the radiotherapy session at the end of the growth period
-        # self.single_radiotherapy_session(
-        #     survival_ratio=self.prob_supervivence_radiotherapy,
-        #     final_simulation_time=num_times,
-        # )
-
-        # we make the radiotherapy session with the susceptibility
-        self.radiotherapy_w_susceptibility()
+        self.output.record_final_state(
+            tic=num_times,
+            cells=self.cells,
+            cell_positions=self.cell_positions,
+            active_cell_indexes=self.active_cell_indexes,
+        )
