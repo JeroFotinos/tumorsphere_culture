@@ -36,10 +36,10 @@ class Culture:
         movement: bool = True,
         cell_area: float = np.pi,
         stabilization_time: int = 100,
-        maximum_overlap: float = 1.15,
-        delta_t: float = 0.05,
+        threshold_overlap: float = 0.6, #1.0,
+        delta_t: float = 0.01,
         delta_deformation: float = 0.1,
-        aspect_ratio_max: float = 2,
+        aspect_ratio_max: float = 5,
     ):
         """
         Initialize a new culture of cells.
@@ -135,7 +135,7 @@ class Culture:
         self.reproduction = reproduction
         self.movement = movement
         self.cell_area = cell_area
-        self.maximum_overlap = maximum_overlap
+        self.threshold_overlap = threshold_overlap
         self.delta_t = delta_t
         self.delta_deformation = delta_deformation
         self.aspect_ratio_max = aspect_ratio_max
@@ -631,7 +631,7 @@ class Culture:
                 cell_index, neighbor_index, relative_pos_x, relative_pos_y
             )
             # if two cells touch each other, we calculate the force between them
-            if overlap > self.maximum_overlap:
+            if overlap > self.threshold_overlap:
                 # we calculate the change in velocity and orientation given by
                 # the model used for the force.
                 dif_velocity2, dif_phi2 = self.force.calculate_interaction(
@@ -731,9 +731,10 @@ class Culture:
         return new_position
 
     # ---------------------------------------------------------
-    def deformation_1(self, cell_index: int) -> None:
-        """If the cell is round, an angle and an aspect ratio are chosen randomly.
-        If the new cell with these attributes does not overlap with others, it remains.
+    def deformation(self, cell_index: int) -> None:
+        """If the cell is round, an angle is chosen randomly.
+        If the new cell with these angle and aspect ratio = maximum (given as an 
+        attribute) does not overlap with others, it remains.
         If not, try again up to cell_max_def_attempts.
         If it fails to deform, it remains as it was originally.
 
@@ -752,9 +753,9 @@ class Culture:
             old_aspect_ratio = self.cells[cell_index].aspect_ratio
 
             for attempt in range(self.cell_max_def_attempts):
-                # random phi and aspect ratio and generate a position with them
+                # random phi and aspect ratio=max and generate a position with them
                 new_phi = self.rng.uniform(low=0, high=2 * np.pi)
-                new_aspect_ratio = self.rng.uniform(low=1.25, high=2)
+                new_aspect_ratio = self.aspect_ratio_max
                 new_position = self.generate_new_position_2D(
                     cell_index, new_phi, new_aspect_ratio
                 )
@@ -778,7 +779,7 @@ class Culture:
                         relative_pos_x,
                         relative_pos_y,
                     )
-                    if overlap > self.maximum_overlap:
+                    if overlap > self.threshold_overlap:
                         # if the new cell overlaps with another, we turn back to the
                         # original values
                         self.cell_positions[cell_index] = old_position
@@ -789,396 +790,6 @@ class Culture:
                 if no_overlap:
                     # if there is no overlap, the new cell remains and we finish the loop
                     break
-
-    # ---------------------------------------------------------
-    def deformation_2(self, cell_index: int) -> None:
-        """If the cell is round, several aspect ratios and angles are chosen randomly.
-        Lists are created with all the cells that do not overlap. Then the angle of the
-        option with the greatest deformation is chosen. In that direction, an aspect
-        ratio is again chosen randomly and the cell is deformed.
-
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-        """
-
-        if np.isclose(self.cells[cell_index].aspect_ratio, 1):
-            neighbors = set(self.active_cell_indexes)
-            neighbors.discard(cell_index)
-
-            # saving old attributes
-            old_position = np.array(self.cell_positions[cell_index])
-            old_phi = self.cell_phies[cell_index]
-            old_aspect_ratio = self.cells[cell_index].aspect_ratio
-
-            array_positions = np.array([])
-            array_phies = np.array([])
-            array_aspect_ratio = np.array([])
-            # we look for the place where there is more available space
-            for attempt in range(self.cell_max_def_attempts):
-                # we generate a new proposed position
-                # with a random orientation
-                new_phi = self.rng.uniform(low=0, high=2 * np.pi)
-                # and a random aspect ratio between the old aspect ratio and a max value
-                new_aspect_ratio = self.rng.uniform(
-                    low=old_aspect_ratio,
-                    high=self.aspect_ratio_max,
-                )
-                new_position = self.generate_new_position_2D(
-                    cell_index, new_phi, new_aspect_ratio
-                )
-                # updating attributes
-                self.cell_positions[cell_index] = new_position
-                self.cell_phies[cell_index] = new_phi
-                self.cells[cell_index].aspect_ratio = new_aspect_ratio
-
-                # we see if this "new" cell overlaps with another
-                no_overlap = True
-                for neighbor_index in neighbors:
-
-                    relative_pos_x, relative_pos_y = self.relative_pos(
-                        self.cell_positions[cell_index],
-                        self.cell_positions[neighbor_index],
-                    )
-
-                    overlap = self.calculate_overlap(
-                        cell_index,
-                        neighbor_index,
-                        relative_pos_x,
-                        relative_pos_y,
-                    )
-                    if overlap > self.maximum_overlap:
-                        no_overlap = False
-                        break
-                # if it doesn't overlap, then we save the parameters in the arrays
-                if no_overlap:
-                    array_positions = np.append(array_positions, new_position)
-                    array_phies = np.append(array_phies, new_phi)
-                    array_aspect_ratio = np.append(
-                        array_aspect_ratio, new_aspect_ratio
-                    )
-
-                # we return to the original values
-                self.cell_positions[cell_index] = old_position
-                self.cell_phies[cell_index] = old_phi
-                self.cells[cell_index].aspect_ratio = old_aspect_ratio
-
-            # now we must look for the maximum value of the aspect ratio in the array
-            # and elongate in that direction
-            if len(array_aspect_ratio) == 0:
-                pass
-            else:
-                index = array_aspect_ratio.argmax()
-                new_phi = array_phies[index]
-                # we raffle a new aspect ratio between the old one and the max of the array
-                new_aspect_ratio = self.rng.uniform(
-                    low=old_aspect_ratio,
-                    high=array_aspect_ratio[index],
-                )
-
-                new_position = self.generate_new_position_2D(
-                    cell_index, new_phi, new_aspect_ratio
-                )
-                self.cell_positions[cell_index] = new_position
-                self.cell_phies[cell_index] = new_phi
-                self.cells[cell_index].aspect_ratio = new_aspect_ratio
-
-    # ---------------------------------------------------------
-    def deformation_3(self, cell_index: int) -> None:
-        """If the cell is round, several aspect ratios and angles are chosen randomly.
-        Lists are created with all the cells that do not overlap. Then the angle of the
-        option with the greatest deformation is chosen. In that direction, we deform the
-        cell a given amount delta_deformation.
-        If the cell is elongated and it's aspect ratio is lower than the maximum,
-        then it elongates towards the same direction (if there's available space).
-
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-        """
-        neighbors = set(self.active_cell_indexes)
-        neighbors.discard(cell_index)
-        if np.isclose(self.cells[cell_index].aspect_ratio, 1):
-
-            # saving old attributes
-            old_position = np.array(self.cell_positions[cell_index])
-            old_phi = self.cell_phies[cell_index]
-            old_aspect_ratio = self.cells[cell_index].aspect_ratio
-
-            array_positions = np.array([])
-            array_phies = np.array([])
-            array_aspect_ratio = np.array([])
-            # we look for the place where there is more available space
-            for attempt in range(self.cell_max_def_attempts):
-                # we generate a new proposed position
-                # with a random orientation
-                new_phi = self.rng.uniform(low=0, high=2 * np.pi)
-                # and a random aspect ratio between the old aspect ratio and a max value
-                new_aspect_ratio = self.rng.uniform(
-                    low=old_aspect_ratio,
-                    high=self.aspect_ratio_max,
-                )
-                new_position = self.generate_new_position_2D(
-                    cell_index, new_phi, new_aspect_ratio
-                )
-                # updating attributes
-                self.cell_positions[cell_index] = new_position
-                self.cell_phies[cell_index] = new_phi
-                self.cells[cell_index].aspect_ratio = new_aspect_ratio
-
-                # we see if this "new" cell overlaps with another
-                no_overlap = True
-                for neighbor_index in neighbors:
-
-                    relative_pos_x, relative_pos_y = self.relative_pos(
-                        self.cell_positions[cell_index],
-                        self.cell_positions[neighbor_index],
-                    )
-
-                    overlap = self.calculate_overlap(
-                        cell_index,
-                        neighbor_index,
-                        relative_pos_x,
-                        relative_pos_y,
-                    )
-                    if overlap > self.maximum_overlap:
-                        no_overlap = False
-                        break
-                # if it doesn't overlap, then we save the parameters in the arrays
-                if no_overlap:
-                    array_positions = np.append(array_positions, new_position)
-                    array_phies = np.append(array_phies, new_phi)
-                    array_aspect_ratio = np.append(
-                        array_aspect_ratio, new_aspect_ratio
-                    )
-
-                # we return to the original values
-                self.cell_positions[cell_index] = old_position
-                self.cell_phies[cell_index] = old_phi
-                self.cells[cell_index].aspect_ratio = old_aspect_ratio
-
-            # now we must look for the maximum value of the aspect ratio in the array
-            # and elongate in that direction
-            if len(array_aspect_ratio) == 0:
-                pass
-            else:
-                index = array_aspect_ratio.argmax()
-                new_phi = array_phies[index]
-                # we elongate the cell a given amount
-                new_aspect_ratio = old_aspect_ratio + self.delta_deformation
-
-                new_position = self.generate_new_position_2D(
-                    cell_index, new_phi, new_aspect_ratio
-                )
-                self.cell_positions[cell_index] = new_position
-                self.cell_phies[cell_index] = new_phi
-                self.cells[cell_index].aspect_ratio = new_aspect_ratio
-
-        elif (
-            np.isclose(self.cells[cell_index].aspect_ratio, 1) == False
-            and self.cells[cell_index].aspect_ratio < self.aspect_ratio_max
-        ):
-            # if the cell is elongated, we elongate more if there is space
-            old_position = np.array(self.cell_positions[cell_index])
-            old_aspect_ratio = self.cells[cell_index].aspect_ratio
-            new_aspect_ratio = old_aspect_ratio + self.delta_deformation
-
-            # we creat a new position with the same angle and the new aspect_ratio
-            new_position = self.generate_new_position_2D(
-                cell_index, self.cell_phies[cell_index], new_aspect_ratio
-            )
-            self.cell_positions[cell_index] = new_position
-            self.cells[cell_index].aspect_ratio = new_aspect_ratio
-
-            no_overlap = True
-            for neighbor_index in neighbors:
-
-                relative_pos_x, relative_pos_y = self.relative_pos(
-                    self.cell_positions[cell_index],
-                    self.cell_positions[neighbor_index],
-                )
-
-                overlap = self.calculate_overlap(
-                    cell_index,
-                    neighbor_index,
-                    relative_pos_x,
-                    relative_pos_y,
-                )
-                if overlap > self.maximum_overlap:
-                    # if the "new" cell overlaps, we return to the original values
-                    self.cell_positions[cell_index] = old_position
-                    self.cells[cell_index].aspect_ratio = old_aspect_ratio
-                    no_overlap = False
-                    break
-
-    # ---------------------------------------------------------
-    def deformation_and_shrink(self, cell_index: int) -> None:
-        """If the given cell collides with another one, then it shrinks. If it doesn't
-        then: if it doesn`t move (round cell), it elongates a little towards the place
-        where there is more available space. If it moves (elongated cell) and it's
-        aspect ratio is lower than the maximum, then it elongates towards the same
-        direction (if there`s available space).
-
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-        """
-
-        neighbors = set(self.active_cell_indexes)
-        neighbors.discard(cell_index)
-
-        # we see if the cell overlaps with another one
-        cell_overlap = False
-        for neighbor_index in neighbors:
-            relative_pos_x, relative_pos_y = self.relative_pos(
-                self.cell_positions[cell_index],
-                self.cell_positions[neighbor_index],
-            )
-
-            overlap = self.calculate_overlap(
-                cell_index, neighbor_index, relative_pos_x, relative_pos_y
-            )
-            if overlap > self.maximum_overlap:
-                cell_overlap = True
-                break
-
-        if cell_overlap == False:
-            # if self.cells[cell_index].aspect_ratio==1: # #np.isclose==Fasle
-            if np.isclose(
-                self.cells[cell_index].aspect_ratio, 1
-            ):  # #np.isclose==Fasle
-                # if the cell is round we look for the place where there is more available space
-
-                old_position = np.array(self.cell_positions[cell_index])
-                old_phi = self.cell_phies[cell_index]
-                old_aspect_ratio = self.cells[cell_index].aspect_ratio
-
-                array_positions = np.array([])
-                array_phies = np.array([])
-                array_aspect_ratio = np.array([])
-                for attempt in range(self.cell_max_def_attempts):
-                    # we generate a new proposed position
-                    new_phi = self.rng.uniform(low=0, high=2 * np.pi)
-                    new_aspect_ratio = self.rng.uniform(
-                        low=self.cells[cell_index].aspect_ratio,
-                        high=self.aspect_ratio_max,
-                    )
-                    new_position = self.generate_new_position_2D(
-                        cell_index, new_phi, new_aspect_ratio
-                    )
-                    self.cell_positions[cell_index] = new_position
-                    self.cell_phies[cell_index] = new_phi
-                    self.cells[cell_index].aspect_ratio = new_aspect_ratio
-
-                    # we see if this "new" cell overlaps with another
-                    no_overlap = True
-                    for neighbor_index in neighbors:
-
-                        relative_pos_x, relative_pos_y = self.relative_pos(
-                            self.cell_positions[cell_index],
-                            self.cell_positions[neighbor_index],
-                        )
-
-                        overlap = self.calculate_overlap(
-                            cell_index,
-                            neighbor_index,
-                            relative_pos_x,
-                            relative_pos_y,
-                        )
-                        if overlap > self.maximum_overlap:
-                            no_overlap = False
-                            break
-                    # if it doesn't overlap, then we save the parameters in the arrays
-                    if no_overlap:
-                        array_positions = np.append(
-                            array_positions, new_position
-                        )
-                        array_phies = np.append(array_phies, new_phi)
-                        array_aspect_ratio = np.append(
-                            array_aspect_ratio, new_aspect_ratio
-                        )
-
-                    # we return to the original values
-                    self.cell_positions[cell_index] = old_position
-                    self.cell_phies[cell_index] = old_phi
-                    self.cells[cell_index].aspect_ratio = old_aspect_ratio
-
-                # now we must look for the maximum value of the aspect ratio in the array
-                # and elongate in that direction
-                if len(array_aspect_ratio) == 0:
-                    pass
-                else:
-                    indice = array_aspect_ratio.argmax()
-                    new_phi = array_phies[indice]
-                    new_aspect_ratio = (
-                        old_aspect_ratio + self.delta_deformation
-                    )
-
-                    new_position = self.generate_new_position_2D(
-                        cell_index, new_phi, new_aspect_ratio
-                    )
-                    self.cell_positions[cell_index] = new_position
-                    self.cell_phies[cell_index] = new_phi
-                    self.cells[cell_index].aspect_ratio = new_aspect_ratio
-
-            elif (
-                np.isclose(self.cells[cell_index].aspect_ratio, 1) == False
-                and self.cells[cell_index].aspect_ratio < self.aspect_ratio_max
-            ):
-                # if the cell is elongated, we elongate more if there is space
-                old_position = np.array(self.cell_positions[cell_index])
-                old_aspect_ratio = self.cells[cell_index].aspect_ratio
-                new_aspect_ratio = old_aspect_ratio + self.delta_deformation
-
-                # we creat a new position with the same angle and the new aspect_ratio
-                new_position = self.generate_new_position_2D(
-                    cell_index, self.cell_phies[cell_index], new_aspect_ratio
-                )
-                self.cell_positions[cell_index] = new_position
-                self.cells[cell_index].aspect_ratio = new_aspect_ratio
-
-                no_overlap = True
-                for neighbor_index in neighbors:
-
-                    relative_pos_x, relative_pos_y = self.relative_pos(
-                        self.cell_positions[cell_index],
-                        self.cell_positions[neighbor_index],
-                    )
-
-                    overlap = self.calculate_overlap(
-                        cell_index,
-                        neighbor_index,
-                        relative_pos_x,
-                        relative_pos_y,
-                    )
-                    if overlap > self.maximum_overlap:
-                        # if the "new" cell overlaps, we return to the original values
-                        self.cell_positions[cell_index] = old_position
-                        self.cells[cell_index].aspect_ratio = old_aspect_ratio
-                        no_overlap = False
-                        break
-
-        else:
-            # if the cell collides with another one, if it's elongated, it shrinks.
-            # if self.cells[cell_index].aspect_ratio>1: #np.isclose==Fasle
-            if np.isclose(self.cells[cell_index].aspect_ratio, 1) == False:
-
-                new_aspect_ratio = (
-                    self.cells[cell_index].aspect_ratio
-                    - self.delta_deformation
-                )
-
-                new_position = self.generate_new_position_2D(
-                    cell_index, self.cell_phies[cell_index], new_aspect_ratio
-                )
-                self.cell_positions[cell_index] = new_position
-                self.cells[cell_index].aspect_ratio = new_aspect_ratio
 
     # ---------------------------------------------------------
 
@@ -1286,7 +897,7 @@ class Culture:
                 for index in self.active_cell_indexes:
                     # we wait for the system to stabilize to deform the cells
                     if i > self.stabilization_time:
-                        self.deformation_3(cell_index=index)
+                        self.deformation(cell_index=index)
             # Save the data (for dat, ovito, and/or SQLite)
             self.output.record_culture_state(
                 tic=i,
