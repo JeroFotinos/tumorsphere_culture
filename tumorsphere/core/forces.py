@@ -7,6 +7,7 @@ class Force(ABC):
     """
     The force or model used to calculate the interaction between 2 cells.
     """
+
     @abstractmethod
     def calculate_interaction(
         self,
@@ -20,7 +21,7 @@ class Force(ABC):
         area,
     ):
         """
-        Given the force/model, it returns the change in the velocity and in the 
+        Given the force/model, it returns the change in the velocity and in the
         orientation of the cell because of the force or torque exerted.
         """
         pass
@@ -30,6 +31,7 @@ class No_Forces(Force):
     """
     There are no forces in the system.
     """
+
     def __init__(self):
         pass
 
@@ -45,15 +47,16 @@ class No_Forces(Force):
         area,
     ):
         dif_velocity = np.array([0, 0, 0])
-        dif_phi = 0 
+        dif_phi = 0
         return dif_velocity, dif_phi
 
 
 class Spring_Force(Force):
     """
     The force used is a spring force. When two cells collide, they "bounce" on the
-    opposite direction.    
+    opposite direction.
     """
+
     def __init__(
         self,
         k_spring_force: float = 0.5,
@@ -91,6 +94,7 @@ class Vicsek(Force):
     The cells move using the Vicsek model: if they are close enough (if they touch),
     their orientations allign.
     """
+
     def __init__(self):
         pass
 
@@ -119,6 +123,7 @@ class Vicsek_and_Spring_Force(Force):
     """
     Vicsek and Spring Force combined. They allign and bounce.
     """
+
     def __init__(
         self,
         k_spring_force: float = 0.5,
@@ -154,6 +159,7 @@ class Grosmann(Force):
     """
     The model is the given by Grosmann paper.
     """
+
     def __init__(
         self,
         kRep: float = 10,
@@ -267,10 +273,10 @@ class Grosmann(Force):
         )
 
         # Now that we have the force and torque we can calculate the change in velocity
-        # and orientation as it is done in the paper. Becuase of this, we need the Q 
+        # and orientation as it is done in the paper. Becuase of this, we need the Q
         # matrix (already calculated) and the mobilities
 
-                # longitudinal & transversal mobility
+        # longitudinal & transversal mobility
         if np.isclose(cell.aspect_ratio, 1):
             mP = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
             mS = 1 / np.sqrt((area * cell.aspect_ratio) / np.pi)
@@ -492,7 +498,7 @@ class Anisotropic_Grosmann(Force):
         )
 
         # Now that we have the force and torque we can calculate the change in velocity
-        # and orientation as it is done in the paper. Becuase of this, we need the Q 
+        # and orientation as it is done in the paper. Becuase of this, we need the Q
         # matrix (already calculated) and the mobilities
 
         # longitudinal & transversal mobility

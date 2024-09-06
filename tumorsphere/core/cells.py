@@ -142,7 +142,7 @@ class Cell:
     # ---------------------------------------------------------
     def velocity(self):
         """
-        It returns the velocity vector of the given cell  taking into account the 
+        It returns the velocity vector of the given cell  taking into account the
         mobility.
 
         Returns
@@ -174,9 +174,8 @@ class Cell:
         # we suppose kProp linear with s_epsA
         s_epsA = (self.aspect_ratio**2 - 1) / (self.aspect_ratio**2 + 1)
         # we use the constant in order to have kProp=3 for aspect_ratio=5
-        kProp = 13/4*s_epsA
-        s_v0 = kProp * mP 
-        # kProp=3 o s_v0=3?????
+        kProp = 13 / 4 * s_epsA
+        s_v0 = kProp * mP
 
         return s_v0 * np.array(
             [

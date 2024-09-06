@@ -35,10 +35,10 @@ class Culture:
         reproduction: bool = False,
         movement: bool = True,
         cell_area: float = np.pi,
-        stabilization_time: int = 100,
-        threshold_overlap: float = 0.6, #1.0,
+        stabilization_time: int = 200,
+        threshold_overlap_1: float = 0.6,
+        threshold_overlap_2: float = 1.0,
         delta_t: float = 0.01,
-        delta_deformation: float = 0.1,
         aspect_ratio_max: float = 5,
     ):
         """
@@ -76,6 +76,17 @@ class Culture:
             Whether the cells moves or not.
         cell_area : float
             the area of all cells in the culture.
+        stabilization_time : int
+            the time we have to wait in order to start the deformation
+        threshold_overlap_1 : float
+            the threshold for the overlap for which the cells start to interact
+        threshold_overlap_ : float
+            the threshold for the overlap for which the cells have available space
+            to deform
+        delta_t : float
+            the time interval used to move
+        apect_ratio_max : float
+            the max value of the aspect ratio that a cell can have after deforms
 
         Attributes
         ----------
@@ -104,10 +115,17 @@ class Culture:
             Whether the cells move or not
         cell_area : float
             the area of all cells in the culture.
-        kRep : float
-            #
-        bExp : float
-            #
+        stabilization_time : int
+            the time we have to wait in order to start the deformation
+        threshold_overlap_1 : float
+            the threshold for the overlap for which the cells start to interact
+        threshold_overlap_ : float
+            the threshold for the overlap for which the cells have available space
+            to deform
+        delta_t : float
+            the time interval used to move
+        apect_ratio_max : float
+            the max value of the aspect ratio that a cell can have after deforms
         rng : numpy.random.Generator
             Random number generator.
         first_cell_is_stem : bool
@@ -135,9 +153,9 @@ class Culture:
         self.reproduction = reproduction
         self.movement = movement
         self.cell_area = cell_area
-        self.threshold_overlap = threshold_overlap
+        self.threshold_overlap_1 = threshold_overlap_1
+        self.threshold_overlap_2 = threshold_overlap_2
         self.delta_t = delta_t
-        self.delta_deformation = delta_deformation
         self.aspect_ratio_max = aspect_ratio_max
 
         # we instantiate the culture's RNG with the provided entropy
@@ -505,7 +523,7 @@ class Culture:
         cell = self.cells[cell_index]
         neighbor = self.cells[neighbor_index]
 
-        # we introduce the anisotropy (eps) and the diagonal squared (beta) of the cell
+        # we introduce the anisotropy (eps) and the diagonal squared (alpha) of the cell
         eps_cell = (cell.aspect_ratio**2 - 1) / (cell.aspect_ratio**2 + 1)
         # alpha = l_parallel**2+l_perp**2
         # with l_parallel = np.sqrt((cell_area*cell.aspect_ratio)/np.pi)
@@ -522,7 +540,6 @@ class Culture:
             neighbor.aspect_ratio + 1 / neighbor.aspect_ratio
         )
 
-        # i_1 = (4*np.pi*cell.semi_axis()[0]*cell.semi_axis()[1]*neighbor.semi_axis()[0]*neighbor.semi_axis()[1])
         i_1 = (
             (alpha_cell + alpha_neighbor) ** 2
             - (alpha_cell * eps_cell - alpha_neighbor * eps_neighbor) ** 2
@@ -576,11 +593,11 @@ class Culture:
 
         relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
 
-        matriz = np.identity(3) - (
+        matrix = np.identity(3) - (
             alpha_cell * eps_cell * Q_cell
             + alpha_neighbor * eps_neighbor * Q_neighbor
         ) / (alpha_cell + alpha_neighbor)
-        mult_mat = np.matmul(relative_pos, np.matmul(matriz, relative_pos))
+        mult_mat = np.matmul(relative_pos, np.matmul(matrix, relative_pos))
         cte = (alpha_cell + alpha_neighbor) / i_1
 
         overlap = i_0 * np.exp(-cte * mult_mat)
@@ -631,7 +648,7 @@ class Culture:
                 cell_index, neighbor_index, relative_pos_x, relative_pos_y
             )
             # if two cells touch each other, we calculate the force between them
-            if overlap > self.threshold_overlap:
+            if overlap > self.threshold_overlap_1:
                 # we calculate the change in velocity and orientation given by
                 # the model used for the force.
                 dif_velocity2, dif_phi2 = self.force.calculate_interaction(
@@ -648,10 +665,9 @@ class Culture:
                 dif_phi = dif_phi + dif_phi2
 
         # we calculate the change in the position of the cell, given all the neighbors.
-        # Remember that the intrinsic velocity is already multiplied by the mobility 
+        # Remember that the intrinsic velocity is already multiplied by the mobility
         # (Like in Grosmann paper).
         dif_position = (cell.velocity() + dif_velocity) * delta_t
-
         # we return the change in the position and in the phi angle of the cell
         return dif_position, dif_phi
 
@@ -733,7 +749,7 @@ class Culture:
     # ---------------------------------------------------------
     def deformation(self, cell_index: int) -> None:
         """If the cell is round, an angle is chosen randomly.
-        If the new cell with these angle and aspect ratio = maximum (given as an 
+        If the new cell with these angle and aspect ratio = maximum (given as an
         attribute) does not overlap with others, it remains.
         If not, try again up to cell_max_def_attempts.
         If it fails to deform, it remains as it was originally.
@@ -779,7 +795,7 @@ class Culture:
                         relative_pos_x,
                         relative_pos_y,
                     )
-                    if overlap > self.threshold_overlap:
+                    if overlap > self.threshold_overlap_2:
                         # if the new cell overlaps with another, we turn back to the
                         # original values
                         self.cell_positions[cell_index] = old_position
@@ -839,12 +855,8 @@ class Culture:
                     Cell(
                         position=np.array(
                             [
-                                self.rng.uniform(
-                                    low=0, high=self.side
-                                ),
-                                self.rng.uniform(
-                                    low=0, high=self.side
-                                ), 
+                                self.rng.uniform(low=0, high=self.side),
+                                self.rng.uniform(low=0, high=self.side),
                                 0,
                             ]
                         ),
