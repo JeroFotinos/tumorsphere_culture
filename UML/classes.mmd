@@ -1,0 +1,79 @@
+classDiagram
+  class Cell {
+    available_space
+    culture
+    is_stem
+    parent_index
+  }
+  class Culture {
+    active_cell_indexes
+    cell_positions
+    cells
+    grid
+    output
+    prob_diff
+    prob_stem
+    swap_probability
+    reproduce()
+    simulate()
+  }
+  class DatOutput {
+    filename
+    record_culture_state()
+  }
+  class OutputDemux {
+    culture_name
+    result_list
+    begin_culture()
+    record_cell()
+    record_culture_state()
+    record_deactivation()
+    record_stemness()
+  }
+  class OvitoOutput {
+    culture_name
+    output_dir : str
+    record_culture_state()
+  }
+  class SQLOutput {
+    culture_id
+    begin_culture()
+    record_cell()
+    record_deactivation()
+    record_stemness()
+  }
+  class Simulation {
+    culture_bounds
+    cultures
+    grid_cube_size
+    grid_torus
+    num_of_realizations
+    num_of_steps_per_realization
+    prob_diff
+    prob_stem
+    swap_probability
+    simulate_parallel()
+    simulate_single_culture()
+  }
+  class SpatialHashGrid {
+    bounds
+    cube_size
+    culture
+    hash_table
+    torus
+    find_neighbors()
+    get_in_bounds_position()
+  }
+  class TumorsphereOutput {
+    begin_culture()*
+    record_cell()*
+    record_culture_state()*
+    record_deactivation()*
+    record_stemness()*
+  }
+  DatOutput --|> TumorsphereOutput
+  OutputDemux --|> TumorsphereOutput
+  OvitoOutput --|> TumorsphereOutput
+  SQLOutput --|> TumorsphereOutput
+  TumorsphereOutput --o Culture : output
+  SpatialHashGrid --o Culture : grid

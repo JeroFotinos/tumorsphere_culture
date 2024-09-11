@@ -161,6 +161,7 @@ def plot_avg_evolution(
     plot_stem_cells: bool = False,
     plot_active_stem_cells: bool = True,
     log: bool = False,
+    color_map=None,
 ) -> None:
     """
     Plot the average time evolution of the populations for given ps and pd.
@@ -183,6 +184,9 @@ def plot_avg_evolution(
         Whether to plot active stem cells.
     log : bool, default=False
         Whether to use a logarithmic scale for the y-axis.
+    color_map : default=None
+        Color map to use for the different ps values. If None, the default
+        is cm.get_cmap("viridis", len(ps)).
 
     Raises
     ------
@@ -273,7 +277,10 @@ def plot_avg_evolution(
                 linestyle="-",
             )
     else:
-        cmap = cm.get_cmap("viridis", len(ps))
+        if color_map is None:
+            cmap = cm.get_cmap("viridis", min(5, len(ps)))
+        else:
+            cmap = color_map
         for idx, ps_value in enumerate(ps):
             ps_df = avg_df[avg_df["ps"] == ps_value]
             # color = cmap(idx)

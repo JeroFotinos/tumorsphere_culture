@@ -1,0 +1,14 @@
+classDiagram
+  cli --> simulation
+  cli --> db_merger
+  cli --> db_file_comparer
+  cli --> time_step_counter
+  cli --> dataframe_generation
+  plot_populations --> dataframe_generation
+  simulation --> culture
+  simulation --> output
+  simulation --> spatial_hash_grid
+  culture --> spatial_hash_grid
+  culture --> output
+  culture --> cells
+  cells ..> culture
