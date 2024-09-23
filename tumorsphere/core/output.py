@@ -343,9 +343,10 @@ class DatOutput(TumorsphereOutput):
 
 
 class DatOutput_position_aspectratio(TumorsphereOutput):
-    def __init__(self, culture_name, output_dir="."):
+    def __init__(self, culture_name, output_dir=".", save_step=100): #100
         self.culture_name = culture_name
         self.output_dir = output_dir
+        self.save_step = save_step
 
     def begin_culture(
         self,
@@ -374,18 +375,19 @@ class DatOutput_position_aspectratio(TumorsphereOutput):
         side,
         cell_area,
     ):
-        filename = f"{self.output_dir}/{self.culture_name}_step={tic:05}.dat"
-        with open(filename, "w") as datfile:
-            datfile.write(
-                "position_x,position_y,position_z,orientation,aspect_ratio\n"
-            )
-
-        for cell in cells:
-            with open(filename, "a") as datfile:
-                # we save the positions and the aspect ratio to the file
+        if np.mod(tic, self.save_step) == 0:
+            filename = f"{self.output_dir}/{self.culture_name}_step={tic:05}.dat"
+            with open(filename, "w") as datfile:
                 datfile.write(
-                    f"{cell_positions[cell._index][0]}, {cell_positions[cell._index][1]}, {cell_positions[cell._index][2]}, {cell_phies[cell._index]}, {cell.aspect_ratio} \n"
+                    "position_x,position_y,position_z,orientation,aspect_ratio\n"
                 )
+
+            for cell in cells:
+                with open(filename, "a") as datfile:
+                    # we save the positions and the aspect ratio to the file
+                    datfile.write(
+                        f"{cell_positions[cell._index][0]}, {cell_positions[cell._index][1]}, {cell_positions[cell._index][2]}, {cell_phies[cell._index]}, {cell.aspect_ratio} \n"
+                    )
 
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
@@ -394,7 +396,7 @@ class DatOutput_position_aspectratio(TumorsphereOutput):
 
 
 class OvitoOutput(TumorsphereOutput):
-    def __init__(self, culture_name, output_dir=".", save_step=5):
+    def __init__(self, culture_name, output_dir=".", save_step=100): #100
         self.output_dir = output_dir
         self.culture_name = culture_name
         self.save_step = save_step
@@ -429,7 +431,9 @@ class OvitoOutput(TumorsphereOutput):
         """Writes the data file in path for ovito, for time step t of self.
         Auxiliar function for simulate_with_ovito_data.
         """
-        if np.mod(tic, self.save_step) == 0:
+        # we save the ovito if tic is multiple of the save_step or in some special situations
+        # in order to see the deformation
+        if np.mod(tic, self.save_step) == 0 or tic == 200 or tic == 201 or tic == 300 or tic == 500:
             path_to_write = os.path.join(
                 self.output_dir, f"ovito_data_{self.culture_name}.{tic:05}"
             )

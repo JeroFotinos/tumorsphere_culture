@@ -8,6 +8,7 @@ Classes:
 
 from datetime import datetime
 from typing import Set
+from scipy.spatial import cKDTree
 
 import numpy as np
 
@@ -36,8 +37,8 @@ class Culture:
         movement: bool = True,
         cell_area: float = np.pi,
         stabilization_time: int = 200,
-        threshold_overlap_1: float = 0.6,
-        threshold_overlap_2: float = 1.0,
+        threshold_overlap_1: float = 0.61,
+        threshold_overlap_2: float = 0.89,
         delta_t: float = 0.01,
         aspect_ratio_max: float = 5,
     ):
@@ -604,6 +605,98 @@ class Culture:
         # we return the overlap between the cell and its neighbor
         return overlap
 
+    def get_neighbors(self, cell_index):
+        """
+        It finds all neighbors of the cell that are within a distance of 2 times the 
+        semimajor axis of a cell with phi=5. It then filters for cases in which the
+        distance is less than the semimajor axis of the current cell plus the semimajor
+        axis of the neighbor.
+
+        Parameters
+        ----------
+        cell_index : float
+            The index of the cell.
+
+        Returns
+        -------
+        final neighbors : set
+            The neighbors of the cell.
+
+        Notes
+        -------
+        We use KD-Tree.
+        """
+
+        cell = self.cells[cell_index]
+
+        # List of active cells, excludind the actual cell
+        neighbors_total = list(self.active_cell_indexes)  # We turn it into a list to work correctly with the index
+        neighbors_total.remove(cell_index)  # We exclude the actual cell
+
+        # Precalculation of the positions of the cells and their semi_major_axes
+        cell_positions = np.array([self.cell_positions[i] for i in neighbors_total])
+        cell_semi_major_axes = np.sqrt((self.cell_area * np.array([self.cells[i].aspect_ratio for i in neighbors_total])) / np.pi)
+
+        # Semimajor axis of the actual cell
+        cell_semi_major = np.sqrt((self.cell_area * cell.aspect_ratio) / np.pi)
+
+        # Creation of the KD-Tree with the positions wihtout taking acount the box
+        tree = cKDTree(cell_positions)
+
+        # Current position of the cell
+        current_pos = self.cell_positions[cell_index]
+
+        # ----- We now take into account the box -----
+
+        # We generate the positions with the posible displacements in the box
+        periodic_shifts = [
+            np.array([0, 0, 0]),  # No displacement
+            np.array([self.side, 0, 0]),  # Right
+            np.array([-self.side, 0, 0]),  # Left
+            np.array([0, self.side, 0]),  # Up
+            np.array([0, -self.side, 0]),  # Down
+            np.array([self.side, self.side, 0]),  # Up-right
+            np.array([-self.side, self.side, 0]),  # Up-left
+            np.array([self.side, -self.side, 0]),  # Down-right
+            np.array([-self.side, -self.side, 0])  # Down-left
+        ]
+
+        # We define the max distance at which we search for neighbors
+        dist_max = 2*np.sqrt((self.cell_area*5)/np.pi)
+        # And a little correction
+        epsilon = 1e-6
+        # Searching for neighbors in each of the periodic positions
+        candidate_indices = set()
+        for shift in periodic_shifts:
+            # We search neighbors for the shifted position
+            shifted_pos = current_pos + shift
+            indices = tree.query_ball_point(shifted_pos, dist_max+epsilon)
+            candidate_indices.update(indices)
+
+        # We turn the indexes back to the originals
+        neighbors = set([neighbors_total[i] for i in candidate_indices])
+
+        # Filter for the real distance compared with the sum of the semimajor axes
+        final_neighbors = set()
+        for neighbor_index in neighbors:
+            # Calculate the max distance allowed (sum of the semimajor axes)
+            max_distance = cell_semi_major + cell_semi_major_axes[neighbors_total.index(neighbor_index)]
+            
+            # Use relative_pos() to obtain the distance
+            relative_pos_x, relative_pos_y = self.relative_pos(
+                self.cell_positions[cell_index],
+                self.cell_positions[neighbor_index],
+            )
+            
+            # We calculate the distance taking into acount the box
+            distance = np.linalg.norm([relative_pos_x, relative_pos_y, 0])
+            
+            # If the distance is lower or equal than the max, it adds as a neighbor
+            if distance <= max_distance:
+                final_neighbors.add(neighbor_index)
+        #final_neighbors_list = list(final_neighbors) #
+        #final_neighbors_2 = sorted(final_neighbors_list) #
+        return final_neighbors #final_neighbors_2
     # ---------------------------------------------------------
     def interaction(self, cell_index: int, delta_t: float):
         """The given cell interacts with others if they are close enough.
@@ -629,14 +722,12 @@ class Culture:
         """
         cell = self.cells[cell_index]
 
-        # list of neighbors
-        neighbors = set(self.active_cell_indexes)
-        neighbors.discard(cell_index)
-
         # initialization of the parameters of interaction
         dif_phi = 0
         dif_velocity = np.zeros(3)
 
+        # We get the neighbors of the cell
+        neighbors = self.get_neighbors(cell_index)
         # we calculate the interaction between the main cell and every neighbor
         for neighbor_index in neighbors:
             relative_pos_x, relative_pos_y = self.relative_pos(
@@ -761,8 +852,9 @@ class Culture:
         """
 
         if np.isclose(self.cells[cell_index].aspect_ratio, 1):
-            neighbors = set(self.active_cell_indexes)
-            neighbors.discard(cell_index)
+            # we make a list with all the cells except the cell itself
+            neighbors_total = set(self.active_cell_indexes)
+            neighbors_total.discard(cell_index)
             # we save the old attributes
             old_position = np.array(self.cell_positions[cell_index])
             old_phi = self.cell_phies[cell_index]
@@ -780,6 +872,8 @@ class Culture:
                 self.cell_phies[cell_index] = new_phi
                 self.cells[cell_index].aspect_ratio = new_aspect_ratio
 
+                # We get the neighbors of the cell
+                neighbors = self.get_neighbors(cell_index)
                 # calculation of overlap
                 no_overlap = True
                 for neighbor_index in neighbors:
