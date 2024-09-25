@@ -343,7 +343,7 @@ class DatOutput(TumorsphereOutput):
 
 
 class DatOutput_position_aspectratio(TumorsphereOutput):
-    def __init__(self, culture_name, output_dir=".", save_step=100): #100
+    def __init__(self, culture_name, output_dir=".", save_step=100):  # 100
         self.culture_name = culture_name
         self.output_dir = output_dir
         self.save_step = save_step
@@ -376,7 +376,9 @@ class DatOutput_position_aspectratio(TumorsphereOutput):
         cell_area,
     ):
         if np.mod(tic, self.save_step) == 0:
-            filename = f"{self.output_dir}/{self.culture_name}_step={tic:05}.dat"
+            filename = (
+                f"{self.output_dir}/{self.culture_name}_step={tic:05}.dat"
+            )
             with open(filename, "w") as datfile:
                 datfile.write(
                     "position_x,position_y,position_z,orientation,aspect_ratio\n"
@@ -396,7 +398,7 @@ class DatOutput_position_aspectratio(TumorsphereOutput):
 
 
 class OvitoOutput(TumorsphereOutput):
-    def __init__(self, culture_name, output_dir=".", save_step=100): #100
+    def __init__(self, culture_name, output_dir=".", save_step=100):  # 100
         self.output_dir = output_dir
         self.culture_name = culture_name
         self.save_step = save_step
@@ -433,7 +435,13 @@ class OvitoOutput(TumorsphereOutput):
         """
         # we save the ovito if tic is multiple of the save_step or in some special situations
         # in order to see the deformation
-        if np.mod(tic, self.save_step) == 0 or tic == 200 or tic == 201 or tic == 300 or tic == 500:
+        if (
+            np.mod(tic, self.save_step) == 0
+            or tic == 200
+            or tic == 201
+            or tic == 300
+            or tic == 500
+        ):
             path_to_write = os.path.join(
                 self.output_dir, f"ovito_data_{self.culture_name}.{tic:05}"
             )

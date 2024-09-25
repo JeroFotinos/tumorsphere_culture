@@ -602,22 +602,31 @@ class Culture:
 
         # and calculate the matriz M
 
-        matrix_M=(alpha_cell*eps_cell*Q_cell+alpha_neighbor*eps_neighbor*Q_neighbor)/(alpha_cell+alpha_neighbor)
+        matrix_M = (
+            alpha_cell * eps_cell * Q_cell
+            + alpha_neighbor * eps_neighbor * Q_neighbor
+        ) / (alpha_cell + alpha_neighbor)
 
         # finally we can calculate i_0 and the overlap
         # i_0 = (4*pi*l_par_k*l_perp_k*l_par_j*l_perp_j)/sqrt(beta)
         # with l_parallel = np.sqrt((cell_area*cell.aspect_ratio)/np.pi)
         # and l_perp = sqrt(cell_area/(np.pi*cell.aspect_ratio))
         i_0 = 4 * self.cell_area**2 / (np.pi * np.sqrt(beta))
-        
+
         relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
-        overlap = i_0 * np.exp(-((alpha_cell + alpha_neighbor) / beta) * np.matmul(relative_pos, np.matmul(np.identity(3)-matrix_M, relative_pos)))
+        overlap = i_0 * np.exp(
+            -((alpha_cell + alpha_neighbor) / beta)
+            * np.matmul(
+                relative_pos,
+                np.matmul(np.identity(3) - matrix_M, relative_pos),
+            )
+        )
         # we return the overlap between the cell and its neighbor
         return overlap
 
     def get_neighbors(self, cell_index):
         """
-        It finds all neighbors of the cell that are within a distance of 2 times the 
+        It finds all neighbors of the cell that are within a distance of 2 times the
         semimajor axis of a cell with phi=5. It then filters for cases in which the
         distance is less than the semimajor axis of the current cell plus the semimajor
         axis of the neighbor.
@@ -640,12 +649,24 @@ class Culture:
         cell = self.cells[cell_index]
 
         # List of active cells, excludind the actual cell
-        neighbors_total = list(self.active_cell_indexes)  # We turn it into a list to work correctly with the index
+        neighbors_total = list(
+            self.active_cell_indexes
+        )  # We turn it into a list to work correctly with the index
         neighbors_total.remove(cell_index)  # We exclude the actual cell
 
         # Precalculation of the positions of the cells and their semi_major_axes
-        cell_positions = np.array([self.cell_positions[i] for i in neighbors_total])
-        cell_semi_major_axes = np.sqrt((self.cell_area * np.array([self.cells[i].aspect_ratio for i in neighbors_total])) / np.pi)
+        cell_positions = np.array(
+            [self.cell_positions[i] for i in neighbors_total]
+        )
+        cell_semi_major_axes = np.sqrt(
+            (
+                self.cell_area
+                * np.array(
+                    [self.cells[i].aspect_ratio for i in neighbors_total]
+                )
+            )
+            / np.pi
+        )
 
         # Semimajor axis of the actual cell
         cell_semi_major = np.sqrt((self.cell_area * cell.aspect_ratio) / np.pi)
@@ -668,11 +689,11 @@ class Culture:
             np.array([self.side, self.side, 0]),  # Up-right
             np.array([-self.side, self.side, 0]),  # Up-left
             np.array([self.side, -self.side, 0]),  # Down-right
-            np.array([-self.side, -self.side, 0])  # Down-left
+            np.array([-self.side, -self.side, 0]),  # Down-left
         ]
 
         # We define the max distance at which we search for neighbors
-        dist_max = 2*np.sqrt((self.cell_area*5)/np.pi)
+        dist_max = 2 * np.sqrt((self.cell_area * 5) / np.pi)
         # And a little correction
         epsilon = 1e-6
         # Searching for neighbors in each of the periodic positions
@@ -680,7 +701,7 @@ class Culture:
         for shift in periodic_shifts:
             # We search neighbors for the shifted position
             shifted_pos = current_pos + shift
-            indices = tree.query_ball_point(shifted_pos, dist_max+epsilon)
+            indices = tree.query_ball_point(shifted_pos, dist_max + epsilon)
             candidate_indices.update(indices)
 
         # We turn the indexes back to the originals
@@ -690,23 +711,27 @@ class Culture:
         final_neighbors = set()
         for neighbor_index in neighbors:
             # Calculate the max distance allowed (sum of the semimajor axes)
-            max_distance = cell_semi_major + cell_semi_major_axes[neighbors_total.index(neighbor_index)]
-            
+            max_distance = (
+                cell_semi_major
+                + cell_semi_major_axes[neighbors_total.index(neighbor_index)]
+            )
+
             # Use relative_pos() to obtain the distance
             relative_pos_x, relative_pos_y = self.relative_pos(
                 self.cell_positions[cell_index],
                 self.cell_positions[neighbor_index],
             )
-            
+
             # We calculate the distance taking into acount the box
             distance = np.linalg.norm([relative_pos_x, relative_pos_y, 0])
-            
+
             # If the distance is lower or equal than the max, it adds as a neighbor
             if distance <= max_distance:
                 final_neighbors.add(neighbor_index)
-        #final_neighbors_list = list(final_neighbors) #
-        #final_neighbors_2 = sorted(final_neighbors_list) #
-        return final_neighbors #final_neighbors_2
+        # final_neighbors_list = list(final_neighbors) #
+        # final_neighbors_2 = sorted(final_neighbors_list) #
+        return final_neighbors  # final_neighbors_2
+
     # ---------------------------------------------------------
     def interaction(self, cell_index: int, delta_t: float):
         """The given cell interacts with others if they are close enough.
@@ -738,32 +763,61 @@ class Culture:
 
         # We get the neighbors of the cell
         neighbors = self.get_neighbors(cell_index)
-        # we calculate the interaction between the main cell and every neighbor
-        for neighbor_index in neighbors:
-            relative_pos_x, relative_pos_y = self.relative_pos(
-                self.cell_positions[cell_index],
-                self.cell_positions[neighbor_index],
-            )
 
-            overlap = self.calculate_overlap(
-                cell_index, neighbor_index, relative_pos_x, relative_pos_y
-            )
-            # if two cells touch each other, we calculate the force between them
-            if overlap > self.threshold_overlap_1:
-                # we calculate the change in velocity and orientation given by
-                # the model used for the force.
-                dif_velocity2, dif_phi2 = self.force.calculate_interaction(
-                    self.cells,
-                    self.cell_phies,
+        # Calculate relative positions for all neighbors
+        relative_positions = np.array(
+            [
+                self.relative_pos(
+                    self.cell_positions[cell_index],
+                    self.cell_positions[neighbor_index],
+                )
+                for neighbor_index in neighbors
+            ]
+        )
+
+        # Calculate overlaps for all neighbors
+        overlaps = np.array(
+            [
+                self.calculate_overlap(
                     cell_index,
                     neighbor_index,
-                    relative_pos_x,
-                    relative_pos_y,
-                    delta_t,
-                    self.cell_area,
+                    relative_pos[0],
+                    relative_pos[1],
                 )
-                dif_velocity = dif_velocity + dif_velocity2
-                dif_phi = dif_phi + dif_phi2
+                for relative_pos, neighbor_index in zip(
+                    relative_positions, neighbors
+                )
+            ]
+        )
+
+        # Filter neighbors with significant overlap
+        significant_neighbors = [
+            (neighbor_index, relative_pos)
+            for neighbor_index, relative_pos, overlap in zip(
+                neighbors, relative_positions, overlaps
+            )
+            if overlap > self.threshold_overlap_1
+        ]
+
+        # Calculate interaction with filtered neighbors
+        for neighbor_index, relative_pos in significant_neighbors:
+            relative_pos_x, relative_pos_y = relative_pos
+
+            # Calculate change in velocity and orientation given by the force model
+            dif_velocity2, dif_phi2 = self.force.calculate_interaction(
+                self.cells,
+                self.cell_phies,
+                cell_index,
+                neighbor_index,
+                relative_pos_x,
+                relative_pos_y,
+                delta_t,
+                self.cell_area,
+            )
+
+            # Accumulate changes in velocity and phi
+            dif_velocity += dif_velocity2
+            dif_phi += dif_phi2
 
         # we calculate the change in the position of the cell, given all the neighbors.
         # Remember that the intrinsic velocity is already multiplied by the mobility
@@ -862,9 +916,6 @@ class Culture:
         """
 
         if np.isclose(self.cells[cell_index].aspect_ratio, 1):
-            # we make a list with all the cells except the cell itself
-            neighbors_total = set(self.active_cell_indexes)
-            neighbors_total.discard(cell_index)
             # we save the old attributes
             old_position = np.array(self.cell_positions[cell_index])
             old_phi = self.cell_phies[cell_index]

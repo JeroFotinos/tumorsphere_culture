@@ -402,7 +402,7 @@ class Anisotropic_Grosmann(Force):
         eps_neighbor = (neighbor.aspect_ratio**2 - 1) / (
             neighbor.aspect_ratio**2 + 1
         )
-        # diagonal squared (what whe call alpha)
+        # diagonal squared (what we call alpha)
         alpha_cell = (area / np.pi) * (
             cell.aspect_ratio + 1 / cell.aspect_ratio
         )
@@ -416,29 +416,6 @@ class Anisotropic_Grosmann(Force):
             + alpha_neighbor * eps_neighbor * Q_neighbor
         ) / (alpha_cell + alpha_neighbor)
 
-        # and now we can calculate xi
-        xi = np.exp(
-            -1
-            * (
-                (alpha_cell + alpha_neighbor)
-                / (
-                    (alpha_cell + alpha_neighbor) ** 2
-                    - (alpha_cell * eps_cell - alpha_neighbor * eps_neighbor)
-                    ** 2
-                    - 4
-                    * alpha_cell
-                    * eps_cell
-                    * alpha_neighbor
-                    * eps_neighbor
-                    * np.cos(relative_angle) ** 2
-                )
-            )
-            * np.matmul(
-                relative_pos,
-                np.matmul(np.identity(3) - matrix_M, relative_pos),
-            )
-        )
-
         # now we introduce the constant beta introduced by us in the TF
         beta = (
             (alpha_cell + alpha_neighbor) ** 2
@@ -448,13 +425,17 @@ class Anisotropic_Grosmann(Force):
             * eps_cell
             * alpha_neighbor
             * eps_neighbor
-            * (
-                np.cos(
-                    phies[cell_index]
-                    - phies[neighbor_index]
-                )
+            * (np.cos(phies[cell_index] - phies[neighbor_index])) ** 2
+        )
+
+        # and now we can calculate xi
+        xi = np.exp(
+            -1
+            * ((alpha_cell + alpha_neighbor) / beta)
+            * np.matmul(
+                relative_pos,
+                np.matmul(np.identity(3) - matrix_M, relative_pos),
             )
-            ** 2
         )
 
         # the kernel is: (k_rep = k, b_exp=gamma (from the paper))
@@ -463,7 +444,7 @@ class Anisotropic_Grosmann(Force):
             * self.kRep
             * self.bExp
             * xi**self.bExp
-            * ((alpha_cell + alpha_neighbor)/beta)
+            * ((alpha_cell + alpha_neighbor) / beta)
         )
 
         # finally we can calculate the force:
@@ -482,7 +463,7 @@ class Anisotropic_Grosmann(Force):
                     * eps_neighbor
                     * np.sin(-2 * relative_angle)
                 )
-                /beta
+                / beta
             )
             * np.matmul(
                 relative_pos,
