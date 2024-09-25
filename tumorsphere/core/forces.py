@@ -410,8 +410,8 @@ class Anisotropic_Grosmann(Force):
             neighbor.aspect_ratio + 1 / neighbor.aspect_ratio
         )
 
-        # we now calculate the mean nematic matrix (different than before)
-        mean_nematic = (
+        # we now calculate the mean nematic matrix (different than before) (the matrix M)
+        matrix_M = (
             alpha_cell * eps_cell * Q_cell
             + alpha_neighbor * eps_neighbor * Q_neighbor
         ) / (alpha_cell + alpha_neighbor)
@@ -435,33 +435,39 @@ class Anisotropic_Grosmann(Force):
             )
             * np.matmul(
                 relative_pos,
-                np.matmul(np.identity(3) - mean_nematic, relative_pos),
+                np.matmul(np.identity(3) - matrix_M, relative_pos),
             )
         )
+
+        # now we introduce the constant beta introduced by us in the TF
+        beta = (
+            (alpha_cell + alpha_neighbor) ** 2
+            - (alpha_cell * eps_cell - alpha_neighbor * eps_neighbor) ** 2
+            - 4
+            * alpha_cell
+            * eps_cell
+            * alpha_neighbor
+            * eps_neighbor
+            * (
+                np.cos(
+                    phies[cell_index]
+                    - phies[neighbor_index]
+                )
+            )
+            ** 2
+        )
+
         # the kernel is: (k_rep = k, b_exp=gamma (from the paper))
         kernel = (
             2
             * self.kRep
             * self.bExp
             * xi**self.bExp
-            * (
-                (alpha_cell + alpha_neighbor)
-                / (
-                    (alpha_cell + alpha_neighbor) ** 2
-                    - (alpha_cell * eps_cell - alpha_neighbor * eps_neighbor)
-                    ** 2
-                    - 4
-                    * alpha_cell
-                    * eps_cell
-                    * alpha_neighbor
-                    * eps_neighbor
-                    * np.cos(relative_angle) ** 2
-                )
-            )
+            * ((alpha_cell + alpha_neighbor)/beta)
         )
 
         # finally we can calculate the force:
-        force = kernel * np.matmul(np.identity(3) - mean_nematic, relative_pos)
+        force = kernel * np.matmul(np.identity(3) - matrix_M, relative_pos)
 
         # On the other way, we calculate the torque
         # we introduce the theta=angle of r_kj
@@ -476,21 +482,11 @@ class Anisotropic_Grosmann(Force):
                     * eps_neighbor
                     * np.sin(-2 * relative_angle)
                 )
-                / (
-                    (alpha_cell + alpha_neighbor) ** 2
-                    - (alpha_cell * eps_cell - alpha_neighbor * eps_neighbor)
-                    ** 2
-                    - 4
-                    * alpha_cell
-                    * eps_cell
-                    * alpha_neighbor
-                    * eps_neighbor
-                    * np.cos(relative_angle) ** 2
-                )
+                /beta
             )
             * np.matmul(
                 relative_pos,
-                np.matmul(np.identity(3) - mean_nematic, relative_pos),
+                np.matmul(np.identity(3) - matrix_M, relative_pos),
             )
             + (alpha_cell * eps_cell / (alpha_cell + alpha_neighbor))
             * np.linalg.norm(relative_pos) ** 2

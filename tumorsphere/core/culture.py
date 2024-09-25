@@ -512,14 +512,22 @@ class Culture:
         relative_pos_y: float,
     ):
         """
-
+        It calculates the overlap between 2 cells.
 
         Parameters
         ----------
-
+        cell_index : int
+            The index of the cell.
+        neighbor_index : int
+            The index of the neighbor.
+        relative_pos_x : float
+            The x component of the relative position of the cells.
+        relative_pos_y : float
+            The y component of the relative position of the cells.
         Returns
         -------
-        -------
+        overlap : float
+            The overlap between cells
         """
         cell = self.cells[cell_index]
         neighbor = self.cells[neighbor_index]
@@ -541,7 +549,8 @@ class Culture:
             neighbor.aspect_ratio + 1 / neighbor.aspect_ratio
         )
 
-        i_1 = (
+        # now we introduce the constant beta introduced by us in the TF
+        beta = (
             (alpha_cell + alpha_neighbor) ** 2
             - (alpha_cell * eps_cell - alpha_neighbor * eps_neighbor) ** 2
             - 4
@@ -558,8 +567,7 @@ class Culture:
             ** 2
         )
 
-        i_0 = 4 * self.cell_area**2 / (np.pi * np.sqrt(i_1))
-
+        # then we calculate the nematic matrixes/tensor
         Q_cell = np.array(
             [
                 [
@@ -592,16 +600,18 @@ class Culture:
             ]
         )
 
+        # and calculate the matriz M
+
+        matrix_M=(alpha_cell*eps_cell*Q_cell+alpha_neighbor*eps_neighbor*Q_neighbor)/(alpha_cell+alpha_neighbor)
+
+        # finally we can calculate i_0 and the overlap
+        # i_0 = (4*pi*l_par_k*l_perp_k*l_par_j*l_perp_j)/sqrt(beta)
+        # with l_parallel = np.sqrt((cell_area*cell.aspect_ratio)/np.pi)
+        # and l_perp = sqrt(cell_area/(np.pi*cell.aspect_ratio))
+        i_0 = 4 * self.cell_area**2 / (np.pi * np.sqrt(beta))
+        
         relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
-
-        matrix = np.identity(3) - (
-            alpha_cell * eps_cell * Q_cell
-            + alpha_neighbor * eps_neighbor * Q_neighbor
-        ) / (alpha_cell + alpha_neighbor)
-        mult_mat = np.matmul(relative_pos, np.matmul(matrix, relative_pos))
-        cte = (alpha_cell + alpha_neighbor) / i_1
-
-        overlap = i_0 * np.exp(-cte * mult_mat)
+        overlap = i_0 * np.exp(-((alpha_cell + alpha_neighbor) / beta) * np.matmul(relative_pos, np.matmul(np.identity(3)-matrix_M, relative_pos)))
         # we return the overlap between the cell and its neighbor
         return overlap
 
