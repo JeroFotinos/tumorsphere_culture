@@ -357,7 +357,6 @@ class Anisotropic_Grosmann(Force):
         # we see how these change the velocity and orientation
         cell = cells[cell_index]
         neighbor = cells[neighbor_index]
-        # we first calculate the kernel, using f[ξ]=ξ**gamma. ξ=xi calculated
         # We introduce some matrix/vectors/parameters that we need
 
         # nematic matrix
@@ -425,9 +424,10 @@ class Anisotropic_Grosmann(Force):
             * eps_cell
             * alpha_neighbor
             * eps_neighbor
-            * (np.cos(phies[cell_index] - phies[neighbor_index])) ** 2
+            * (np.cos(relative_angle)) ** 2
         )
 
+        # calculate the kernel, using f[ξ]=ξ**gamma. ξ=xi calculated
         # and now we can calculate xi
         xi = np.exp(
             -1

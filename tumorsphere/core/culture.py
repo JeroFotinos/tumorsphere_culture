@@ -649,24 +649,13 @@ class Culture:
         cell = self.cells[cell_index]
 
         # List of active cells, excludind the actual cell
-        neighbors_total = list(
-            self.active_cell_indexes
-        )  # We turn it into a list to work correctly with the index
-        neighbors_total.remove(cell_index)  # We exclude the actual cell
+        neighbors_total = [i for i in self.active_cell_indexes if i != cell_index]
 
         # Precalculation of the positions of the cells and their semi_major_axes
-        cell_positions = np.array(
-            [self.cell_positions[i] for i in neighbors_total]
-        )
-        cell_semi_major_axes = np.sqrt(
-            (
-                self.cell_area
-                * np.array(
-                    [self.cells[i].aspect_ratio for i in neighbors_total]
-                )
-            )
-            / np.pi
-        )
+        cell_positions = np.array(self.cell_positions)[neighbors_total]
+        
+        aspect_ratios = np.array([self.cells[i].aspect_ratio for i in neighbors_total])
+        cell_semi_major_axes = np.sqrt((self.cell_area * aspect_ratios) / np.pi)
 
         # Semimajor axis of the actual cell
         cell_semi_major = np.sqrt((self.cell_area * cell.aspect_ratio) / np.pi)
@@ -698,9 +687,8 @@ class Culture:
         epsilon = 1e-6
         # Searching for neighbors in each of the periodic positions
         candidate_indices = set()
-        for shift in periodic_shifts:
-            # We search neighbors for the shifted position
-            shifted_pos = current_pos + shift
+        shifted_positions = [current_pos + shift for shift in periodic_shifts]
+        for shifted_pos in shifted_positions:
             indices = tree.query_ball_point(shifted_pos, dist_max + epsilon)
             candidate_indices.update(indices)
 
