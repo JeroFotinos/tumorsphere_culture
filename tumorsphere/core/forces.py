@@ -15,7 +15,7 @@ class Force(ABC):
         cells,
         phies,
         cell_index,
-        relative_positions,
+        significant_neighbors,
         delta_t,
         area,
     ):
