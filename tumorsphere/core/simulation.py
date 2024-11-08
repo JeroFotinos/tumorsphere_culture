@@ -61,8 +61,10 @@ class Simulation:
         Default is`1000`.
     number_of_cells : int, optional
         The number of cells in the culture.
-    side : int, optional
+    side : float, optional
         The length of the side of the square where the cells move.
+    density : float
+        The density of the cells in the culture.
     reproduction : bool
         Whether the cells reproduces or not
     movement : bool
@@ -100,7 +102,7 @@ class Simulation:
         cell_max_repro_attempts=1000,
         swap_probability=0.5,
         number_of_cells=[5],
-        side=[10],
+        density=[0.5],
         reproduction: bool = False,
         movement: bool = True,
     ):
@@ -115,7 +117,7 @@ class Simulation:
         self.number_of_cells = number_of_cells
         self.reproduction = reproduction
         self.movement = movement
-        self.side = side
+        self.density = density
         self._rng_seed = rng_seed
         self.rng = np.random.default_rng(rng_seed)
 
@@ -192,19 +194,19 @@ class Simulation:
                     for k in range(len(self.prob_diff))
                     for i in range(len(self.prob_stem))
                     for f in range(len(self.number_of_cells))
-                    for g in range(len(self.side))
+                    for g in range(len(self.density))
                     for j in range(self.num_of_realizations)
                 ],
             )
 
 
-def realization_name(pd, ps, nc, l, seed, repro, moving) -> str:
+def realization_name(pd, ps, nc, rho, seed, repro, moving) -> str:
     if repro == True and moving == True:
-        return f"culture_pd={pd}_ps={ps}_nc={nc}_l={l}_rng_seed={seed}"
+        return f"culture_pd={pd}_ps={ps}_nc={nc}_rho={rho}_rng_seed={seed}"
     elif repro == True and moving == False:
         return f"culture_pd={pd}_ps={ps}_rng_seed={seed}"
     elif repro == False and moving == True:
-        return f"culture_nc={nc}_l={l}_rng_seed={seed}"
+        return f"culture_nc={nc}_rho={rho}_rng_seed={seed}"
     else:
         pass
 
@@ -241,7 +243,7 @@ def simulate_single_culture(
         sim.prob_diff[k],
         sim.prob_stem[i],
         sim.number_of_cells[f],
-        sim.side[g],
+        sim.density[g],
         seed,
         sim.reproduction,
         sim.movement,
@@ -259,7 +261,7 @@ def simulate_single_culture(
         rng_seed=seed,
         swap_probability=sim.swap_probability,
         number_of_cells=sim.number_of_cells[f],
-        side=sim.side[g],
+        density=sim.density[g],
         reproduction=sim.reproduction,
         movement=sim.movement,
     )
