@@ -57,6 +57,8 @@ class Cell:
     aspect_ratio: float = 1
     parent_index: Optional[int] = 0
     neighbors_indexes: Set[int] = field(default_factory=set)
+    #neighbors_data: list = field(default_factory=list)
+    neighbors_data: dict = field(default_factory=dict)
     available_space: bool = True
     _index: Optional[int] = field(default=False, init=False)
 
@@ -110,6 +112,8 @@ class Cell:
         self.is_stem = is_stem
         self.parent_index = parent_index
         self.neighbors_indexes = set()
+        #self.neighbors_data = list()
+        self.neighbors_data = dict()
         self.available_space = available_space
         self.aspect_ratio = aspect_ratio
 

@@ -15,7 +15,6 @@ class Force(ABC):
         cells,
         phies,
         cell_index,
-        significant_neighbors,
         delta_t,
         area,
     ):
@@ -39,7 +38,6 @@ class No_Forces(Force):
         cells,
         phies,
         cell_index,
-        significant_neighbors,
         delta_t,
         area,
     ):
@@ -68,7 +66,6 @@ class Spring_Force(Force):
         cells,
         phies,
         cell_index,
-        significant_neighbors,
         delta_t,
         area,
     ):
@@ -77,7 +74,9 @@ class Spring_Force(Force):
         dif_phi = 0
         dif_velocity = np.zeros(3)
         # Calculate interaction with filtered neighbors
-        for neighbor_index, relative_pos in significant_neighbors:
+        for neighbor_index, data in cell.neighbors_data.items():
+            relative_pos = data["relative_pos"]
+            overlap = data["overlap"]
             relative_pos_x, relative_pos_y = relative_pos
             # we first calculate the force
             fx = -self.k_spring_force * (-relative_pos_x)  # OJO SIGNO
@@ -111,7 +110,7 @@ class Vicsek(Force):
         cells,
         phies,
         cell_index,
-        significant_neighbors,
+        
 
         delta_t,
         area,
@@ -121,7 +120,9 @@ class Vicsek(Force):
         # initialization of the parameters of interaction
         dif_phi = 0
         # Calculate interaction with filtered neighbors
-        for neighbor_index, relative_pos in significant_neighbors:
+        for neighbor_index, data in cell.neighbors_data.items():
+            relative_pos = data["relative_pos"]
+            overlap = data["overlap"]
             alpha = np.arctan2(
                 np.sin(phies[cell_index]) + np.sin(phies[neighbor_index]),
                 np.cos(phies[cell_index]) + np.cos(phies[neighbor_index]),
@@ -148,7 +149,7 @@ class Vicsek_and_Spring_Force(Force):
         cells,
         phies,
         cell_index,
-        significant_neighbors,
+        
         delta_t,
         area,
     ):
@@ -157,7 +158,9 @@ class Vicsek_and_Spring_Force(Force):
         dif_phi = 0
         dif_velocity = np.zeros(3)
         # Calculate interaction with filtered neighbors
-        for neighbor_index, relative_pos in significant_neighbors:
+        for neighbor_index, data in cell.neighbors_data.items():
+            relative_pos = data["relative_pos"]
+            overlap = data["overlap"]
             relative_pos_x, relative_pos_y = relative_pos
             # We first calculate the force
             fx = -self.k_spring_force * (-relative_pos_x)  # OJO SIGNO
@@ -196,7 +199,7 @@ class Grosmann(Force):
         cells,
         phies,
         cell_index,
-        significant_neighbors,
+        
         delta_t,
         area,
     ):
@@ -271,7 +274,9 @@ class Grosmann(Force):
         # dif_velocity = np.zeros(3)
         force = np.zeros(3)
         # Calculate interaction with filtered neighbors
-        for neighbor_index, relative_pos in significant_neighbors:
+        for neighbor_index, data in cell.neighbors_data.items():
+            relative_pos = data["relative_pos"]
+            overlap = data["overlap"]
             relative_pos_x, relative_pos_y = relative_pos
             # Calculate change in velocity and orientation given by the force model
             # First we calculate some parameters of the neighbor cell
@@ -381,7 +386,6 @@ class Anisotropic_Grosmann(Force):
         cells,
         phies,
         cell_index,
-        significant_neighbors,
         delta_t,
         area,
     ):
@@ -459,7 +463,11 @@ class Anisotropic_Grosmann(Force):
         # dif_velocity = np.zeros(3)
         force = np.zeros(3)
         # Calculate interaction with filtered neighbors
-        for neighbor_index, relative_pos in significant_neighbors:
+        #for neighbor_index, relative_pos in significant_neighbors:
+        #for neighbor_index, relative_pos, overlap in cell.neighbors_data:
+        for neighbor_index, data in cell.neighbors_data.items():
+            relative_pos = data["relative_pos"]
+            overlap = data["overlap"]
             relative_pos_x, relative_pos_y = relative_pos
             # Calculate change in velocity and orientation given by the force model
             neighbor = cells[neighbor_index]
@@ -513,14 +521,7 @@ class Anisotropic_Grosmann(Force):
 
             # calculate the kernel, using f[ξ]=ξ**gamma. ξ=xi calculated
             # and now we can calculate xi
-            xi = np.exp(
-                -1
-                * ((alpha_cell + alpha_neighbor) / beta)
-                * np.matmul(
-                    relative_pos,
-                    np.matmul(np.identity(3) - matrix_M, relative_pos),
-                )
-            )
+            xi = overlap/(4 * area**2 / (np.pi * np.sqrt(beta)))
 
             # the kernel is: (k_rep = k, b_exp=gamma (from the paper))
             kernel = (
@@ -592,7 +593,9 @@ class Anisotropic_Grosmann(Force):
         s_nP = self.eta*np.sqrt(mP*delta_t)
         s_nS = self.eta*np.sqrt(mS*delta_t)
 
-        nP = s_nP*np.random.normal(0, 1)
-        nS = s_nS*np.random.normal(0, 1)
+        #nP = s_nP*np.random.normal(0, 1)
+        nP = s_nP*cell.culture.rng.normal(0, 1)
+        #nS = s_nS*np.random.normal(0, 1)
+        nS = s_nS*cell.culture.rng.normal(0, 1)
         noise = nP*direction_vector+nS*perpendicular_vector
         return dif_position+noise, dif_phi

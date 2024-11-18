@@ -718,61 +718,66 @@ class Culture:
         """
         cell = self.cells[cell_index]
 
-        # We get the neighbors of the cell
-        candidate_neighbors = cell.neighbors_indexes.copy()
-
-        # Calculate relative positions for all neighbors
-        relative_positions = np.array(
-            [
-                self.relative_pos(
+        # For all the neighbor candidates, we calculate the relative position with the cell
+        for neighbor_index, data in cell.neighbors_data.items():
+            # We make sure that it is not already calculated
+            if data["relative_pos"] is None:
+                relative_pos_x, relative_pos_y = self.relative_pos(
                     self.cell_positions[cell_index],
-                    self.cell_positions[neighbor_index],
+                    self.cell_positions[neighbor_index]
                 )
-                for neighbor_index in candidate_neighbors
-            ]
-        )
+                relative_pos = np.array([relative_pos_x, relative_pos_y])
+                # And add the relative position to the neighbors_data
+                data["relative_pos"] = relative_pos
+
+                # we update also the attribute of the neighbor corresponding to the actual cell
+                neighbor = self.cells[neighbor_index]
+                neighbor.neighbors_data[cell_index]["relative_pos"] = -np.array(relative_pos)
+        
         # Filter neighbors whose distance is less than the sum of the major semi axes
-        filtered_neighbors = [
-            (neighbor_index, relative_pos)
-            for neighbor_index, relative_pos in zip(candidate_neighbors, relative_positions)
-            if np.linalg.norm(relative_pos) < (
-                np.sqrt((self.cell_area * cell.aspect_ratio) / np.pi)
+        cell_semi_major_axis = np.sqrt((self.cell_area * cell.aspect_ratio) / np.pi)
+        filtered_neighbors_data = {
+            neighbor_index: data
+            for neighbor_index, data in cell.neighbors_data.items()
+            if np.linalg.norm(data["relative_pos"]) < (
+                cell_semi_major_axis
                 + np.sqrt((self.cell_area * self.cells[neighbor_index].aspect_ratio) / np.pi)
             )
-        ]
+        }
+        
         # Calculate overlap for filtered neighbors
-        overlaps = [
-            self.calculate_overlap(cell_index, neighbor_index, relative_pos[0], relative_pos[1])
-            for neighbor_index, relative_pos in filtered_neighbors
-        ]
-        # The significant neighbors are those which the overlap is less than the threshold
-        significant_neighbors = [
-            neighbor_index
-            for (neighbor_index, relative_pos), overlap in zip(filtered_neighbors, overlaps)
-            if overlap > self.threshold_overlap
-        ]
-        # same with positions
-        significant_relative_positions = [
-            relative_pos
-            for (neighbor_index, relative_pos), overlap in zip(filtered_neighbors, overlaps)
-            if overlap > self.threshold_overlap
-        ]
-        # Calculate interaction with significant neighbors
+        for neighbor_index, data in filtered_neighbors_data.items():
+            # We make sure that it is not already calculated
+            if data["overlap"] is None:
+                overlap = self.calculate_overlap(
+                    cell_index,
+                    neighbor_index,
+                    data["relative_pos"][0],
+                    data["relative_pos"][1]
+                )
+                # And add the overlap to the neighbors_data
+                data["overlap"] = overlap
+                # we update also the attribute of the neighbor corresponding to the actual cell
+                neighbor = self.cells[neighbor_index]
+                neighbor.neighbors_data[cell_index]["overlap"] = overlap
+
+        # The significant neighbors are those which the overlap is more than the threshold
+        significant_neighbors_data = {
+            neighbor_index: data
+            for neighbor_index, data in filtered_neighbors_data.items()
+            if data["overlap"] > self.threshold_overlap
+        }
+
+        cell.neighbors_data = significant_neighbors_data
+        # Calculate interaction with final neighbors
         dif_position, dif_phi = self.force.calculate_interaction(
             self.cells,
             self.cell_phies,
             cell_index,
-            [(neigh, rel_pos) for (neigh, rel_pos) in zip(significant_neighbors, significant_relative_positions)],
             delta_t,
             self.cell_area,
         )
-        # Create a set with the indexes that are in candidate_neighbors but not in significant_neighbors
-        significant_neighbors_set = set(significant_neighbors)
-        failed_candidates = candidate_neighbors - significant_neighbors_set
-        # For those indexes we eliminate the current cell of their neighbors
-        for failed_index in failed_candidates:
-            if cell_index in self.cells[failed_index].neighbors_indexes:
-                self.cells[failed_index].neighbors_indexes.remove(cell_index)
+
         #we return the change in the position and in the phi angle of the cell
         return dif_position, dif_phi
 
@@ -1073,12 +1078,15 @@ class Culture:
                 grid, r_0 = self.assign_to_grid()
                 # We find the candidates for neighbors
                 candidate_neighbors_total = self.find_neighbors_in_grid(grid, r_0)
-                dif_positions = np.zeros((len(self.active_cell_indexes), 3))
-                dif_phies = np.zeros(len(self.active_cell_indexes))
                 for index in self.active_cell_indexes:
                     cell = self.cells[index]
-                    # we update the neighbors as the candidates
-                    cell.neighbors_indexes = candidate_neighbors_total[index].copy()
+                    # Initialization of neighbors_data
+                    cell.neighbors_data = {
+                        neighbor_index: {"relative_pos": None, "overlap": None}
+                        for neighbor_index in candidate_neighbors_total[index]
+                    }
+                dif_positions = np.zeros((len(self.active_cell_indexes), 3))
+                dif_phies = np.zeros(len(self.active_cell_indexes))
                 for index in self.active_cell_indexes:
                     dif_position, dif_phi = self.interaction(
                         cell_index=index, delta_t=self.delta_t
