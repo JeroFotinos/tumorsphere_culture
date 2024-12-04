@@ -36,11 +36,11 @@ class Culture:
         reproduction: bool = False,
         movement: bool = True,
         cell_area: float = np.pi,
-        stabilization_time: int = 200,
-        max_time_deformation_initial: int = 500,
-        max_time_deformation: int = 2500,
+        stabilization_time: int = 120, #120, #600, #300, #120
+        max_time_deformation_initial: int = 1000,
+        max_time_deformation: int = 10000,
         threshold_overlap: float = 0.61,
-        delta_t: float = 0.01,
+        delta_t: float = 0.05, #0.01, #0.02, #0.05
         aspect_ratio_max: float = 5,
     ):
         """
@@ -839,25 +839,26 @@ class Culture:
         old_semi_major_axis = np.sqrt(
             (self.cell_area * self.cells[cell_index].aspect_ratio) / np.pi
         )
-        old_semi_minor_axis = np.sqrt(
-            self.cell_area / (np.pi * self.cells[cell_index].aspect_ratio)
-        )
+        # old_semi_minor_axis = np.sqrt(
+        #     self.cell_area / (np.pi * self.cells[cell_index].aspect_ratio)
+        # )
 
-        d = np.sqrt(
-            old_semi_major_axis**2
-            * (np.cos(new_phi - self.cell_phies[cell_index])) ** 2
-            + old_semi_minor_axis**2
-            * (np.sin(new_phi - self.cell_phies[cell_index])) ** 2
-        )
-        x = (new_semi_major_axis - d) * np.cos(new_phi)
-        y = (new_semi_major_axis - d) * np.sin(new_phi)
+        # d = np.sqrt(
+        #     old_semi_major_axis**2
+        #     * (np.cos(new_phi - self.cell_phies[cell_index])) ** 2
+        #     + old_semi_minor_axis**2
+        #     * (np.sin(new_phi - self.cell_phies[cell_index])) ** 2
+        # )
+        #d = old_semi_major_axis
+        x = (new_semi_major_axis - old_semi_major_axis) * np.cos(new_phi)
+        y = (new_semi_major_axis - old_semi_major_axis) * np.sin(new_phi)
 
         new_position = self.cell_positions[cell_index] + np.array([x, y, 0])
         new_position = np.mod(new_position, self.side)
         return new_position
 
     # ---------------------------------------------------------
-    def deformation(self, cell_index: int, candidate_neighbors_total, grid, r_0):
+    def deformation(self, cell_index: int, candidate_neighbors_total, grid, r_0)->None:
         """If the cell is round, an angle is chosen randomly.
         If the new cell with these angle and aspect ratio = maximum (given as an
         attribute) does not overlap with others, it remains.
@@ -984,6 +985,18 @@ class Culture:
             succesful_deformation = False
             return succesful_deformation
         else:
+            if cell.shrink == True:
+                # opción 1:
+                # turn the cell back to round
+                self.cells[cell_index].aspect_ratio = 1
+                self.cell_phies[cell_index] = 0
+                cell.shrink = False
+                # opcion 2
+                # we change the position
+                # ...
+                succesful_deformation = True
+
+            # ver si sacar despues
             succesful_deformation = False
             return succesful_deformation
 
@@ -1042,9 +1055,10 @@ class Culture:
                         ),
                         culture=self,
                         is_stem=self.first_cell_is_stem,
-                        phi=0,
-                        aspect_ratio=1,
+                        phi=0, #self.rng.uniform(low=0, high=self.side), #0
+                        aspect_ratio=1, #5, #1
                         parent_index=0,
+                        shrink=False,
                         available_space=True,
                     )
         # Save the data (for dat, ovito, and/or SQLite)
@@ -1055,7 +1069,9 @@ class Culture:
             cell_phies=self.cell_phies,
             active_cell_indexes=self.active_cell_indexes,
             side=self.side,
+            density=self.density,
             cell_area=self.cell_area,
+            force=self.force,
         )
         # we simulate for num_times time steps
         reproduction = self.reproduction
@@ -1112,10 +1128,6 @@ class Culture:
                 # the max_time. (This value of deform stays for later steps)
                 elif i > last_time_deformation + self.max_time_deformation:
                     deform = False
-                # In order to be sure that we elongate all the cells possible, we add that 
-                # in the last steps the cells try to deform again.
-                #elif i > num_times-self.stabilization_time:
-                #    deform = True
                 # Only deform if deform is still True
                 if deform:
                     # we deform using the candidates for neighbors
@@ -1134,5 +1146,7 @@ class Culture:
                 cell_phies=self.cell_phies,
                 active_cell_indexes=self.active_cell_indexes,
                 side=self.side,
+                density=self.density,
                 cell_area=self.cell_area,
+                force=self.force,
             )
