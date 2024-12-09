@@ -8,13 +8,14 @@ Classes:
 """
 
 import multiprocessing as mp
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Union
 
 import numpy as np
 
 from tumorsphere.core.culture import Culture
 from tumorsphere.core.output import create_output_demux
 from tumorsphere.core.spatial_hash_grid import SpatialHashGrid
+from tumorsphere.core.forces import Force
 
 
 class Simulation:
@@ -58,6 +59,17 @@ class Simulation:
         Maximum number of attempts to create a new cell during the
         reproduction of an existing cell in a `Culture` object.
         Default is`1000`.
+    initial_number_of_cells : int, optional
+        The number of cells in the culture. If None, we start with a single
+        cell.
+    initial_density : float
+        The initial density of the cells in the culture. None by default. If
+        specified, it overrides the `culture_bounds` parameter to adjust the
+        for the requested density.
+    reproduction : bool
+        Whether the cells reproduces or not
+    movement : bool
+        Whether the cells moves or not
     culture_bounds : int, optional
         The bounds of the grid, by default None. If None, the space is
         unbouded. If provided, the space is bounded to the
@@ -68,6 +80,7 @@ class Simulation:
         side $h=2r$ is enough to make sure that we only have to check
         superpositions with cells on the same or first neighboring grid
         cells. Enlarge if using larger cells.
+        For simulations with eliptical cells, use $h=2r_{max}$.
     grid_torus : bool, optional
         Whether the grid is a torus or not, only relevant when bounds are
         provided, True by default. If True, the grid is a torus, so the
@@ -96,9 +109,10 @@ class Simulation:
 
     def __init__(
         self,
+        forces: List[Force] = None,
         first_cell_is_stem: bool = True,
-        prob_stem=[0.36],
-        prob_diff=[0],
+        prob_stem: List[float] = [0.36],
+        prob_diff: List[float] = [0],
         num_of_realizations: int = 4,
         num_of_steps_per_realization: int = 10,
         rng_seed=0x87351080E25CB0FAD77A44A3BE03B491,
@@ -107,10 +121,19 @@ class Simulation:
         cell_max_repro_attempts: int = 1000,
         swap_probability: float = 0.5,
         culture_bounds: float = None,
-        grid_cube_size: float = 2,
+        grid_cube_size: Union[float, List[float]] = 2,
         grid_torus: bool = True,
+        initial_number_of_cells: Optional[List[int]] = None,
+        initial_density: Optional[List[float]] = None,
+        reproduction: bool = False,
+        movement: bool = True,
     ):
         # main simulation attributes
+        self.forces = forces
+        self.initial_number_of_cells = initial_number_of_cells
+        self.reproduction = reproduction
+        self.movement = movement
+        self.initial_density = initial_density
         self.first_cell_is_stem = first_cell_is_stem
         self.prob_stem = prob_stem
         self.prob_diff = prob_diff
@@ -134,11 +157,27 @@ class Simulation:
         self.grid_cube_size = grid_cube_size
         self.grid_torus = grid_torus
 
+    def calculate_culture_bounds_from_density(
+        self,
+        number_of_cells: int,
+        density: float,
+    ) -> float:
+        """Calculate the culture bounds from the initial density, provided
+        the number of cells."""
+        if self.initial_density is None:
+            pass
+        else:
+            cell_area = np.pi * self.cell_radius**2
+            bounds = np.sqrt(number_of_cells * cell_area / density)
+            return bounds
+
     def simulate_single_culture(
         self,
         sql: bool = True,
         dat_files: bool = False,
+        dat_pos_ar: bool = False,
         ovito: bool = False,
+        df: bool = False,
         output_dir: str = ".",
         prob_stem_index: int = 0,
         prob_diff_index: int = 0,
@@ -162,6 +201,10 @@ class Simulation:
             outputs.append("dat")
         if ovito:
             outputs.append("ovito")
+        if df:
+            outputs.append("df")
+        if dat_pos_ar:
+            outputs.append("dat_pos_ar")
 
         # We compute the name of the realization
         current_realization_name = realization_name(
@@ -204,6 +247,7 @@ class Simulation:
         self,
         sql: bool = True,
         dat_files: bool = False,
+        dat_pos_ar: bool = False,
         ovito: bool = False,
         df: bool = False,
         number_of_processes: int = None,
@@ -249,6 +293,8 @@ class Simulation:
             outputs.append("ovito")
         if df:
             outputs.append("df")
+        if dat_pos_ar:
+            outputs.append("dat_pos_ar")
 
         with mp.Pool(number_of_processes) as p:
             p.map(
@@ -257,9 +303,12 @@ class Simulation:
                     (
                         k,
                         i,
+                        f,
+                        g if self.initial_density is not None else None,
                         seeds[j],
                         self,
                         outputs,
+                        m,
                         output_dir,
                         self.culture_bounds,
                         self.grid_cube_size,
@@ -267,14 +316,47 @@ class Simulation:
                     )
                     for k in range(len(self.prob_diff))
                     for i in range(len(self.prob_stem))
+                    for f in range(len(self.initial_number_of_cells))
+                    for g in range(len(self.initial_density))
+                    if self.initial_density is not None
                     for j in range(self.num_of_realizations)
+                    for m in range(len(self.forces))
                 ],
             )
 
 
-def realization_name(pd, ps, seed) -> str:
+def realization_name(
+    pd: float,
+    ps: float,
+    nc: int,
+    rho: float,
+    seed: int,
+    force_name: str,
+    bounds: Optional[float],
+    repro: bool,
+    moving: bool,
+) -> str:
     """Return the name of the realization."""
-    return f"culture_pd={pd}_ps={ps}_rng_seed={seed}"
+    not_supported = not (repro or moving)
+
+    if not_supported:
+        raise NotImplementedError(
+            "Simulations that do not involve either reproduction or movement "
+            "are not implemented."
+        )
+
+    name = "culture"
+    if repro:
+        name += f"_pd={pd}_ps={ps}"
+    if moving:
+        if rho is not None:
+            name += f"_initial_number_of_cells={nc}"
+            name += f"_density={rho}_force={force_name}"
+        else:
+            name += f"_initial_number_of_cells={nc}_culture_bounds={bounds}"
+            name += f"_force={force_name}"
+    name += f"_rng_seed={seed}"
+    return name
 
 
 def simulate_single_culture(
@@ -307,9 +389,12 @@ def simulate_single_culture(
     (
         k,
         i,
+        f,
+        g,
         seed,
         sim,
         outputs,
+        m,
         output_dir,
         culture_bounds,
         grid_cube_size,
@@ -318,13 +403,28 @@ def simulate_single_culture(
 
     # We compute the name of the realization
     current_realization_name = realization_name(
-        sim.prob_diff[k], sim.prob_stem[i], seed
+        sim.prob_diff[k],
+        sim.prob_stem[i],
+        sim.initial_number_of_cells[f],
+        sim.initial_density[g] if sim.initial_density is not None else None,
+        seed,
+        sim.forces[m].name,
+        sim.reproduction,
+        sim.movement,
     )
 
     # We create the output object
     output = create_output_demux(current_realization_name, outputs, output_dir)
 
     # We create the spatial hash grid object
+    if sim.initial_density is not None:
+        culture_bounds = sim.calculate_culture_bounds_from_density(
+            sim.initial_number_of_cells[f],
+            sim.initial_density[g],
+        )
+    else:
+        culture_bounds = sim.culture_bounds
+
     spatial_hash_grid = SpatialHashGrid(
         culture=None,
         bounds=culture_bounds,
@@ -335,6 +435,8 @@ def simulate_single_culture(
     # We create the culture object and simulate it
     sim.cultures[current_realization_name] = Culture(
         output=output,
+        force=sim.forces[m],
+        initial_number_of_cells=sim.initial_number_of_cells[f],
         grid=spatial_hash_grid,
         adjacency_threshold=sim.adjacency_threshold,
         cell_radius=sim.cell_radius,

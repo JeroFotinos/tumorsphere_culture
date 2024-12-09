@@ -8,6 +8,13 @@ class Force(ABC):
     The force or model used to calculate the interaction between 1 cell and all its 
     neighbors.
     """
+    # Let's add an abstract attribute to the class called 'name'
+    @abstractmethod
+    def name(self):
+        """
+        Gives the name of the force.
+        """
+        pass
 
     @abstractmethod
     def calculate_interaction(
@@ -32,6 +39,9 @@ class No_Forces(Force):
 
     def __init__(self):
         pass
+
+    def name(self):
+        return "No_Forces"
 
     def calculate_interaction(
         self,
@@ -60,6 +70,12 @@ class Spring_Force(Force):
         k_spring_force: float = 0.5,
     ):
         self.k_spring_force = k_spring_force
+
+    def name(self):
+        """
+        The force is a spring force with constant k.
+        """ 
+        return f"Spring_Force_k={self.k_spring_force}"
 
     def calculate_interaction(
         self,
@@ -104,6 +120,9 @@ class Vicsek(Force):
     def __init__(self):
         pass
 
+    def name(self):
+        return "Vicsek"
+
     def calculate_interaction(
         self,
         cells,
@@ -143,6 +162,12 @@ class Vicsek_and_Spring_Force(Force):
         k_spring_force: float = 0.5,
     ):
         self.k_spring_force = k_spring_force
+
+    def name(self):
+        """
+        Vicsek and Spring Force combined with constant k for spirng force.
+        """
+        return f"Vicsek_and_Spring_Force_k={self.k_spring_force}"
 
     def calculate_interaction(
         self,
@@ -193,6 +218,12 @@ class Grosmann(Force):
     ):
         self.kRep = kRep
         self.bExp = bExp
+
+    def name(self):
+        """
+        Force model given by Grosmann paper with parameters k and gamma.
+        """
+        return f"Grosmann_k={self.kRep}_gamma={self.bExp}"
 
     def calculate_interaction(
         self,
@@ -368,6 +399,13 @@ class Anisotropic_Grosmann(Force):
     """
     The model is the given by the generalization of Grosmann paper.
     """
+
+    def name(self):
+        """
+        Force model given by Grosmann paper with parameters k and gamma.
+        Without noise and shrinking.
+        """
+        return f"Anisotropic_Grosmann_k={self.kRep}_gamma={self.bExp}"
 
     def __init__(
         self,
