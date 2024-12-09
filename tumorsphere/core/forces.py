@@ -77,10 +77,9 @@ class Spring_Force(Force):
         for neighbor_index, data in cell.neighbors_data.items():
             relative_pos = data["relative_pos"]
             overlap = data["overlap"]
-            relative_pos_x, relative_pos_y = relative_pos
             # we first calculate the force
-            fx = -self.k_spring_force * (-relative_pos_x)  # OJO SIGNO
-            fy = -self.k_spring_force * (-relative_pos_y)
+            fx = -self.k_spring_force * (-relative_pos[0])
+            fy = -self.k_spring_force * (-relative_pos[1])
             # Calculate change in velocity given by the force model
             dif_velocity_2 = np.array([fx, fy, 0])
             # Accumulate changes in velocity
@@ -110,8 +109,6 @@ class Vicsek(Force):
         cells,
         phies,
         cell_index,
-        
-
         delta_t,
         area,
     ):
@@ -128,7 +125,10 @@ class Vicsek(Force):
                 np.cos(phies[cell_index]) + np.cos(phies[neighbor_index]),
             )
             dif_phi_2 = alpha - phies[cell_index]
+            # Normalize increment to the range [-pi, pi]
+            dif_phi_2 = np.arctan2(np.sin(dif_phi_2), np.cos(dif_phi_2))
             dif_phi += dif_phi_2
+            #dif_phi = np.mod(dif_phi, 2*np.pi)
         dif_position = cell.velocity()*delta_t
         return dif_position, dif_phi
 
@@ -149,7 +149,6 @@ class Vicsek_and_Spring_Force(Force):
         cells,
         phies,
         cell_index,
-        
         delta_t,
         area,
     ):
@@ -161,10 +160,9 @@ class Vicsek_and_Spring_Force(Force):
         for neighbor_index, data in cell.neighbors_data.items():
             relative_pos = data["relative_pos"]
             overlap = data["overlap"]
-            relative_pos_x, relative_pos_y = relative_pos
             # We first calculate the force
-            fx = -self.k_spring_force * (-relative_pos_x)  # OJO SIGNO
-            fy = -self.k_spring_force * (-relative_pos_y)
+            fx = -self.k_spring_force * (-relative_pos[0]) 
+            fy = -self.k_spring_force * (-relative_pos[1])
             # Calculate change in velocity given by the force model
             dif_velocity_2 = np.array([fx, fy, 0])
             # Accumulate changes in velocity
@@ -175,9 +173,11 @@ class Vicsek_and_Spring_Force(Force):
                 np.cos(phies[cell_index]) + np.cos(phies[neighbor_index]),
             )
             dif_phi_2 = alpha - phies[cell_index]
+            # Normalize increment to the range [-pi, pi]
+            dif_phi_2 = np.arctan2(np.sin(dif_phi_2), np.cos(dif_phi_2))
             dif_phi += dif_phi_2
         # In this model the change in velocity is equal to the force
-        dif_position = (cell.velocity() + np.array([fx, fy, 0]))*delta_t
+        dif_position = (cell.velocity() + dif_velocity)*delta_t
         return dif_position, dif_phi
 
 
@@ -277,7 +277,6 @@ class Grosmann(Force):
         for neighbor_index, data in cell.neighbors_data.items():
             relative_pos = data["relative_pos"]
             overlap = data["overlap"]
-            relative_pos_x, relative_pos_y = relative_pos
             # Calculate change in velocity and orientation given by the force model
             # First we calculate some parameters of the neighbor cell
             # nematic matrix
@@ -299,8 +298,7 @@ class Grosmann(Force):
             # and some parameters useful for the force
             # mean nematic matrix
             mean_nematic = (1 / 2) * (Q_cell + Q_neighbor)
-            # relative position and angle
-            relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
+            # relative angle
             relative_angle = phies[cell_index] - phies[neighbor_index]
             # and now we can calculate xi
             xi = np.exp(
@@ -324,7 +322,7 @@ class Grosmann(Force):
 
             # On the other way, we calculate the torque
             # we introduce the theta = angle of r_kj
-            theta = np.arctan2(relative_pos_y, relative_pos_x)
+            theta = np.arctan2(relative_pos[1], relative_pos[0])
             torque_2 = (kernel / 2) * (
                 eps
                 * np.linalg.norm(relative_pos)
@@ -458,17 +456,12 @@ class Anisotropic_Grosmann(Force):
             * mP
         )
         # initialization of the parameters of interaction
-        # dif_phi = 0
         torque = 0
-        # dif_velocity = np.zeros(3)
         force = np.zeros(3)
         # Calculate interaction with filtered neighbors
-        #for neighbor_index, relative_pos in significant_neighbors:
-        #for neighbor_index, relative_pos, overlap in cell.neighbors_data:
         for neighbor_index, data in cell.neighbors_data.items():
             relative_pos = data["relative_pos"]
             overlap = data["overlap"]
-            relative_pos_x, relative_pos_y = relative_pos
             # Calculate change in velocity and orientation given by the force model
             neighbor = cells[neighbor_index]
             # First we calculate some parameters of the neighbor cell
@@ -498,7 +491,6 @@ class Anisotropic_Grosmann(Force):
             )
             # and now some parameters of the cell and its neighbor
             # relative position and angle
-            relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
             relative_angle = phies[cell_index] - phies[neighbor_index]
             
             # we now calculate the mean nematic matrix (different than before) (the matrix M)
@@ -537,7 +529,7 @@ class Anisotropic_Grosmann(Force):
 
             # On the other way, we calculate the torque
             # we introduce the theta=angle of r_kj
-            theta = np.arctan2(relative_pos_y, relative_pos_x)
+            theta = np.arctan2(relative_pos[1], relative_pos[0])
             torque_2 = kernel * (
                 (
                     (
@@ -562,7 +554,6 @@ class Anisotropic_Grosmann(Force):
             # Accumulate changes in force and torque
             force += force_2
             torque += torque_2
-            # We introduce some matrix/vectors/parameters that we need
         
         # then the change in the velocity is given by:
         dif_velocity = np.matmul(
@@ -570,9 +561,19 @@ class Anisotropic_Grosmann(Force):
             force,
         )
         # we calculate the change in the position of the cell, given all the neighbors.
-        # Remember that the intrinsic velocity is already multiplied by the mobility
-        # (Like in Grosmann paper).
         dif_position = (cell.velocity()+dif_velocity)*delta_t
+
+        # Now we want to see if the cell shrink. For these, we see the speed of the cell
+        speed = np.linalg.norm(cell.velocity())
+        # And calculate the projection in that direction
+        if speed > 0:
+            dif_velocity_project = np.dot(dif_velocity, cell.velocity()) / speed
+        else:
+            dif_velocity_project = 0
+        # if the sum of the speed + the projection is negative (or zero), we turn into
+        # true the possibility of shrinking
+        if cell.aspect_ratio != 1 and speed+dif_velocity_project<=0:
+            cell.shrink = True
         # and the change in the orientation:
         dif_phi = mR * torque * delta_t
         # we also add tha noise in the position:
@@ -593,9 +594,7 @@ class Anisotropic_Grosmann(Force):
         s_nP = self.eta*np.sqrt(mP*delta_t)
         s_nS = self.eta*np.sqrt(mS*delta_t)
 
-        #nP = s_nP*np.random.normal(0, 1)
         nP = s_nP*cell.culture.rng.normal(0, 1)
-        #nS = s_nS*np.random.normal(0, 1)
         nS = s_nS*cell.culture.rng.normal(0, 1)
         noise = nP*direction_vector+nS*perpendicular_vector
         return dif_position+noise, dif_phi

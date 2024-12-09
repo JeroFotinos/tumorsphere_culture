@@ -398,7 +398,7 @@ class DatOutput_position_aspectratio(TumorsphereOutput):
 
 
 class OvitoOutput(TumorsphereOutput):
-    def __init__(self, culture_name, output_dir=".", save_step=1000):  # 3000
+    def __init__(self, culture_name, output_dir=".", save_step=10):
         self.output_dir = output_dir
         self.culture_name = culture_name
         self.save_step = save_step
@@ -437,7 +437,7 @@ class OvitoOutput(TumorsphereOutput):
         # in order to see the deformation
         if (
             np.mod(tic, self.save_step) == 0
-            or tic == 200
+            and tic >= 120 or tic==0
         ):
             path_to_write = os.path.join(
                 self.output_dir, f"ovito_data_{self.culture_name}.{tic:05}"

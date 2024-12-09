@@ -90,7 +90,7 @@ class Simulation:
 
     def __init__(
         self,
-        force: Force,
+        force: [Force],
         first_cell_is_stem=True,
         prob_stem=[0.36],
         prob_diff=[0],
@@ -188,7 +188,7 @@ class Simulation:
                         seeds[j],
                         self,
                         outputs,
-                        self.force,
+                        m,
                         output_dir,
                     )
                     for k in range(len(self.prob_diff))
@@ -196,17 +196,18 @@ class Simulation:
                     for f in range(len(self.number_of_cells))
                     for g in range(len(self.density))
                     for j in range(self.num_of_realizations)
+                    for m in self.force
                 ],
             )
 
 
-def realization_name(pd, ps, nc, rho, seed, repro, moving) -> str:
+def realization_name(pd, ps, nc, rho, seed, force, repro, moving) -> str:
     if repro == True and moving == True:
-        return f"culture_pd={pd}_ps={ps}_nc={nc}_rho={rho}_rng_seed={seed}"
+        return f"culture_pd={pd}_ps={ps}_nc={nc}_rho={rho}_rng_seed={seed}_force={force}"
     elif repro == True and moving == False:
         return f"culture_pd={pd}_ps={ps}_rng_seed={seed}"
     elif repro == False and moving == True:
-        return f"culture_nc={nc}_rho={rho}_rng_seed={seed}"
+        return f"culture_nc={nc}_rho={rho}_rng_seed={seed}_force={force}"
     else:
         pass
 
@@ -237,7 +238,7 @@ def simulate_single_culture(
     methods can't be pickled. Therefore, the instance method worker had to be
     refactored to a standalone function (or a static method).
     """
-    k, i, f, g, seed, sim, outputs, force, output_dir = args
+    k, i, f, g, seed, sim, outputs, m, output_dir = args
 
     current_realization_name = realization_name(
         sim.prob_diff[k],
@@ -245,13 +246,14 @@ def simulate_single_culture(
         sim.number_of_cells[f],
         sim.density[g],
         seed,
+        sim.force.index(m),
         sim.reproduction,
         sim.movement,
     )
     output = create_output_demux(current_realization_name, outputs, output_dir)
     sim.cultures[current_realization_name] = Culture(
         output,
-        force,
+        m,
         adjacency_threshold=sim.adjacency_threshold,
         cell_radius=sim.cell_radius,
         cell_max_repro_attempts=sim.cell_max_repro_attempts,

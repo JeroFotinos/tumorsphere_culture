@@ -7,10 +7,11 @@ Classes:
 """
 
 from datetime import datetime
-from typing import Set
+from typing import Set, Dict, List, Tuple
 
 import numpy as np
 from collections import defaultdict
+from itertools import product
 
 from tumorsphere.core.cells import Cell
 from tumorsphere.core.output import TumorsphereOutput
@@ -36,11 +37,11 @@ class Culture:
         reproduction: bool = False,
         movement: bool = True,
         cell_area: float = np.pi,
-        stabilization_time: int = 120, #120, #600, #300, #120
-        max_time_deformation_initial: int = 1000,
-        max_time_deformation: int = 10000,
+        stabilization_time: int = 120,
+        #max_time_deformation_initial: int = 1000,
+        #max_time_deformation: int = 10000,
         threshold_overlap: float = 0.61,
-        delta_t: float = 0.05, #0.01, #0.02, #0.05
+        delta_t: float = 0.05,
         aspect_ratio_max: float = 5,
     ):
         """
@@ -80,13 +81,13 @@ class Culture:
         cell_area : float
             the area of all cells in the culture.
         stabilization_time : int
-            the time we have to wait in order to start the deformation
+            the time we have to wait in order to start the deformation.
         threshold_overlap : float
-            the threshold for the overlap for which the cells start to interact and deform
+            the threshold for the overlap for which the cells start to interact and deform.
         delta_t : float
-            the time interval used to move
+            the time interval used to move the cells.
         apect_ratio_max : float
-            the max value of the aspect ratio that a cell can have after deforms
+            the max value of the aspect ratio that a cell can have after deforms.
 
         Attributes
         ----------
@@ -114,16 +115,16 @@ class Culture:
         movement : bool
             Whether the cells move or not
         cell_area : float
-            the area of all cells in the culture.
+            The area of all cells in the culture.
         stabilization_time : int
-            the time we have to wait in order to start the deformation
+            The time we have to wait in order to start the deformation
         threshold_overlap : float
-            the threshold for the overlap for which the cells start to interact and deform
+            The threshold for the overlap for which the cells start to interact and deform
             to deform
         delta_t : float
-            the time interval used to move
+            The time interval used to move
         apect_ratio_max : float
-            the max value of the aspect ratio that a cell can have after deforms
+            The max value of the aspect ratio that a cell can have after deforms
         rng : numpy.random.Generator
             Random number generator.
         first_cell_is_stem : bool
@@ -136,6 +137,15 @@ class Culture:
             List of all cells in the culture.
         active_cells : list[Cell]
             List of all active cells in the culture.
+        force : Force
+            The force used in the interaction between cells.
+        number_of_boxes : int
+            The number of cells in the grid (called boxes to diferenciate from cells).
+        length_boxes : float
+            The length of the boxes in the grid.
+        box_neighbors : Dict(set)
+            A dictionary where the keys are grid box indices and the values are sets of
+            indices of the cells located in the neighborin boxes of that grid box.
         """
 
         # cell attributes
@@ -182,10 +192,18 @@ class Culture:
 
         self.force = force
 
-        # time that passes until the system stabilizes from the initial condition
+        # attributes corresponding to the grid
+        # the number of cells in the grid (called boxes to diferenciate from cells)
+        # is chosen in order to have side of the box equal to 2*semi_major_axis
+        # for the largest cell (and be an integer)
+        self.number_of_boxes = int(np.floor(self.side / (2*np.sqrt((self.cell_area * 5) / np.pi))))
+        self.length_boxes = self.side/self.number_of_boxes
+        self.box_neighbors = defaultdict(set)
+
+        # attributes corresponding to set the deformation
         self.stabilization_time = stabilization_time
-        self.max_time_deformation = max_time_deformation
-        self.max_time_deformation_initial = max_time_deformation_initial
+        #self.max_time_deformation = max_time_deformation
+        #self.max_time_deformation_initial = max_time_deformation_initial
 
     # ----------------database related behavior----------------
 
@@ -469,26 +487,24 @@ class Culture:
         # if the cell's neighbourhood is already full, we do nothing
         # (reproduction is turned off)
 
-    # ---------------------------------------------------------
+    # ------------------spatial relationships------------------
 
-    def relative_pos(self, cell_position: float, neighbor_position: float):
+    def relative_pos(self, cell_position: np.ndarray, neighbor_position: np.ndarray) -> np.ndarray:
         """
         It calculates the relative position in x and y of 2 cells taking into account
-        that they move in a box.
+        that they move in a box with periodic boundary conditions.
 
         Parameters
         ----------
-        cell_position : float
+        cell_position : np.ndarray
             The position of the cell.
-        neighbor_position : int
+        neighbor_position : np.ndarray
             The position of the neighbor.
 
         Returns
         -------
-        relative_pos_x : float
-            The x component of the relative position of the cells.
-        relative_pos_y : float
-            The y component of the relative position of the cells.
+        relative_pos : np.ndarray
+            The relative position of the cell.
         """
 
         relative_pos_x = -(neighbor_position[0] - cell_position[0])
@@ -502,19 +518,16 @@ class Culture:
         if abs_ry > 0.5 * self.side:
             relative_pos_y = np.sign(relative_pos_y) * (abs_ry - self.side)
 
-        return relative_pos_x, relative_pos_y
+        return np.array([relative_pos_x, relative_pos_y, 0])
 
-    # ---------------------------------------------------------
     def calculate_overlap(
         self,
         cell_index: int,
         neighbor_index: int,
-        relative_pos_x: float,
-        relative_pos_y: float,
-    ):
+        relative_pos: np.ndarray,
+    ) -> float:
         """
-        It calculates the overlap between two cells, allowing evaluation of a new
-        orientation (phi) and aspect ratio for the cell.
+        Calculates the overlap between two cells using overlap calculated in the TF.
 
         Parameters
         ----------
@@ -522,10 +535,9 @@ class Culture:
             The index of the cell.
         neighbor_index : int
             The index of the neighbor.
-        relative_pos_x : float
-            The x component of the relative position of the cells.
-        relative_pos_y : float
-            The y component of the relative position of the cells.
+        relative_pos : np.ndarray
+            The relative position of the cells.
+
         Returns
         -------
         overlap : float
@@ -615,7 +627,7 @@ class Culture:
         # and l_perp = sqrt(cell_area/(np.pi*cell.aspect_ratio))
         i_0 = 4 * self.cell_area**2 / (np.pi * np.sqrt(beta))
 
-        relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
+        #relative_pos = np.array([relative_pos_x, relative_pos_y, 0])
         overlap = i_0 * np.exp(
             -((alpha_cell + alpha_neighbor) / beta)
             * np.matmul(
@@ -626,75 +638,314 @@ class Culture:
         # we return the overlap between the cell and its neighbor
         return overlap
 
+    # ------------------grid related behavior------------------
 
-    # ---------------------------------------------------------
-    def assign_to_grid(self):
+    def create_grid(self) -> Dict[Tuple[int, int, int], Set[int]]:
         """
-        Assigns each cell to a box in a 2D grid. The side of each box is approx 2 times 
-        the semimajor axis of a cell with phi=5, and it has to be so that the number of 
-        boxes is an integer.
+        Assigns each cell to a box in a 2D grid. If there is no cell in one box, the box
+        contains an empty set. The side of each box is approx 2 times the semimajor axis
+        of a cell with phi=5, and it has to be so that the number of boxes is an integer.
 
         Returns
         -------
         grid : dict
-            The grid with all the boxes and the cells inside them.
-        r_0 : float
-            The length of the side of the boxes.
+            The grid with all the boxes as tupes and the cells inside them.
 
         """
         # Create an empty grid as a dictionary
-        grid = defaultdict(list)
-        # the number of cells in the grid (called boxes to diferenciate from cells)
-        # is choose in order to have side of the box equal to 2*semi_major_axis
-        # for the largest cell
-        num_boxes = int(np.floor(self.side / (2*np.sqrt((self.cell_area * 5) / np.pi))))
-        r_0 = self.side/num_boxes
+        grid = defaultdict(set)
+
+        # Generate all possible indices for the grid in 2D
+        all_indices_2d = product(range(self.number_of_boxes), repeat=2)
+
+        # Add a third dimension fixed at 0
+        all_indices = [(x, y, 0) for x, y in all_indices_2d]
+        # Initialize all cells (including empty ones) in the grid
+        for index in all_indices:
+            grid[index] = set()
+        # Add every cell to its box
         for i, pos in enumerate(self.cell_positions):
             # Turn the position into an index
-            index = tuple((pos // r_0).astype(int))
+            index = tuple((pos // self.length_boxes).astype(int))
             # Add the index to the correspond box
-            grid[index].append(i)
-        return grid, r_0
-    
-    # ---------------------------------------------------------
-    def find_neighbors_in_grid(self, grid, r_0):
+            grid[index].add(i)
+        return grid
+
+    def assign_neighbors_to_boxes(self) -> None:
         """
-        It searchs for the neighbor candidates of every cell. It is a candidate for 
-        neighbor if the cell is in a neighbor box.
+        Assigns the neighbor cells for each grid box, considering periodic boundary conditions.
+        """
+        # Create the grid
+        grid = self.create_grid()
+        # Define the step to analize in the grid
+        step = [-1, 0, 1]
+        # Iterate over all cells in the grid
+        for box_index, box_cells in grid.items():
+            # Initialize the neighbors of the box
+            self.box_neighbors[box_index] = set()
+            # Loop for neighboring boxes including the current
+            for dx in step:
+                for dy in step:
+                    # We see the neighbors taking into account periodic conditions
+                    neighbor_box = (np.mod(box_index[0] + dx, self.number_of_boxes), np.mod(box_index[1] + dy, self.number_of_boxes), 0)
+                    # Compare cells in the current box with the cells in neighboring boxes
+                    for cell in grid[neighbor_box]:
+                        self.box_neighbors[box_index].add(cell)
+
+    def get_tuple_grid(self, position) -> Tuple[int, int, int]:
+        """
+        Calculates the grid box tuple corresponding to a given position.
 
         Parameters
         ----------
-        grid : dict
-            The grid with all the boxes and the cells inside them.
-        r_0 : float
-            The length of the side of the boxes.
+        position : np.ndarray
+            The position that we eant to calculate the tuple.
 
         Returns
         -------
-        neighbors : dict
-            A dict with all the neighbors of every cell.
+        box_index : tuple
+            the grid box tuple
+        
         """
-        # Create a dict to save the neighbors
-        neighbors = defaultdict(set)
-        num_boxes = int(np.floor(self.side / (2*np.sqrt((self.cell_area * 5) / np.pi))))
-        for box_index, box_cells in grid.items():
-            # Loop for neighboring boxes including the current
-            step = [-1, 0, 1]
-            for dx in step:
-                for dy in step:
-                    # we see the neighbors taking into account periodic conditions
-                    neighbor_box = (np.mod(box_index[0] + dx, num_boxes), np.mod(box_index[1] + dy, num_boxes), 0)
-                    if neighbor_box in grid:
-                        # Compare cells in the current box with the cells in neighboring boxes
-                        for i in box_cells:
-                            for j in grid[neighbor_box]:
-                                if i != j:
-                                        neighbors[i].add(j)
-                                        neighbors[j].add(i)
+        # Determine the grid box of the given cell
+        box_index = tuple((position // self.length_boxes).astype(int))
+        return box_index
+
+    def find_neighbors_grid(self, cell_index, box_index=None) -> Set[int]:
+        """
+        Finds the neighboring cells of a given cell based on its grid box. 
+        If the box index is provided, it is used; otherwise, it is calculated.
+
+        Parameters
+        ----------
+        cell_index : int
+            The index of the reference cell
+        box_index : tuple, optional
+            A tuple representing the grid box in which the cell resides. If None, 
+            it will be computed using the cell's position.
+
+        Returns
+        -------
+        neighbors : set
+            A set of the indices of the neighboring cells.
+        """
+        # Determine the grid box of the given cell if it is not given
+        if box_index is None:
+            box_index = self.get_tuple_grid(self.cell_positions[cell_index])
+        # Obtaine the neighbors of that box
+        neighbors = set(self.box_neighbors[box_index])
+        # Discard the actual cell
+        neighbors.discard(cell_index)
         return neighbors
-    
-    # ---------------------------------------------------------
-    def interaction(self, cell_index: int, delta_t: float):
+
+    def change_neighbors_in_grid(self, cell_index, old_index, new_index) -> None:
+        """
+        Updates the cell neighbors when a cell moves from one grid box to another.
+
+        Parameters
+        ----------
+        cell_index : int
+            Index of the cell being moved.
+        old_index : tuple
+            Previous grid box of the moved cell.
+        new_index : tuple
+            New grid box of the moved cell.
+        """
+
+        # Remove the cell from the neighbors of the old cell
+        for neighbor_cell in set(self.box_neighbors[old_index]):
+            # Remove the moved cell from its old neighbors
+            neighbor_box_index = self.get_tuple_grid(self.cell_positions[neighbor_cell])
+            self.box_neighbors[neighbor_box_index].discard(cell_index)
+        # Remove the cell itself from the old cell's list
+        self.box_neighbors[old_index].discard(cell_index)
+
+        # Add the cell to the neighbors of the new cell
+        for neighbor_cell in set(self.box_neighbors[new_index]):
+            # Add the moved cell to its new neighbors
+            neighbor_box_index = self.get_tuple_grid(self.cell_positions[neighbor_cell])
+            self.box_neighbors[neighbor_box_index].add(cell_index)
+        # Add the cell itself to the new cell's list
+        self.box_neighbors[new_index].add(cell_index)
+
+    # ----------------------cell movement----------------------
+
+    def generate_new_position_2D(
+        self, cell_index: int, new_phi: float, new_aspect_ratio: float
+    ) -> np.ndarray:
+        """Generate a proposed position for the cell, given a new phi and a new aspect
+        ratio that help us to know if there is space available to deform the
+        cell.
+
+        Parameters
+        ----------
+        cell_index : int
+            The index of the cell.
+        new_phi : float
+            The orientation of the new cell.
+        new_aspect_ratio : float
+            The aspect ratio of the new cell.
+
+        Returns
+        -------
+        new_position : numpy.ndarray
+            A 3D vector representing the new position of the cell.
+        """
+        # Calculate the major semi axis of the new cell
+        new_semi_major_axis = np.sqrt(
+            (self.cell_area * new_aspect_ratio) / np.pi
+        )
+        # and of the old cell
+        old_semi_major_axis = np.sqrt(
+            (self.cell_area * self.cells[cell_index].aspect_ratio) / np.pi
+        )
+        # Calculate the relative position of the old and new cells
+        x = (new_semi_major_axis - old_semi_major_axis) * np.cos(new_phi)
+        y = (new_semi_major_axis - old_semi_major_axis) * np.sin(new_phi)
+        # Update the position
+        new_position = self.cell_positions[cell_index] + np.array([x, y, 0])
+        # Periodic boundary conditions
+        new_position = np.mod(new_position, self.side)
+        return new_position
+
+    def deformation(self, cell_index: int) -> bool:
+        """If the cell is round, an angle is chosen randomly.
+        If the new cell with these angle and aspect ratio = maximum (given as an
+        attribute) does not overlap with others, it remains.
+        If not, try again up to cell_max_def_attempts.
+        If it fails to deform, it remains as it was originally.
+
+        Parameters
+        ----------
+        cell_index : int
+            The index of the cell.
+
+        Return
+        ----------
+        succesful_deformation : bool
+            True if the deformation was successful, False otherwise.
+        """
+        cell = self.cells[cell_index]
+        if np.isclose(cell.aspect_ratio, 1):
+            # we save the old attributes
+            old_position = np.array(self.cell_positions[cell_index])
+            old_phi = self.cell_phies[cell_index]
+            old_aspect_ratio = cell.aspect_ratio
+            # and get the place of the grid that correspond to the cell
+            old_index = self.get_tuple_grid(old_position)
+            for attempt in range(self.cell_max_def_attempts):
+                # random phi and aspect ratio=max and generate a position with them
+                new_phi = self.rng.uniform(low=0, high=2 * np.pi)
+                new_aspect_ratio = self.aspect_ratio_max
+                new_position = self.generate_new_position_2D(
+                    cell_index, new_phi, new_aspect_ratio
+                )
+                # updating attributes
+                self.cell_positions[cell_index] = new_position
+                self.cell_phies[cell_index] = new_phi
+                self.cells[cell_index].aspect_ratio = new_aspect_ratio
+
+                # and calculate the new place in the grid
+                new_index = self.get_tuple_grid(new_position)
+                # and the neighbors
+                candidate_neighbors = self.find_neighbors_grid(cell_index, box_index=new_index)
+                # Calculate relative positions for all neighbors
+                relative_positions = np.array(
+                    [
+                        self.relative_pos(
+                            self.cell_positions[cell_index],
+                            self.cell_positions[neighbor_index],
+                        )
+                        for neighbor_index in candidate_neighbors
+                    ]
+                )
+                # Filter neighbors whose distance is less than the sum of the major semi axes
+                filtered_neighbors = [
+                    (neighbor_index, relative_pos)
+                    for neighbor_index, relative_pos in zip(candidate_neighbors, relative_positions)
+                    if np.linalg.norm(relative_pos) < (
+                        np.sqrt((self.cell_area * cell.aspect_ratio) / np.pi)
+                        + np.sqrt((self.cell_area * self.cells[neighbor_index].aspect_ratio) / np.pi)
+                    )
+                ]
+                
+                # calculation of overlap
+                no_overlap = True
+                for neighbor_index, relative_pos in filtered_neighbors:
+
+                    overlap = self.calculate_overlap(
+                        cell_index,
+                        neighbor_index,
+                        relative_pos,
+                    )
+                    if overlap > self.threshold_overlap:
+                        # if the new cell overlaps with another, we turn back to the
+                        # original values
+                        self.cell_positions[cell_index] = old_position
+                        self.cell_phies[cell_index] = old_phi
+                        self.cells[cell_index].aspect_ratio = old_aspect_ratio
+                        no_overlap = False
+                        break
+
+                if no_overlap:
+                    # if there is no overlap, the new cell remains and we finish the loop
+                    succesful_deformation = True
+                    # if we have change the index, the candidate for neighbors also change
+                    if old_index != new_index:
+                       self.change_neighbors_in_grid(cell_index, old_index, new_index)
+                    return succesful_deformation
+
+            succesful_deformation = False
+            return succesful_deformation
+        else:
+            if cell.shrink == True:
+                # turn the cell back to round
+                self.cells[cell_index].aspect_ratio = 1
+                self.cell_phies[cell_index] = 0
+                # and the shrink turns back to False 
+                cell.shrink = False
+                succesful_deformation = True
+            else:
+                succesful_deformation = False
+            return succesful_deformation
+
+    def set_deformation(self, step) -> bool: #last_time_deformation
+        """
+        Determines whether the cells should attempt to deform at the current time step.
+
+        Parameters
+        ----------
+        step : int
+            The time step of the simulation.
+
+        Return
+        ----------
+        deform : bool
+            True if cells should attempt to deform, False if not.
+        
+        """
+        # If the time step is less than the stabilization time, cells dont deform 
+        if step <= self.stabilization_time:
+            deform = False
+        # If the time step is between the stabilization time and the max, cells deform
+        else:
+            deform = True    
+        # elif self.stabilization_time<step<self.max_time_deformation_initial:
+        #     deform = True
+        # # If we are in the max_time, then we see if the cells are all round and in that case,
+        # # they stop deforming. (This value of deform stays for later steps)
+        # elif step == self.max_time_deformation_initial:
+        #     aspect_ratios = np.array([self.cells[i].aspect_ratio for i in self.active_cell_indexes])
+        #     # Set deform to False if all aspect ratios are 1, otherwise True
+        #     deform = not np.all(aspect_ratios == 1)
+        # # Finally, if the time is larger than the sum between the last time and
+        # # the max_time. (This value of deform stays for later steps)
+        # elif step > last_time_deformation + self.max_time_deformation:
+        #     deform = False
+
+        return deform
+
+    def interaction(self, cell_index: int, delta_t: float) -> Tuple[np.ndarray, float]:
         """The given cell interacts with others if they are close enough.
 
         It describes the interaction of the cells given a force. It changes the position
@@ -712,7 +963,7 @@ class Culture:
         -------
         dif_position : np.ndarray
             The change in the position of the cell.
-        dphi : np.ndarray
+        dif_phi : float
             The change in the angle phi of the cell.
         -----
         """
@@ -722,14 +973,13 @@ class Culture:
         for neighbor_index, data in cell.neighbors_data.items():
             # We make sure that it is not already calculated
             if data["relative_pos"] is None:
-                relative_pos_x, relative_pos_y = self.relative_pos(
+                relative_pos = self.relative_pos(
                     self.cell_positions[cell_index],
                     self.cell_positions[neighbor_index]
                 )
-                relative_pos = np.array([relative_pos_x, relative_pos_y])
+
                 # And add the relative position to the neighbors_data
                 data["relative_pos"] = relative_pos
-
                 # we update also the attribute of the neighbor corresponding to the actual cell
                 neighbor = self.cells[neighbor_index]
                 neighbor.neighbors_data[cell_index]["relative_pos"] = -np.array(relative_pos)
@@ -752,8 +1002,7 @@ class Culture:
                 overlap = self.calculate_overlap(
                     cell_index,
                     neighbor_index,
-                    data["relative_pos"][0],
-                    data["relative_pos"][1]
+                    data["relative_pos"]
                 )
                 # And add the overlap to the neighbors_data
                 data["overlap"] = overlap
@@ -781,7 +1030,6 @@ class Culture:
         #we return the change in the position and in the phi angle of the cell
         return dif_position, dif_phi
 
-    # ---------------------------------------------------------
     def move(
         self,
         dif_positions: np.ndarray,
@@ -791,7 +1039,7 @@ class Culture:
 
         Attempts to move one step with a particular velocity and changes its orientation.
         If the cell arrives to a border of the culture's square, it appears on the other
-        side.
+        side (periodic boundary conditions).
 
         Parameters
         ----------
@@ -811,196 +1059,7 @@ class Culture:
         self.cell_positions = np.mod(self.cell_positions, self.side)
 
     # ---------------------------------------------------------
-    def generate_new_position_2D(
-        self, cell_index: int, new_phi: float, new_aspect_ratio: float
-    ):
-        """Generate a proposed position for the cell, given a new phi and a new aspect
-        ratio that help us to know if there is space available to deform the
-        cell.
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-        new_phi : float
-            The orientation of the new cell.
-        new_aspect_ratio : float
-            The aspect ratio of the new cell.
-
-        Returns
-        -------
-        new_position : numpy.ndarray
-            A 3D vector representing the new position of the cell.
-        """
-
-        new_semi_major_axis = np.sqrt(
-            (self.cell_area * new_aspect_ratio) / np.pi
-        )
-        old_semi_major_axis = np.sqrt(
-            (self.cell_area * self.cells[cell_index].aspect_ratio) / np.pi
-        )
-        # old_semi_minor_axis = np.sqrt(
-        #     self.cell_area / (np.pi * self.cells[cell_index].aspect_ratio)
-        # )
-
-        # d = np.sqrt(
-        #     old_semi_major_axis**2
-        #     * (np.cos(new_phi - self.cell_phies[cell_index])) ** 2
-        #     + old_semi_minor_axis**2
-        #     * (np.sin(new_phi - self.cell_phies[cell_index])) ** 2
-        # )
-        #d = old_semi_major_axis
-        x = (new_semi_major_axis - old_semi_major_axis) * np.cos(new_phi)
-        y = (new_semi_major_axis - old_semi_major_axis) * np.sin(new_phi)
-
-        new_position = self.cell_positions[cell_index] + np.array([x, y, 0])
-        new_position = np.mod(new_position, self.side)
-        return new_position
-
-    # ---------------------------------------------------------
-    def deformation(self, cell_index: int, candidate_neighbors_total, grid, r_0)->None:
-        """If the cell is round, an angle is chosen randomly.
-        If the new cell with these angle and aspect ratio = maximum (given as an
-        attribute) does not overlap with others, it remains.
-        If not, try again up to cell_max_def_attempts.
-        If it fails to deform, it remains as it was originally.
-
-        Parameters
-        ----------
-        cell_index : int
-            The index of the cell.
-
-        Return
-        ----------
-        succesful_deformation : bool
-            True if the deformation was successful, False otherwise.
-        """
-        cell = self.cells[cell_index]
-        if np.isclose(cell.aspect_ratio, 1):
-            # we save the old attributes
-            old_position = np.array(self.cell_positions[cell_index])
-            old_phi = self.cell_phies[cell_index]
-            old_aspect_ratio = cell.aspect_ratio
-
-            for attempt in range(self.cell_max_def_attempts):
-                # random phi and aspect ratio=max and generate a position with them
-                new_phi = self.rng.uniform(low=0, high=2 * np.pi)
-                new_aspect_ratio = self.aspect_ratio_max
-                new_position = self.generate_new_position_2D(
-                    cell_index, new_phi, new_aspect_ratio
-                )
-                # updating attributes
-                self.cell_positions[cell_index] = new_position
-                self.cell_phies[cell_index] = new_phi
-                self.cells[cell_index].aspect_ratio = new_aspect_ratio
-
-                # We get the neighbors of the cell
-                # We see if the cell correspond to the same tupple in the grid as before
-                #num_boxes = int(np.ceil(self.side / r_0))
-                old_box_index = tuple((old_position // r_0).astype(int))
-                #old_box_index = tuple(np.mod(old_position // r_0, num_boxes).astype(int))
-                #new_box_index = tuple(np.mod(new_position // r_0, num_boxes).astype(int))
-                new_box_index = tuple((new_position // r_0).astype(int))
-                # initialization candidate_neighbors
-                candidate_neighbors = set()
-                # if they are equal, then the neighbors are the same as before:
-                if old_box_index == new_box_index:
-                    candidate_neighbors = candidate_neighbors_total[cell_index].copy()
-                # if they are different, we have to calculate the new neighbors
-                else:
-                    # we see the cells that are in the box of the correspond new position
-                    cells_same_box = set(grid.get(new_box_index, []))
-                    if cells_same_box:
-                        # Get the neighbors of a random cell in the same box
-                        reference_cell = next(iter(cells_same_box))
-                        #  and remove the current cell
-                        candidate_neighbors = candidate_neighbors_total[reference_cell].copy() - {cell_index}
-                        # Add the reference cell as a neighbor
-                        candidate_neighbors.add(reference_cell)
-                    else:
-                        # we calculate the neighbors again
-                        num_boxes = int(np.floor(self.side / (2*np.sqrt((self.cell_area * 5) / np.pi))))
-                        step = [-1, 0, 1]
-                        # watch for all the neighbor boxes
-                        for dx in step:
-                            for dy in step:
-                                # we see the neighbors taking into account periodic conditions
-                                neighbor_box = (np.mod(new_box_index[0] + dx, num_boxes), np.mod(new_box_index[1] + dy, num_boxes), 0)
-                                if neighbor_box in grid:
-                                    # if the cells are in neighbor boxes, then they are candidate for neighbors
-                                        for j in grid[neighbor_box]:
-                                            if cell_index != j:
-                                                    candidate_neighbors.add(j)
-                # Calculate relative positions for all neighbors
-                relative_positions = np.array(
-                    [
-                        self.relative_pos(
-                            self.cell_positions[cell_index],
-                            self.cell_positions[neighbor_index],
-                        )
-                        for neighbor_index in candidate_neighbors
-                    ]
-                )
-                # Filter neighbors whose distance is less than the sum of the major semi axes
-                filtered_neighbors = [
-                    (neighbor_index, relative_pos)
-                    for neighbor_index, relative_pos in zip(candidate_neighbors, relative_positions)
-                    if np.linalg.norm(relative_pos) < (
-                        np.sqrt((self.cell_area * cell.aspect_ratio) / np.pi)
-                        + np.sqrt((self.cell_area * self.cells[neighbor_index].aspect_ratio) / np.pi)
-                    )
-                ]
-                
-                # calculation of overlap
-                no_overlap = True
-                for neighbor_index, relative_pos in filtered_neighbors:
-                    relative_pos_x, relative_pos_y= relative_pos[0], relative_pos[1]
-
-                    overlap = self.calculate_overlap(
-                        cell_index,
-                        neighbor_index,
-                        relative_pos_x,
-                        relative_pos_y,
-                    )
-                    if overlap > self.threshold_overlap:
-                        # if the new cell overlaps with another, we turn back to the
-                        # original values
-                        self.cell_positions[cell_index] = old_position
-                        self.cell_phies[cell_index] = old_phi
-                        self.cells[cell_index].aspect_ratio = old_aspect_ratio
-                        no_overlap = False
-                        break
-                if no_overlap:
-                    # if there is no overlap, the new cell remains and we finish the loop
-                    succesful_deformation = True
-                    # we add the cell as a neighbor of its new neighbors
-                    if old_box_index != new_box_index:
-                        for neighbor_index in candidate_neighbors:
-                            candidate_neighbors_total[neighbor_index].add(cell_index)
-                        # and we eliminate it of the old neighbors
-                        ex_neighbors=candidate_neighbors_total[cell_index]-candidate_neighbors
-                        for neighbor_index in ex_neighbors:
-                            candidate_neighbors_total[neighbor_index].discard(cell_index)
-                    return succesful_deformation
-            succesful_deformation = False
-            return succesful_deformation
-        else:
-            if cell.shrink == True:
-                # opción 1:
-                # turn the cell back to round
-                self.cells[cell_index].aspect_ratio = 1
-                self.cell_phies[cell_index] = 0
-                cell.shrink = False
-                # opcion 2
-                # we change the position
-                # ...
-                succesful_deformation = True
-
-            # ver si sacar despues
-            succesful_deformation = False
-            return succesful_deformation
-
-    # ---------------------------------------------------------
+    
 
     def simulate(self, num_times: int) -> None:
         """Simulate culture growth/movement for a specified number of time steps.
@@ -1055,8 +1114,8 @@ class Culture:
                         ),
                         culture=self,
                         is_stem=self.first_cell_is_stem,
-                        phi=0, #self.rng.uniform(low=0, high=self.side), #0
-                        aspect_ratio=1, #5, #1
+                        phi=0,
+                        aspect_ratio=1,
                         parent_index=0,
                         shrink=False,
                         available_space=True,
@@ -1069,9 +1128,7 @@ class Culture:
             cell_phies=self.cell_phies,
             active_cell_indexes=self.active_cell_indexes,
             side=self.side,
-            density=self.density,
             cell_area=self.cell_area,
-            force=self.force,
         )
         # we simulate for num_times time steps
         reproduction = self.reproduction
@@ -1090,52 +1147,45 @@ class Culture:
                     self.reproduce(cell_index=index, tic=i)
 
             if movement:
-                # We assign each cell to a box in the grid
-                grid, r_0 = self.assign_to_grid()
-                # We find the candidates for neighbors
-                candidate_neighbors_total = self.find_neighbors_in_grid(grid, r_0)
+                # We find the neighbors of each box
+                self.assign_neighbors_to_boxes()
+                # See if the cells have to deform or not
+                deform = self.set_deformation(step=i)
+                # Only deform if deform is True
+                if deform:
+                    # Deform all cells (try)
+                    succesful_deformations = [
+                        self.deformation(cell_index=index) for index in self.active_cell_indexes
+                    ]
+                    # If at least one cell deforms, we change the las_time_deformation
+                    if any(succesful_deformations):
+                        last_time_deformation = i
+
+                # We initialize the neighbors_data of every cell
                 for index in self.active_cell_indexes:
                     cell = self.cells[index]
-                    # Initialization of neighbors_data
+                    # We get the neighbors of the cell
+                    candidate_neighbors = self.find_neighbors_grid(index)
+                    # initialize the neighbors_data
                     cell.neighbors_data = {
                         neighbor_index: {"relative_pos": None, "overlap": None}
-                        for neighbor_index in candidate_neighbors_total[index]
+                        for neighbor_index in candidate_neighbors
                     }
+
+                # We initialize the change in the position and angle of all cells
                 dif_positions = np.zeros((len(self.active_cell_indexes), 3))
                 dif_phies = np.zeros(len(self.active_cell_indexes))
+                # Calculate the interaction for every cell
                 for index in self.active_cell_indexes:
                     dif_position, dif_phi = self.interaction(
-                        cell_index=index, delta_t=self.delta_t
+                        cell_index=index, delta_t=self.delta_t,
                     )
+                    # add the change in position to the matrix
                     dif_positions[index] = dif_position
+                    # add the change in angle to the matrix
                     dif_phies[index] = dif_phi
 
                 self.move(dif_positions=dif_positions, dif_phies=dif_phies)
-
-                # If the time step is less than the stabilization time, cells dont deform 
-                if i <= self.stabilization_time:
-                    deform = False
-                # If the time step is between the stabilization time and the max, cells deform
-                elif self.stabilization_time<i<self.max_time_deformation_initial:
-                    deform = True
-                # If we are in the max_time, then we see if the cells are all round and in that case,
-                # they stop deforming. (This value of deform stays for later steps)
-                elif i == self.max_time_deformation_initial:
-                    aspect_ratios = np.array([self.cells[i].aspect_ratio for i in self.active_cell_indexes])
-                    # Set deform to False if all aspect ratios are 1, otherwise True
-                    deform = not np.all(aspect_ratios == 1)
-                # Finally, if the time is larger than the sum between the last time and
-                # the max_time. (This value of deform stays for later steps)
-                elif i > last_time_deformation + self.max_time_deformation:
-                    deform = False
-                # Only deform if deform is still True
-                if deform:
-                    # we deform using the candidates for neighbors
-                    succesful_deformations = [
-                        self.deformation(cell_index=index, candidate_neighbors_total=candidate_neighbors_total, grid=grid, r_0=r_0) for index in self.active_cell_indexes
-                    ]
-                    if any(succesful_deformations):
-                        last_time_deformation = i
                     
 
             # Save the data (for dat, ovito, and/or SQLite)
@@ -1146,7 +1196,5 @@ class Culture:
                 cell_phies=self.cell_phies,
                 active_cell_indexes=self.active_cell_indexes,
                 side=self.side,
-                density=self.density,
                 cell_area=self.cell_area,
-                force=self.force,
             )

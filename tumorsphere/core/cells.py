@@ -57,9 +57,9 @@ class Cell:
     aspect_ratio: float = 1
     parent_index: Optional[int] = 0
     neighbors_indexes: Set[int] = field(default_factory=set)
-    #neighbors_data: list = field(default_factory=list)
     neighbors_data: dict = field(default_factory=dict)
     available_space: bool = True
+    shrink: bool = False
     _index: Optional[int] = field(default=False, init=False)
 
     def __init__(
@@ -70,6 +70,7 @@ class Cell:
         phi: float = None,
         aspect_ratio: float = 1,
         parent_index: Optional[int] = 0,
+        shrink: bool = False,
         available_space: bool = True,  # not to be set by user
         creation_time: int = 0,
     ) -> None:
@@ -99,6 +100,8 @@ class Cell:
             culture's cell_positions array.
         available_space : bool, default=True
             Whether the cell has available space around it or not.
+        shrink : bool, default=False
+            Whether the cell has to shrink or not.
 
         Notes
         ------
@@ -112,10 +115,10 @@ class Cell:
         self.is_stem = is_stem
         self.parent_index = parent_index
         self.neighbors_indexes = set()
-        #self.neighbors_data = list()
         self.neighbors_data = dict()
         self.available_space = available_space
         self.aspect_ratio = aspect_ratio
+        self.shrink = shrink
 
         # we FIRST get the cell's index
         self._index = len(culture.cell_positions)
@@ -146,42 +149,18 @@ class Cell:
     # ---------------------------------------------------------
     def velocity(self):
         """
-        It returns the velocity vector of the given cell  taking into account the
-        mobility.
+        It returns the velocity vector of the given cell.
 
         Returns
         -------
         np.ndarray
             The velocity vector of the cell.
         """
-
-        # longitudinal & transversal mobility
-        if self.aspect_ratio != 1:  # np.close?
-            mP = (
-                1
-                / np.sqrt((self.culture.cell_area * self.aspect_ratio) / np.pi)
-                * (3 * self.aspect_ratio / 4.0)
-                * (
-                    (self.aspect_ratio) / (1 - self.aspect_ratio**2)
-                    + (2.0 * self.aspect_ratio**2 - 1.0)
-                    / np.power(self.aspect_ratio**2 - 1.0, 1.5)
-                    * np.log(
-                        self.aspect_ratio + np.sqrt(self.aspect_ratio**2 - 1.0)
-                    )
-                )
-            )
+        if np.isclose(self.aspect_ratio, 1):
+            speed = 0
         else:
-            mP = 1 / np.sqrt(
-                (self.culture.cell_area * self.aspect_ratio) / np.pi
-            )
-
-        # we suppose kProp linear with s_epsA
-        s_epsA = (self.aspect_ratio**2 - 1) / (self.aspect_ratio**2 + 1)
-        # we use the constant in order to have kProp=3 for aspect_ratio=5
-        kProp = 13 / 4 * s_epsA
-        s_v0 = kProp * mP
-
-        return s_v0 * np.array(
+            speed = 1
+        return speed * np.array(
             [
                 np.cos(self.culture.cell_phies[self._index]),
                 np.sin(self.culture.cell_phies[self._index]),
