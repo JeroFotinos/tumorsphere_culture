@@ -408,7 +408,8 @@ def simulate_single_culture(
         sim.initial_number_of_cells[f],
         sim.initial_density[g] if sim.initial_density is not None else None,
         seed,
-        sim.forces[m].name,
+        sim.forces[m].name(),
+        culture_bounds,
         sim.reproduction,
         sim.movement,
     )
