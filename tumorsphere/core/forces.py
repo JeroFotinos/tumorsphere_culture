@@ -57,6 +57,9 @@ class No_Forces(Force):
     def name(self):
         return "No_Forces"
 
+    def calculate_cell_properties(self, cells, cell_index, phies, area):
+        pass
+    
     def calculate_interaction(
         self,
         cells,
@@ -91,6 +94,9 @@ class Spring_Force(Force):
         The force is a spring force with constant k.
         """ 
         return f"Spring_Force_k={self.k_spring_force}"
+
+    def calculate_cell_properties(self, cells, cell_index, phies, area):
+        pass
 
     def calculate_interaction(
         self,
@@ -138,6 +144,9 @@ class Vicsek(Force):
     def name(self):
         return "Vicsek"
 
+    def calculate_cell_properties(self, cells, cell_index, phies, area):
+        pass
+
     def calculate_interaction(
         self,
         cells,
@@ -182,6 +191,9 @@ class Vicsek_and_Spring_Force(Force):
         Vicsek and Spring Force combined with constant k for spirng force.
         """
         return f"Vicsek_and_Spring_Force_k={self.k_spring_force}"
+
+    def calculate_cell_properties(self, cells, cell_index, phies, area):
+        pass
 
     def calculate_interaction(
         self,
@@ -239,16 +251,7 @@ class Grosmann(Force):
         """
         return f"Grosmann_k={self.kRep}_gamma={self.bExp}"
 
-    def calculate_interaction(
-        self,
-        cells,
-        phies,
-        cell_index,
-        delta_t,
-        area,
-        neighbors_indexes,
-    ):
-        # First of all we are going to calculate the force and the torque
+    def calculate_cell_properties(self, cells, cell_index, phies, area):
         cell = cells[cell_index]
         # We calculate the parameters of the cell
         # nematic matrix
@@ -313,6 +316,21 @@ class Grosmann(Force):
             )
             * mP
         )
+        return Q_cell, eps, diag2, mP, mS, mR
+
+    def calculate_interaction(
+        self,
+        cells,
+        phies,
+        cell_index,
+        delta_t,
+        area,
+        neighbors_indexes,
+    ):
+        # First of all we are going to calculate the force and the torque
+        cell = cells[cell_index]
+        # get the properties of the cell
+        Q_cell, eps, diag2, mP, mS, mR = self.calculate_cell_properties(cells, cell_index, phies, area)
         # initialization of the parameters of interaction
         # dif_phi = 0
         torque = 0
