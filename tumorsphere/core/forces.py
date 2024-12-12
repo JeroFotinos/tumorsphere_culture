@@ -17,6 +17,19 @@ class Force(ABC):
         pass
 
     @abstractmethod
+    def calculate_cell_properties(
+        self,
+        cells,
+        cell_index,
+        phies,
+        area,
+        ):
+        """
+        Calculate some properties of the cell necessary for the interaction
+        """
+        pass
+
+    @abstractmethod
     def calculate_interaction(
         self,
         cells,
@@ -401,36 +414,32 @@ class Anisotropic_Grosmann(Force):
     The model is the given by the generalization of Grosmann paper.
     """
 
-    def name(self):
-        """
-        Force model given by Grosmann paper with parameters k and gamma.
-        Without noise and shrinking.
-        """
-        return f"Anisotropic_Grosmann_k={self.kRep}_gamma={self.bExp}"
-
     def __init__(
         self,
         kRep: float = 10,
         bExp: float = 3,
-        eta: float = 0.1,
     ):
         self.kRep = kRep
         self.bExp = bExp
-        self.eta = eta
 
-    def calculate_interaction(
+    def name(self):
+        """
+        Force model given by the generalization of Grosmann paper with
+        parameters k and gamma. Without noise and shrinking.
+        """
+        return f"Anisotropic_Grosmann_k={self.kRep}_gamma={self.bExp}"
+    
+    def calculate_cell_properties(
         self,
         cells,
-        phies,
         cell_index,
-        delta_t,
+        phies,
         area,
-        neighbors_indexes,
-    ):
-        # First of all we are going to calculate the force and torque and then
-        # we see how these change the velocity and orientation
-        cell = cells[cell_index]
-        # We calculate the parameters of the cell
+        ):
+        """
+        Calculate some properties of the cell necessary for the interaction
+        """
+        cell = self.cells[cell_index]
         # nematic matrix
         Q_cell = np.array(
             [
@@ -495,6 +504,24 @@ class Anisotropic_Grosmann(Force):
             )
             * mP
         )
+
+        return Q_cell, eps_cell, alpha_cell, mP, mS, mR
+
+    def calculate_interaction(
+        self,
+        cells,
+        phies,
+        cell_index,
+        delta_t,
+        area,
+        neighbors_indexes,
+    ):
+        # First of all we are going to calculate the force and torque and then
+        # we see how these change the velocity and orientation
+        cell = cells[cell_index]
+
+        # Get the properties of the cell
+        Q_cell, eps_cell, alpha_cell, mP, mS, mR = self.calculate_cell_properties(cells, cell_index, phies, area)
         # initialization of the parameters of interaction
         torque = 0
         force = np.zeros(3)
@@ -603,20 +630,38 @@ class Anisotropic_Grosmann(Force):
         # we calculate the change in the position of the cell, given all the neighbors.
         dif_position = (cell.velocity()+dif_velocity)*delta_t
 
-        # Now we want to see if the cell shrink. For these, we see the speed of the cell
-        speed = np.linalg.norm(cell.velocity())
-        # And calculate the projection in that direction
-        if speed > 0:
-            dif_velocity_project = np.dot(dif_velocity, cell.velocity()) / speed
-        else:
-            dif_velocity_project = 0
-        # if the sum of the speed + the projection is negative (or zero), we turn into
-        # true the possibility of shrinking
-        if cell.aspect_ratio != 1 and speed+dif_velocity_project<=0:
-            cell.shrink = True
         # and the change in the orientation:
         dif_phi = mR * torque * delta_t
-        # we also add the noise in the position:
+
+        return dif_position, dif_phi
+
+class Anisotropic_Grosmann_With_Noise(Anisotropic_Grosmann):
+
+    def __init__(self, kRep: float = 10, bExp: float = 3, eta: float = 0.1):
+        super().__init__(kRep, bExp)
+        self.eta = eta
+
+    def name(self):
+        """
+        Force model given by the generalization of Grosmann paper with
+        parameters k and gamma. With noise and without shrinking.
+        """
+        return f"Anisotropic_Grosmann_with_noise_k={self.kRep}_gamma={self.bExp}_eta={self.eta}"
+    
+    def calculate_interaction(
+        self,
+        cells,
+        phies,
+        cell_index,
+        delta_t,
+        area,
+        neighbors_indexes,
+    ):
+        # Calculate the base interaction
+        base_dif_position, dif_phi = super().calculate_interaction(cells, phies, cell_index, delta_t, area, neighbors_indexes)
+
+        cell = self.cells[cell_index]
+        # we add the noise in the position:
         # we need the direction vectors
         direction_vector = np.array(
             [
@@ -630,6 +675,10 @@ class Anisotropic_Grosmann(Force):
                 np.sin(phies[cell_index]+np.pi/2),
                 0,
             ])
+        
+        # Get some properties of the cell
+        Q_cell, eps_cell, alpha_cell, mP, mS, mR = super().calculate_cell_properties(cells, cell_index, phies, area)
+
         # and the noise
         s_nP = self.eta*np.sqrt(mP*delta_t)
         s_nS = self.eta*np.sqrt(mS*delta_t)
@@ -637,4 +686,83 @@ class Anisotropic_Grosmann(Force):
         nP = s_nP*cell.culture.rng.normal(0, 1)
         nS = s_nS*cell.culture.rng.normal(0, 1)
         noise = nP*direction_vector+nS*perpendicular_vector
-        return dif_position+noise, dif_phi
+
+        return base_dif_position + noise, dif_phi
+
+class Anisotropic_Grosmann_With_Shrinking(Anisotropic_Grosmann):
+    def __init__(self, kRep: float = 10, bExp: float = 3, eta: float = 0.1):
+        super().__init__(kRep, bExp)
+        self.eta = eta
+
+    def name(self):
+        """
+        Force model given by the generalization of Grosmann paper with
+        parameters k and gamma. Without noise and with shrinking.
+        """
+        return f"Anisotropic_Grosmann_k={self.kRep}_gamma={self.bExp}_shrinking"
+
+    def calculate_interaction(
+        self,
+        cells,
+        phies,
+        cell_index,
+        delta_t,
+        area,
+        neighbors_indexes,
+    ):
+        # Calculate the base interaction
+        dif_position, dif_phi = super().calculate_interaction(cells, phies, cell_index, delta_t, area, neighbors_indexes)
+
+        cell = self.cells[cell_index]
+        # Now we want to see if the cell shrink. For these, we see the speed of the cell
+        speed = np.linalg.norm(cell.velocity())
+        # And calculate the projection of the diference in position in that direction
+        if speed > 0:
+            dif_position_project = np.dot(dif_position, cell.velocity()) / speed
+        else:
+            dif_position_project = 0
+        # if the sum of the speed + the projection is negative (or zero), we turn into
+        # true the possibility of shrinking
+        if cell.aspect_ratio != 1 and dif_position_project<=0 and cell.shrink == False:
+            cell.shrink = True
+
+        return dif_position, dif_phi
+    
+class Anisotropic_Grosmann_With_Noise_and_Shrinking(Anisotropic_Grosmann_With_Noise):
+    def __init__(self, kRep: float = 10, bExp: float = 3, eta: float = 0.1):
+        super().__init__(kRep, bExp)
+        self.eta = eta
+
+    def name(self):
+        """
+        Force model given by the generalization of Grosmann paper with
+        parameters k and gamma. With noise and shrinking.
+        """
+        return f"Anisotropic_Grosmann_with_Noise_k={self.kRep}_gamma={self.bExp}_shrinking"
+
+    def calculate_interaction(
+        self,
+        cells,
+        phies,
+        cell_index,
+        delta_t,
+        area,
+        neighbors_indexes,
+    ):
+        # Calculate the base interaction
+        dif_position, dif_phi = super().calculate_interaction(cells, phies, cell_index, delta_t, area, neighbors_indexes)
+
+        cell = self.cells[cell_index]
+        # Now we want to see if the cell shrink. For these, we see the speed of the cell
+        speed = np.linalg.norm(cell.velocity())
+        # And calculate the projection of the diference in position in that direction
+        if speed > 0:
+            dif_position_project = np.dot(dif_position, cell.velocity()) / speed
+        else:
+            dif_position_project = 0
+        # if the sum of the speed + the projection is negative (or zero), we turn into
+        # true the possibility of shrinking
+        if cell.aspect_ratio != 1 and dif_position_project<=0 and cell.shrink == False:
+            cell.shrink = True
+
+        return dif_position, dif_phi
