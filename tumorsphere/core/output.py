@@ -62,7 +62,10 @@ class TumorsphereOutput(ABC):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
+        side,
+        cell_area,
     ):
         """
         Record the state of the culture at a given time step.
@@ -145,7 +148,10 @@ class OutputDemux(TumorsphereOutput):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
+        side,
+        cell_area,
     ):
         """Delegate the call to all output objects in result_list."""
         for result in self.result_list:
@@ -153,7 +159,10 @@ class OutputDemux(TumorsphereOutput):
                 tic,
                 cells,
                 cell_positions,
+                cell_phies,
                 active_cell_indexes,
+                side,
+                cell_area,
             )
 
     def record_cell(
@@ -319,7 +328,10 @@ class SQLOutput(TumorsphereOutput):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
+        side,
+        cell_area,
     ):
         """We do not record the state of the culture, it'd be redundant."""
         pass
@@ -408,7 +420,10 @@ class DatOutput(TumorsphereOutput):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
+        side,
+        cell_area,
     ):
         """Record the state of the culture at a given time step.
 
@@ -454,13 +469,75 @@ class DatOutput(TumorsphereOutput):
         """
         pass
 
+class DatOutput_position_aspectratio(TumorsphereOutput):
+    def __init__(self, culture_name, output_dir=".", save_step=10):  # 100
+        self.output_dir = output_dir
+        self.save_step = save_step
+        self.culture_name = culture_name
+     
+    def begin_culture(
+        self,
+        adjacency_threshold,
+        swap_probability,
+    ):
+        """We do not record the beginning of the simulation."""
+        pass
+
+    def record_stemness(self, cell_index, tic, stemness):
+        """We do not record the individual stemness changes."""
+        pass
+
+    def record_deactivation(self, cell_index, tic):
+        """We do not record the individual deactivations."""
+        pass
+ 
+    def record_culture_state(
+        self,
+        tic,
+        cells,
+        cell_positions,
+        cell_phies,
+        active_cell_indexes,
+        side,
+        cell_area,
+    ):
+        if np.mod(tic, self.save_step) == 0:
+            filename = (
+                f"{self.output_dir}/{self.culture_name}_step={tic:05}.dat"
+            )
+            with open(filename, "w") as datfile:
+                datfile.write(
+                    "position_x,position_y,position_z,orientation,aspect_ratio\n"
+                )
+            for cell in cells:
+                with open(filename, "a") as datfile:
+                    # we save the positions and the aspect ratio to the file
+                    datfile.write(
+                        f"{cell_positions[cell._index][0]}, {cell_positions[cell._index][1]}, {cell_positions[cell._index][2]}, {cell_phies[cell._index]}, {cell.aspect_ratio} \n"
+                    )
+
+    def record_cell(
+        self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
+    ):
+        """We do not record the individual cell creations."""
+        pass
+
+    def record_final_state(
+        self, tic, cells, cell_positions, active_cell_indexes
+    ):
+        """The final state of the culture is already recorded for the type of
+        data we are saving.
+        """
+        pass
+
 
 class OvitoOutput(TumorsphereOutput):
     """Class for handling output to a file for visualization in Ovito."""
 
-    def __init__(self, culture_name, output_dir="."):
+    def __init__(self, culture_name, output_dir=".", save_step=10):
         self.output_dir = output_dir
         self.culture_name = culture_name
+        self.save_step = save_step
 
     def begin_culture(
         self,
@@ -487,85 +564,156 @@ class OvitoOutput(TumorsphereOutput):
         tic,
         cells,
         cell_positions,
+        cell_phies,
         active_cell_indexes,
+        side,
+        cell_area,
+
     ):
         """Writes the data file in path for ovito, for time step t of self.
 
         Auxiliar function for simulate_with_ovito_data.
         """
-        path_to_write = os.path.join(
-            self.output_dir, f"ovito_data_{self.culture_name}.{tic:03}"
-        )
-
-        with open(path_to_write, "w") as file_to_write:
-            file_to_write.write(str(len(cells)) + "\n")
-            file_to_write.write(
-                (
-                    ' Lattice="1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0"'
-                    "Properties=species:S:1:pos:R:3:Color:r:1"
-                    "\n"
-                )
+        # we save the ovito if tic is multiple of the save_step or in some special situations
+        # in order to see the deformation
+        if (
+            np.mod(tic, self.save_step) == 0
+            and tic >= 120 or tic==0
+        ):
+            path_to_write = os.path.join(
+                self.output_dir, f"ovito_data_{self.culture_name}.{tic:05}"
             )
 
-            for cell in cells:  # csc activas
-                if cell.is_stem and cell.available_space:
-                    line = (
-                        "active_stem "
-                        + str(cell_positions[cell._index][0])
-                        + " "
-                        + str(cell_positions[cell._index][1])
-                        + " "
-                        + str(cell_positions[cell._index][2])
-                        + " "
-                        + "1"
-                        + "\n"
-                    )
-                    file_to_write.write(line)
+            with open(path_to_write, "w") as file_to_write:
+                file_to_write.write(str(len(cells)) + "\n")
+                file_to_write.write(
+                    ' Lattice="'
+                    + str(side)
+                    + " 0.0 0.0 0.0 "
+                    + str(side)
+                    + ' 0.0 0.0 0.0 1.0"Properties=species:S:1:pos:R:3:aspherical_shape:R:3:orientation:R:4:Color:R:1'
+                    + "\n"
+                )
+                for cell in cells: # csc activas
+                    if cell.is_stem and cell.available_space:
+                        phi = cell.culture.cell_phies[cell._index]
+                        line = (
+                            (
+                                "active_stem "
+                                if cell.culture.cell_phies[cell._index] is None
+                                else "cell "
+                            )
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + f"{1 if phi is None else np.sqrt((cell_area*cell.aspect_ratio)/np.pi)}"  # aspherical shape x
+                            + " "
+                            + f"{1 if phi is None else np.sqrt(cell_area/(np.pi*cell.aspect_ratio))}"  # aspherical shape y
+                            + " "
+                            + "1"  # aspherical shape z
+                            + " "
+                            + "0"  # X orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Y orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + f"{0 if phi is None else np.sin(phi / 2)}"  # Z orientation
+                            + " "
+                            + f"{0 if phi is None else np.cos(phi / 2)}"  # W orientation
+                            + " "
+                            + f"{1 if phi is None else phi % (2 * np.pi)}"  # color
+                            + "\n"
+                        )
+                        file_to_write.write(line)
 
-            for cell in cells:  # csc quiesc
-                if cell.is_stem and (not cell.available_space):
-                    line = (
-                        "quiesc_stem "
-                        + str(cell_positions[cell._index][0])
-                        + " "
-                        + str(cell_positions[cell._index][1])
-                        + " "
-                        + str(cell_positions[cell._index][2])
-                        + " "
-                        + "2"
-                        + "\n"
-                    )
-                    file_to_write.write(line)
+                for cell in cells:  # csc quiesc
+                    if cell.is_stem and (not cell.available_space):
+                        line = (
+                            "quiesc_stem "
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + "1"  # aspherical shape x
+                            + " "
+                            + "1"  # aspherical shape y
+                            + " "
+                            + "1"  # aspherical shape z
+                            + " "
+                            + "0"  # X orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Y orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Z orientation
+                            + " "
+                            + "0"  # W orientation
+                            + " "
+                            + "2"
+                            + "\n"
+                        )
+                        file_to_write.write(line)
 
-            for cell in cells:  # dcc activas
-                if (not cell.is_stem) and cell.available_space:
-                    line = (
-                        "active_diff "
-                        + str(cell_positions[cell._index][0])
-                        + " "
-                        + str(cell_positions[cell._index][1])
-                        + " "
-                        + str(cell_positions[cell._index][2])
-                        + " "
-                        + "3"
-                        + "\n"
-                    )
-                    file_to_write.write(line)
+                for cell in cells:  # dcc activas
+                    if (not cell.is_stem) and cell.available_space:
+                        line = (
+                            "active_diff "
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + "1"  # aspherical shape x
+                            + " "
+                            + "1"  # aspherical shape y
+                            + " "
+                            + "1"  # aspherical shape z
+                            + " "
+                            + "0"  # X orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Y orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Z orientation
+                            + " "
+                            + "0"  # W orientation
+                            + " "
+                            + "3"
+                            + "\n"
+                        )
+                        file_to_write.write(line)
 
-            for cell in cells:  # dcc quiesc
-                if not (cell.is_stem or cell.available_space):
-                    line = (
-                        "quiesc_diff "
-                        + str(cell_positions[cell._index][0])
-                        + " "
-                        + str(cell_positions[cell._index][1])
-                        + " "
-                        + str(cell_positions[cell._index][2])
-                        + " "
-                        + "4"
-                        + "\n"
-                    )
-                    file_to_write.write(line)
+                for cell in cells:  # dcc quiesc
+                    if not (cell.is_stem or cell.available_space):
+                        line = (
+                            "quiesc_diff "
+                            + str(cell_positions[cell._index][0])
+                            + " "
+                            + str(cell_positions[cell._index][1])
+                            + " "
+                            + str(cell_positions[cell._index][2])
+                            + " "
+                            + "1"  # aspherical shape x
+                            + " "
+                            + "1"  # aspherical shape y
+                            + " "
+                            + "1"  # aspherical shape z
+                            + " "
+                            + "0"  # X orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Y orientation, str(0*np.sin((phi)/2))
+                            + " "
+                            + "0"  # Z orientation
+                            + " "
+                            + "0"  # W orientation
+                            + " "
+                            + "4"
+                            + "\n"
+                        )
+                        file_to_write.write(line)
 
     def record_cell(
         self, index, parent, pos_x, pos_y, pos_z, creation_time, is_stem
@@ -680,6 +828,7 @@ def create_output_demux(
     output_types = {
         "sql": SQLOutput,
         "dat": DatOutput,
+        "dat_pos_ar": DatOutput_position_aspectratio,
         "ovito": OvitoOutput,
         "df": DfOutput,
     }
