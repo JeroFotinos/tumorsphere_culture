@@ -800,7 +800,7 @@ class Culture:
                 cell.neighbors_overlap[neighbor_index] = overlap
                 # we update also the attribute of the neighbor corresponding to the actual cell
                 neighbor = self.cells[neighbor_index]
-                neighbor.neighbors_overlap[neighbor_index] = overlap
+                neighbor.neighbors_overlap[cell_index] = overlap
 
         # The significant neighbors are those which the overlap is more than the threshold
         significant_neighbors_indexes = [
@@ -853,9 +853,12 @@ class Culture:
         # Enforcing boundary condition
         self.cell_positions = np.mod(self.cell_positions, self.side)
 
-        # Add the cells to their new place in the grid
         for cell_index in self.active_cell_indexes:
+            # Add the cells to their new place in the grid
             self.grid.add_cell_to_hash_table(cell_index, self.cell_positions[cell_index])
+            # Reset the neighbor dictionaries to empty
+            self.cells[cell_index].neighbors_relative_pos = dict()
+            self.cells[cell_index].neighbors_overlap = dict()
 
     # ---------------------------------------------------------
 
@@ -949,17 +952,6 @@ class Culture:
                     # If at least one cell deforms, we change the las_time_deformation
                     if any(succesful_deformations):
                         last_time_deformation = i #
-
-                # We initialize the neighbors_data of every cell
-                # for index in self.active_cell_indexes:
-                #     cell = self.cells[index]
-                #     # We get the neighbors of the cell
-                #     candidate_neighbors = self.find_neighbors_grid(index)
-                #     # initialize the neighbors_data
-                #     cell.neighbors_data = {
-                #         neighbor_index: {"relative_pos": None, "overlap": None}
-                #         for neighbor_index in candidate_neighbors
-                #     }
 
                 # We initialize the change in the position and angle of all cells
                 dif_positions = np.zeros((len(self.active_cell_indexes), 3))

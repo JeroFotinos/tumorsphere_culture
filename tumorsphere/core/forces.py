@@ -226,9 +226,6 @@ class Grosmann(Force):
         """
         return f"Grosmann_k={self.kRep}_gamma={self.bExp}"
 
-    def calculate_cell_properties(self, cells, cell_index, phies, area):
-        return Q_cell, eps, diag2, mP, mS, mR
-
     def calculate_interaction(
         self,
         cells,

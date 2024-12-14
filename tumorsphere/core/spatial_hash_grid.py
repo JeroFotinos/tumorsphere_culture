@@ -200,8 +200,8 @@ class SpatialHashGrid:
 
         # Handle toroidal wrapping
         if self.bounds is not None and self.torus:
-            adj_buckets = np.mod(adj_buckets, self.bounds)
-
+            #adj_buckets = np.mod(adj_buckets, self.bounds)
+            adj_buckets = np.mod(adj_buckets, int(np.ceil(self.bounds / self.cube_size)))
         return chain.from_iterable(
             map(lambda b: self.hash_table[b.tobytes()], adj_buckets)
         )
