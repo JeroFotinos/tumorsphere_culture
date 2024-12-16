@@ -818,6 +818,10 @@ class Culture:
             significant_neighbors_indexes,
         )
 
+        # Reset the neighbor dictionaries to empty
+        cell.neighbors_relative_pos.clear() 
+        cell.neighbors_overlap.clear()
+
         #we return the change in the position and in the phi angle of the cell
         return dif_position, dif_phi
 
@@ -840,10 +844,8 @@ class Culture:
             Matrix that contains the changes in orientation of all the cells.
         -----
         """
-        # Remove the cells from the place in the grid
-        for cell_index in self.active_cell_indexes:
-            self.grid.remove_cell_from_hash_table(cell_index, self.cell_positions[cell_index])
-
+        # Copy the positions of the cells
+        old_positions = self.cell_positions.copy()
         # Updating the cell's position
         self.cell_positions = self.cell_positions + dif_positions
 
@@ -853,12 +855,14 @@ class Culture:
         # Enforcing boundary condition
         self.cell_positions = np.mod(self.cell_positions, self.side)
 
+        # Remove the cells from their old place in grid and add them to their 
+        # new place 
         for cell_index in self.active_cell_indexes:
-            # Add the cells to their new place in the grid
-            self.grid.add_cell_to_hash_table(cell_index, self.cell_positions[cell_index])
-            # Reset the neighbor dictionaries to empty
-            self.cells[cell_index].neighbors_relative_pos = dict()
-            self.cells[cell_index].neighbors_overlap = dict()
+            old_key = self.grid.get_hash_key(old_positions[cell_index])
+            new_key = self.grid.get_hash_key(self.cell_positions[cell_index])
+            if old_key != new_key:
+                self.grid.remove_cell_from_hash_table(cell_index, old_positions[cell_index])
+                self.grid.add_cell_to_hash_table(cell_index, self.cell_positions[cell_index])
 
     # ---------------------------------------------------------
 
